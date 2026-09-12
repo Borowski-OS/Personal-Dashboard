@@ -145,6 +145,25 @@
   .hidden { display:none !important; }
 
    
+  html { scroll-behavior:smooth; }
+  .stat { transition:border-color .15s, transform .12s, box-shadow .15s; }
+  .stat:hover { border-color:#4a4a4a; }
+  .stat.link:hover { box-shadow:0 6px 20px rgba(0,0,0,.22); }
+  .stat .value { font-variant-numeric:tabular-nums; }
+  .stat .label { color:var(--text-dim); }
+  .card { box-shadow:0 1px 3px rgba(0,0,0,.18); transition:border-color .15s, box-shadow .15s; }
+  .num, .mono { font-variant-numeric:tabular-nums; }
+  .section-title { display:flex; align-items:center; gap:9px; }
+  .section-title::before { content:''; width:3px; height:13px; border-radius:2px; background:var(--gold); display:inline-block; flex-shrink:0; }
+   
+  .subnav { position:sticky; top:var(--nav-h); z-index:1500; display:flex; gap:8px; flex-wrap:wrap;
+    padding:12px 0 14px; margin:-6px 0 8px; background:linear-gradient(var(--bg) 78%, transparent); }
+  .subpill { text-decoration:none; font-size:12.5px; font-weight:600; color:var(--text-muted);
+    border:1px solid var(--card-border-2); border-radius:20px; padding:6px 15px; transition:all .15s; }
+  .subpill:hover { color:var(--text); border-color:#666; background:#2a2a2a; }
+  [id^="sec-"] { scroll-margin-top:calc(var(--nav-h) + 62px); }
+
+   
   #modal { position:fixed; inset:0; z-index:2600; background:rgba(10,10,10,.7); backdrop-filter:blur(4px);
     display:flex; align-items:flex-start; justify-content:center; padding:40px 16px; overflow-y:auto; }
   #modal .sheet { width:100%; max-width:760px; background:var(--card-bg); border:1px solid var(--card-border-2);
@@ -554,8 +573,10 @@ function tableEl(cols, rows, opts){
     }).join('')+(canEdit?'<td class="num"><button class="ebtn" onclick="event.stopPropagation();openEditor(\''+opts.editTab+'\','+(r.__row||'')+')">✎</button></td>':'')+'</tr>'; }).join('');
   return addBar + h+'</tbody></table></div>';
 }
-function statTile(label,value,foot,tab){
-  return '<div class="stat'+(tab?' link" onclick="navGo(\''+tab+'\')"':'"')+'>'
+function statTile(label,value,foot,tab,accentVar){
+  var cls='stat'+(tab?' link':''); var on=tab?' onclick="navGo(\''+tab+'\')"':'';
+  var st=accentVar?' style="border-top:2px solid var('+accentVar+')"':'';
+  return '<div class="'+cls+'"'+on+st+'>'
     +'<div class="label">'+esc(label)+'</div><div class="value">'+value+'</div>'
     +(foot?'<div class="foot">'+esc(foot)+'</div>':'')+'</div>';
 }
@@ -643,12 +664,12 @@ function renderOverview(){
 
   
   var tiles=[
-    statTile('Net worth', nw?money(nw):'—', 'assets − debts', 'money'),
-    statTile('Weight', (!isNaN(cur)?cur+' lb':'—'), (!isNaN(cur)&&!isNaN(goal)?('goal '+goal+' · '+Math.max(0,Math.round(cur-goal))+' to go'):'set in Health'), 'health'),
-    statTile('Flying', has(fly.total_hours)?fly.total_hours+' hrs':'—', fly.stage||'set in Flying', 'flying'),
-    statTile('Workouts / wk', wk||'—', 'from Strava · aim 5–6', 'health'),
-    statTile('Active projects', actProj||'—', 'in progress', 'projects'),
-    '<div class="stat link" onclick="navGo(\'money\')"><div class="label">Bitcoin (live)</div><div class="value mono" data-live="btc">…</div><div class="foot">market spot</div></div>'
+    statTile('Net worth', nw?money(nw):'—', 'assets − debts', 'money', '--emerald'),
+    statTile('Weight', (!isNaN(cur)?cur+' lb':'—'), (!isNaN(cur)&&!isNaN(goal)?('goal '+goal+' · '+Math.max(0,Math.round(cur-goal))+' to go'):'set in Health'), 'health', '--pink'),
+    statTile('Flying', has(fly.total_hours)?fly.total_hours+' hrs':'—', fly.stage||'set in Flying', 'flying', '--sky'),
+    statTile('Workouts / wk', wk||'—', 'from Strava · aim 5–6', 'health', '--pink'),
+    statTile('Active projects', actProj||'—', 'in progress', 'projects', '--orange'),
+    '<div class="stat link" onclick="navGo(\'money\')" style="border-top:2px solid var(--gold)"><div class="label">Bitcoin (live)</div><div class="value mono" data-live="btc">…</div><div class="foot">market spot</div></div>'
   ];
 
   
@@ -699,11 +720,15 @@ function money2(v){ var n=num(v); if(isNaN(n)) return '—'; if(Math.abs(n)>=100
 
 
 function renderHome(){
-  function divider(t){ return '<div style="height:30px"></div><div class="section-title" style="font-size:15px;color:var(--text-muted);border-top:1px solid var(--card-border);padding-top:18px">'+t+'</div>'; }
-  return renderMoney()
-    + divider('Bills & vendor contacts') + renderBills()
-    + divider('Family & household') + renderFamily()
-    + divider('Travel & memberships') + renderTravel();
+  function divider(t,id){ return '<div id="'+id+'" style="height:30px"></div><div class="section-title" style="font-size:15px;color:var(--text-muted);border-top:1px solid var(--card-border);padding-top:18px">'+t+'</div>'; }
+  var subnav='<div class="subnav">'
+    +[['Money','sec-money'],['Bills','sec-bills'],['Family','sec-family'],['Travel & points','sec-travel']]
+      .map(function(s){return '<a class="subpill" href="#'+s[1]+'">'+s[0]+'</a>';}).join('')+'</div>';
+  return subnav
+    + '<div id="sec-money"></div>' + renderMoney()
+    + divider('Bills & vendor contacts','sec-bills') + renderBills()
+    + divider('Family & household','sec-family') + renderFamily()
+    + divider('Travel & memberships','sec-travel') + renderTravel();
 }
 
 
