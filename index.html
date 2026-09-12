@@ -453,6 +453,7 @@ var ESCHEMA={
   Points:{cols:['Program','Type','Number','Balance','Notes']},
   Hunts:{cols:['Species','State','Method','Access','Window','Deadline','Cost','Notes']},
   HuntPoints:{cols:['State','Species','Points','Category','Notes']},
+  Workouts:{cols:['Date','Type','Name','Distance','Duration','AvgHR','Elevation','Calories','StravaID','Notes']},
   Milestones:{cols:['Area','Milestone','Who','Status','Date','Notes']},
   Quotes:{cols:['Quote','Author','Source','Tag']},
   NextActions:{cols:['Action','Tab','Due','Done']},
@@ -522,6 +523,15 @@ async function afterWrite(){
   var api=localStorage.getItem(LS_API), pw=sessionStorage.getItem(SS_PW);
   try{ var res=await jsonp(api+'?pw='+pw); if(res&&res.ok){ DATA=res.data||{}; $('stamp').textContent=fmtStamp(res.updated); } }catch(e){}
   closeModal(); render(CURRENT);
+}
+async function stravaSync(){
+  var el=$('stravaStatus'); if(el) el.textContent='Syncing from Strava…';
+  var res=await apiWrite({action:'syncstrava'});
+  if(res&&res.ok){ if(el) el.textContent='Synced '+ (res.added||0) +' new workout'+((res.added===1)?'':'s')+'.';
+    var api=localStorage.getItem(LS_API), pw=sessionStorage.getItem(SS_PW);
+    try{ var r2=await jsonp(api+'?pw='+pw); if(r2&&r2.ok){ DATA=r2.data||{}; } }catch(e){}
+    render(CURRENT);
+  } else if(el){ el.textContent = (res&&res.error==='not connected') ? 'Strava isn\'t connected yet.' : ('Sync error: '+((res&&res.error)||'try again')); }
 }
 
 function card(title, sub, body, accentVar){
@@ -1110,13 +1120,21 @@ function renderHealth(){
     +'<div class="kv-row"><span class="k">Fats</span><span class="v">~70–85 g/day</span></div>'
     +'<p style="font-size:12.5px;color:var(--text-muted);margin:12px 0 0">Anchor every meal on 40–50g protein (eggs, Greek yogurt, chicken, beef, whey). Fuel the long Sat bike and Mon run with carbs before/during; pull carbs on Wed/Sun. A modest ~500 cal/day deficit (not aggressive) protects strength and recovery — at 208→185 that\'s ~5–6 months. Weigh daily, track the 7-day average, adjust ~200 cal if the average stalls 2 weeks.</p>';
 
-  var connect='<p style="font-size:13px;color:var(--text-muted);margin:0 0 6px">I can populate this panel from:</p>'
-    +'<div class="kv-row"><span class="k">Whoop</span><span class="v" style="color:var(--text-dim)">recovery, HRV, sleep, strain — export/API</span></div>'
-    +'<div class="kv-row"><span class="k">Strava / Garmin</span><span class="v" style="color:var(--text-dim)">runs & rides, HR, pace/power</span></div>'
-    +'<div class="kv-row"><span class="k">Apple Health + smart scale</span><span class="v" style="color:var(--text-dim)">daily weight, steps, workouts</span></div>'
-    +'<div class="kv-row"><span class="k">MyFitnessPal / Cronometer</span><span class="v" style="color:var(--text-dim)">calories & macros</span></div>'
-    +'<div class="kv-row"><span class="k">CompTrain</span><span class="v" style="color:var(--text-dim)">the daily programming</span></div>'
-    +'<p style="font-size:12px;color:var(--text-dim);margin:10px 0 0">No live fitness connector is wired in yet — for now, log weight/metrics right here with ✎ Edit, or export any of the above and I\'ll import the history.</p>';
+  var workouts=arr('Workouts');
+  var stravaOn=workouts.length>0;
+  var connect='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><span style="font-size:13px;color:var(--text-muted)">Auto-sync your training:</span>'
+    +'<button class="ebtn pri" onclick="stravaSync()">↻ Sync Strava</button></div>'
+    +'<div class="foot" id="stravaStatus" style="margin-bottom:10px">'+(stravaOn?(workouts.length+' workouts synced from Strava.'):'Connect Strava (see chat) then hit Sync.')+'</div>'
+    +'<div class="kv-row"><span class="k">Strava</span><span class="v" style="color:'+(stravaOn?'var(--green)':'var(--text-dim)')+'">'+(stravaOn?'connected — runs & rides':'runs & rides (ready to connect)')+'</span></div>'
+    +'<div class="kv-row"><span class="k">Whoop</span><span class="v" style="color:var(--text-dim)">API is flaky — skipped</span></div>'
+    +'<div class="kv-row"><span class="k">Apple Health</span><span class="v" style="color:var(--text-dim)">needs a bridge app (Health Auto Export)</span></div>'
+    +'<div class="kv-row"><span class="k">Cronometer</span><span class="v" style="color:var(--text-dim)">macros — export & I\'ll import</span></div>'
+    +'<p style="font-size:12px;color:var(--text-dim);margin:10px 0 0">Weight isn\'t in Strava — log it here with ✎ Edit (or a smart scale via Apple Health later).</p>';
+
+  var woCols=[{label:'Date',key:'Date'},{label:'Type',render:function(r){return has(r.Type)?'<span class="chip">'+esc(r.Type)+'</span>':'';}},
+    {label:'Workout',key:'Name'},{label:'Dist',num:true,key:'Distance'},{label:'Time',num:true,key:'Duration'},
+    {label:'Avg HR',num:true,key:'AvgHR'},{label:'Elev',num:true,key:'Elevation'}];
+  var woCard = stravaOn ? '<div style="height:22px"></div>'+card('Recent workouts','Auto-synced from Strava.', tableEl(woCols, workouts.slice().reverse().slice(0,15), {}), '--pink') : '';
 
   var logCols=[{label:'Date',key:'Date'},{label:'Metric',key:'Metric'},{label:'Value',num:true,key:'Value'},{label:'Notes',key:'Notes'}];
   return (EDIT?'<div class="editbar">'+kvEditBtn('Health')+'</div>':'')
@@ -1127,9 +1145,11 @@ function renderHealth(){
     + '</div><div style="height:22px"></div>'
     + '<div class="grid cols-2">'
     + card('Your metrics','Rhythm and essentials.', infoHtml, '--pink')
-    + card('Log & connections','', connect, '--pink')
-    + '</div><div style="height:22px"></div>'
-    + card('Recent log','', tableEl(logCols, log.slice().reverse(), {empty:'Log weight & metrics with ✎ Edit.',editTab:'HealthLog'}), '--pink');
+    + card('Connections','Auto-sync + logging.', connect, '--pink')
+    + '</div>'
+    + woCard
+    + '<div style="height:22px"></div>'
+    + card('Weight & metrics log','', tableEl(logCols, log.slice().reverse(), {empty:'Log weight & metrics with ✎ Edit.',editTab:'HealthLog'}), '--pink');
 }
 
 
