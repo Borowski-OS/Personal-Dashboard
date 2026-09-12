@@ -595,55 +595,102 @@ function upcomingAlerts(){
 
 
 
-function renderOverview(){
-  var bills=totalMonthlyBills(), nw=netWorth(), bt=budgetTotals();
-  var tiles=[];
-  tiles.push(statTile('Net worth', nw?money(nw):'—', 'assets − debts', 'money'));
-  tiles.push(statTile('Monthly bills', bills?money(bills):'—', arr('Bills').length+' tracked', 'bills'));
-  var fly=kv('Flying');
-  tiles.push(statTile('Flying', has(fly.total_hours)?fly.total_hours+' hrs':'—', fly.next_lesson_focus||fly.stage||'set in Flying', 'flying'));
-  tiles.push(statTile('Projects', arr('Projects').filter(function(p){return String(p.Status||'').toLowerCase()!=='done';}).length||'—', 'active', 'projects'));
-  var tr=arr('Travel').filter(function(t){return String(t.Status||'').toLowerCase()!=='past';}).length;
-  tiles.push(statTile('Upcoming trips', tr||'—', 'see Travel', 'travel'));
+var DOMAIN={overview:['Life','--gold'],bills:['Home','--teal'],family:['Family','--amber'],projects:['Projects','--orange'],
+  flying:['Flying','--sky'],money:['Money','--emerald'],hobbies:['Hobbies','--violet'],vehicles:['Vehicles','--rose'],
+  health:['Health','--pink'],travel:['Travel','--cyan']};
+function domChip(tab){ var d=DOMAIN[tab]||DOMAIN.overview; return '<span class="chip" style="background:transparent;border:1px solid var('+d[1]+');color:var('+d[1]+');font-size:10px;padding:1px 7px;margin:0">'+d[0]+'</span>'; }
+function weekWorkouts(){ var now=Date.now(); return arr('Workouts').filter(function(w){var m=String(w.Date||'').match(/(\d{4})-(\d{2})-(\d{2})/); if(!m) return false; var d=new Date(+m[1],+m[2]-1,+m[3]).getTime(); return (now-d)<=7.5*864e5 && d<=now+864e5;}).length; }
+function lastWorkout(){ var ws=arr('Workouts').slice().filter(function(w){return has(w.Date);}); if(!ws.length) return null;
+  ws.sort(function(a,b){return String(b.Date).localeCompare(String(a.Date));}); return ws[0]; }
+function flyingNextStep(){ var f=kv('Flying');
+  if(!/pass|complete|done/i.test(String(f.written_status||''))) return 'Take the FAA written (knowledge) exam';
+  if(num(f.solo_hours)<=0) return 'First solo — dial in landing consistency';
+  if(num(f.xc_hours)<=0) return 'Knock out your solo cross-country';
+  return 'Prep for the PPL checkride'; }
+
+ 
+function smartSteps(){
+  var out=[];
+  arr('NextActions').filter(function(a){return !truthy(a.Done)&&has(a.Action);}).forEach(function(a){
+    var d=has(a.Due)?daysUntilDate(a.Due):null; out.push({t:a.Action, tab:a.Tab||'overview', d:d, sort:(d==null?300:d)}); });
   
-  tiles.push('<div class="stat link" onclick="navGo(\'money\')"><div class="label">Bitcoin (live)</div><div class="value mono" data-live="btc">…</div><div class="foot">market spot · updates on load</div></div>');
+  var h=kv('Health'), cur=num(h.weight), goal=num(h.weight_goal);
+  var wk=weekWorkouts();
+  if(wk<5) out.push({t:'Train — '+wk+' workout'+(wk===1?'':'s')+' logged this week (aim 5–6)', tab:'health', d:0, sort:8});
+  if(!isNaN(cur)&&!isNaN(goal)&&cur>goal) out.push({t:'Log today’s weight ('+Math.round(cur-goal)+' lb to your '+goal+' goal)', tab:'health', d:null, sort:40});
+  
+  var fn=flyingNextStep(); if(!out.some(function(s){return /written|solo|checkride/i.test(s.t)&&s.tab==='flying';})) out.push({t:fn, tab:'flying', d:null, sort:45});
+  
+  var seen={}; out=out.filter(function(s){var k=s.t.toLowerCase().slice(0,24); if(seen[k])return false; seen[k]=1; return true;});
+  out.sort(function(a,b){return a.sort-b.sort;});
+  return out;
+}
+function snapCard(tab, rowsHtml){ var d=DOMAIN[tab];
+  return '<div class="card" style="border-top:3px solid var('+d[1]+');cursor:pointer" onclick="navGo(\''+tab+'\')">'
+    +'<div style="display:flex;justify-content:space-between;align-items:center"><h2 style="font-size:15px">'+d[0]+'</h2><span class="foot" style="color:var('+d[1]+')">Open →</span></div>'
+    +'<div style="margin-top:8px">'+rowsHtml+'</div></div>'; }
+function srow(k,v){ return '<div class="kv-row" style="padding:7px 0"><span class="k">'+esc(k)+'</span><span class="v">'+v+'</span></div>'; }
+
+function renderOverview(){
+  var bills=totalMonthlyBills(), nw=netWorth();
+  var fly=kv('Flying'), h=kv('Health'), cur=num(h.weight), goal=num(h.weight_goal);
+  var actProj=arr('Projects').filter(function(p){return String(p.Status||'').toLowerCase()!=='done';}).length;
+  var wk=weekWorkouts();
 
   
+  var tiles=[
+    statTile('Net worth', nw?money(nw):'—', 'assets − debts', 'money'),
+    statTile('Weight', (!isNaN(cur)?cur+' lb':'—'), (!isNaN(cur)&&!isNaN(goal)?('goal '+goal+' · '+Math.max(0,Math.round(cur-goal))+' to go'):'set in Health'), 'health'),
+    statTile('Flying', has(fly.total_hours)?fly.total_hours+' hrs':'—', fly.stage||'set in Flying', 'flying'),
+    statTile('Workouts / wk', wk||'—', 'from Strava · aim 5–6', 'health'),
+    statTile('Active projects', actProj||'—', 'in progress', 'projects'),
+    '<div class="stat link" onclick="navGo(\'money\')"><div class="label">Bitcoin (live)</div><div class="value mono" data-live="btc">…</div><div class="foot">market spot</div></div>'
+  ];
+
+  
+  var steps=smartSteps();
+  var stepsHtml = steps.length
+    ? steps.slice(0,14).map(function(s){return '<div class="kv-row" style="cursor:pointer" onclick="navGo(\''+s.tab+'\')"><span class="k">'+domChip(s.tab)+' '+esc(s.t)+'</span><span class="v '+(s.d!=null?dueClass(s.d):'')+'">'+(s.d!=null?fmtDue(s.d):'')+'</span></div>';}).join('')
+    : '<div class="empty">You’re all caught up. Add goals/tasks and they’ll show here.</div>';
   var al=upcomingAlerts();
   var alertHtml = al.length
     ? al.slice(0,8).map(function(a){return '<div class="kv-row" style="cursor:pointer" onclick="navGo(\''+a.tab+'\')"><span class="k">'+a.label+(a.sub?' <span style="color:var(--text-dim)">· '+a.sub+'</span>':'')+'</span><span class="v '+dueClass(a.d)+'">'+fmtDue(a.d)+'</span></div>';}).join('')
     : '<div class="empty">Nothing due in the next couple weeks. 🎉</div>';
 
   
-  var actions = arr('NextActions').filter(function(a){return !truthy(a.Done)&&has(a.Action);})
-    .map(function(a){return {t:a.Action, tab:a.Tab||'overview', due:a.Due};});
-  var actionsHtml = actions.length
-    ? actions.slice(0,8).map(function(a){return '<div class="kv-row" style="cursor:pointer" onclick="navGo(\''+a.tab+'\')"><span class="k">'+esc(a.t)+'</span><span class="v">'+(has(a.due)?esc(a.due):'')+'</span></div>';}).join('')
-    : '<div class="empty">No open next-actions yet.</div>';
+  var debts=arr('Debts').slice().sort(function(a,b){return num(b.Balance)-num(a.Balance);});
+  var bd=debts[0]; var bdRate=bd?num(bd.Rate):NaN; if(bdRate<1) bdRate=bdRate*100;
+  var money=snapCard('money', srow('Net worth', money2(nw))+srow('Bills / mo', money2(bills))+(bd?srow('Top debt', esc(String(bd.Name).replace(/ Mortgage$/,''))+' '+money2(bd.Balance)+(isNaN(bdRate)?'':' @'+bdRate.toFixed(2)+'%')):''));
+  var flyCard=snapCard('flying', srow('Hours', has(fly.total_hours)?fly.total_hours+' hrs':'—')+srow('Stage', esc(fly.stage||'—'))+srow('Next', esc(flyingNextStep())));
+  var lw=lastWorkout();
+  var healthCard=snapCard('health', srow('Weight', (!isNaN(cur)?cur+' → '+(isNaN(goal)?'':goal)+' lb':'—'))+srow('This week', wk+' workouts')+(lw?srow('Last', esc(String(lw.Type||'').replace(/([a-z])([A-Z])/g,'$1 $2'))+' '+esc(lw.Distance||'')):''));
+  var hp=arr('HuntPoints').filter(function(p){return num(p.Points)>0;}).sort(function(a,b){return num(b.Points)-num(a.Points);});
+  var huntCard=snapCard('hobbies', hp.length?hp.slice(0,3).map(function(p){return srow(esc(p.State)+' '+esc(String(p.Species).replace(/ -.*/,'')), '<span class="mono">'+esc(p.Points)+' pts</span>');}).join('')+'<div class="foot" style="margin-top:6px">Top point balances</div>':srow('Hunts','see planner'));
+  var openTasks=arr('ProjectTasks').filter(function(t){return !truthy(t.Done)&&has(t.Task);}).map(function(t){return {t:t,d:daysUntilDate(t.Due)};}).sort(function(a,b){return (a.d==null?999:a.d)-(b.d==null?999:b.d);});
+  var projCard=snapCard('projects', srow('Active', actProj+' project'+(actProj===1?'':'s'))+srow('Open tasks', openTasks.length)+(openTasks.length?srow('Next', esc(openTasks[0].t.Task).slice(0,32)):''));
+  var homeAlert=al.filter(function(a){return a.tab==='bills'||a.tab==='vehicles'||a.tab==='family';})[0];
+  var homeCard=snapCard('bills', srow('Bills / mo', money2(bills))+srow('Contacts', arr('Contacts').length)+(homeAlert?srow('Coming up', esc(homeAlert.label)+' '+fmtDue(homeAlert.d)):srow('Renewals','none soon')));
 
-  var highlights = arr('Highlights').filter(function(h){return has(h.Label)&&has(h.Value);})
-    .sort(function(a,b){return num(a.Order)-num(b.Order);});
-  var hlHtml = highlights.length
-    ? '<div class="grid cols-3" style="margin-bottom:22px">'+highlights.map(function(h){return statTile(h.Label,esc(h.Value),h.Sub,h.Tab);}).join('')+'</div>' : '';
-
-  
   var quotes=arr('Quotes').filter(function(q){return has(q.Quote);});
   var qHtml='';
   if(quotes.length){
     var doy=Math.floor((Date.now()-new Date(new Date().getFullYear(),0,0))/864e5);
     var q=quotes[doy%quotes.length];
     qHtml='<div class="card" style="border-left:3px solid var(--gold);margin-bottom:22px;background:linear-gradient(90deg,rgba(234,179,8,.05),transparent)">'
-      +'<div style="font-size:17px;line-height:1.55;font-weight:400;color:var(--text)">“'+esc(q.Quote)+'”</div>'
+      +'<div style="font-size:17px;line-height:1.55;color:var(--text)">“'+esc(q.Quote)+'”</div>'
       +'<div class="foot" style="margin-top:10px;color:var(--text-muted)">— '+esc(q.Author||'Unknown')+(has(q.Source)?', <span style="font-style:italic">'+esc(q.Source)+'</span>':'')+'</div></div>';
   }
 
-  return qHtml + hlHtml
+  return qHtml
     + '<div class="grid cols-3" style="margin-bottom:22px">'+tiles.join('')+'</div>'
-    + '<div class="grid cols-2">'
-    + card('Coming up','Due dates & renewals across everything — autopay bills hidden.', alertHtml, '--gold')
-    + card('Next actions','Things you\'ve flagged to do', actionsHtml, '--gold')
-    + '</div>';
+    + '<div class="grid cols-2" style="margin-bottom:22px">'
+    + card('Your next steps','Auto-built from your goals, tasks & status — soonest first.', stepsHtml, '--gold')
+    + card('Coming up','Due dates & renewals — autopay hidden.', alertHtml, '--gold')
+    + '</div>'
+    + '<div class="section-title">Every area at a glance</div>'
+    + '<div class="grid cols-3">'+money+flyCard+healthCard+huntCard+projCard+homeCard+'</div>';
 }
+function money2(v){ var n=num(v); if(isNaN(n)) return '—'; if(Math.abs(n)>=1000) return '$'+Math.round(n/1000)+'k'; return money(v); }
 
 
 
