@@ -141,6 +141,25 @@
   #gate .err { color:var(--red); font-size:13px; margin-top:12px; min-height:16px; }
   #gate .tiny { color:var(--text-dim); font-size:11px; margin-top:16px; line-height:1.5; }
   .hidden { display:none !important; }
+
+   
+  #modal { position:fixed; inset:0; z-index:2600; background:rgba(10,10,10,.7); backdrop-filter:blur(4px);
+    display:flex; align-items:flex-start; justify-content:center; padding:40px 16px; overflow-y:auto; }
+  #modal .sheet { width:100%; max-width:760px; background:var(--card-bg); border:1px solid var(--card-border-2);
+    border-radius:16px; padding:26px 28px 30px; margin:auto; }
+  #modal .mhead { display:flex; justify-content:space-between; align-items:flex-start; gap:16px; margin-bottom:6px; }
+  #modal h2 { margin:0; font-size:23px; letter-spacing:-.3px; }
+  #modal .mval { text-align:right; white-space:nowrap; }
+  #modal .mval .big { font-size:22px; font-weight:700; font-family:'DM Mono',monospace; color:var(--rose); }
+  #modal .mval .sm { color:var(--text-dim); font-size:11px; }
+  #modal .mclose { position:sticky; top:0; background:none; border:1px solid var(--card-border-2); color:var(--text-muted);
+    border-radius:8px; width:34px; height:34px; font-size:18px; cursor:pointer; flex-shrink:0; }
+  #modal .mclose:hover { color:var(--text); border-color:#666; }
+  .msec { margin-top:20px; }
+  .msec .h { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--rose); margin-bottom:8px; }
+  .mgrid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:0 26px; }
+  @media (max-width:560px){ .mgrid{grid-template-columns:1fr;} }
+  .vinspin { color:var(--text-dim); font-size:13px; font-style:italic; }
   .loading { display:flex; align-items:center; justify-content:center; height:60vh; color:var(--text-muted); font-size:14px; }
   .spinner { width:26px; height:26px; border:3px solid #333; border-top-color:var(--gold); border-radius:50%; animation:spin 1s linear infinite; margin-right:12px; }
   @keyframes spin { to{transform:rotate(360deg);} }
@@ -193,6 +212,8 @@
     <div class="tiny">Enter the family password to view the dashboard. It's remembered on this device.</div>
   </div>
 </div>
+
+<div id="modal" class="hidden" onclick="if(event.target===this)closeModal()"><div class="sheet" id="modalSheet"></div></div>
 
 <main id="app" class="hidden">
   <div class="dashboard">
@@ -816,22 +837,91 @@ function renderHobbies(){
 
 
 
+function isAircraft(v){ return /air|plane|aircraft|maule|cessna|piper|cirrus/i.test(String(v.Type||'')+' '+String(v.Make||'')+' '+String(v.Name||'')); }
+function vehName(v){ return [v.Year,v.Make,v.Model].filter(has).join(' ')||v.Name||'Vehicle'; }
+
 function renderVehicles(){
-  var vs=arr('Vehicles'), svc=arr('VehicleService');
+  var vs=arr('Vehicles');
   if(!vs.length) return card('Vehicles','', '<div class="empty">Add your vehicles in the Vehicles tab — mileage, registration & insurance renewals, loan.</div>','--rose');
-  var cards=vs.map(function(v){
-    var name=[v.Year,v.Make,v.Model].filter(has).join(' ')||v.Name;
-    var s=svc.filter(function(x){return String(x.Vehicle||'').trim()===String(v.Name||'').trim();});
-    var rows=[['Mileage',v.Mileage],['Plate',v.Plate],['Registration',v.RegRenewal],
-      ['Insurance',has(v.InsProvider)?(v.InsProvider+(has(v.InsRenewal)?' · '+v.InsRenewal:'')):v.InsRenewal],
-      ['Loan',has(v.LoanBalance)?money(v.LoanBalance):'']].filter(function(r){return has(r[1]);});
-    var svcHtml=s.length?'<div class="section-title" style="margin-top:14px">Service</div>'+s.slice().reverse().slice(0,5).map(function(x){return '<div class="kv-row"><span class="k">'+esc(x.Date||'')+' · '+esc(x.Service||'')+'</span><span class="v">'+money(x.Cost)+'</span></div>';}).join(''):'';
-    return '<div class="card" style="border-top:3px solid var(--rose)"><h2>'+esc(name||'Vehicle')+'</h2>'
-      +(has(v.Name)&&name!==v.Name?'<div class="sub">'+esc(v.Name)+'</div>':'<div class="sub">&nbsp;</div>')
+  window.__vehicles = vs;
+  var cards=vs.map(function(v,idx){
+    var air=isAircraft(v);
+    var val = has(v.Value)? money(v.Value) : '—';
+    var loanTxt = (has(v.LoanBalance)&&num(v.LoanBalance)>0) ? money(v.LoanBalance)+' owed' : 'Paid off';
+    var rows=[];
+    if(air){ rows.push(['Tail #', v.Plate||v.Name]); rows.push(['Type','Aircraft']); }
+    else { rows.push(['Mileage', has(v.Mileage)?v.Mileage:'—']); rows.push(['Plate', has(v.Plate)?v.Plate:'—']); rows.push(['Registration', has(v.RegRenewal)?v.RegRenewal:'—']); }
+    rows.push(['Insurance', has(v.InsProvider)?(v.InsProvider+(has(v.InsRenewal)?' · '+v.InsRenewal:'')):(has(v.InsRenewal)?v.InsRenewal:'—')]);
+    rows.push([air?'Loan':'Loan', loanTxt]);
+    return '<div class="card" style="border-top:3px solid var(--rose);cursor:pointer" onclick="openVehicle('+idx+')">'
+      +'<div style="display:flex;justify-content:space-between;gap:12px;align-items:start">'
+      +'<div><h2>'+esc(vehName(v))+'</h2><div class="sub">'+esc(air?'Aircraft':(has(v.Owner)?v.Owner+'’s vehicle':'Vehicle'))+'</div></div>'
+      +'<div style="text-align:right"><div class="mono" style="font-size:20px;font-weight:700">'+val+'</div><div class="foot">est. value</div></div></div>'
       +rows.map(function(r){return '<div class="kv-row"><span class="k">'+esc(r[0])+'</span><span class="v">'+esc(r[1])+'</span></div>';}).join('')
-      +svcHtml+'</div>';
+      +'<div class="foot" style="margin-top:12px;color:var(--sky)">View full details &amp; live specs →</div></div>';
   }).join('');
   return '<div class="grid cols-2">'+cards+'</div>';
+}
+
+function mkv(label,val){ return has(val)?'<div class="kv-row"><span class="k">'+esc(label)+'</span><span class="v">'+esc(val)+'</span></div>':''; }
+function openVehicle(idx){
+  var v=(window.__vehicles||[])[idx]; if(!v) return;
+  var air=isAircraft(v);
+  var svc=arr('VehicleService').filter(function(x){return String(x.Vehicle||'').trim()===String(v.Name||'').trim();});
+  var loanTxt = (has(v.LoanBalance)&&num(v.LoanBalance)>0) ? money(v.LoanBalance)+(has(v.LoanLender)?' · '+esc(v.LoanLender):'') : 'Paid off';
+
+  var identity = mkv('Type', v.Type||(air?'Aircraft':'Vehicle'))
+    + mkv('Year / Make / Model', [v.Year,v.Make,v.Model].filter(has).join(' '))
+    + mkv('Trim', v.Trim) + mkv(air?'Tail number':'License plate', v.Plate)
+    + mkv(air?'Serial / N-number':'VIN', v.VIN) + mkv('Owner', v.Owner);
+
+  var ownership = mkv('Purchase date', v.PurchaseDate) + mkv('Purchase price', has(v.PurchasePrice)?money(v.PurchasePrice):'')
+    + mkv('Current est. value', has(v.Value)?money(v.Value)+(has(v.ValueAsOf)?' (as of '+v.ValueAsOf+')':''):'')
+    + mkv('Loan', loanTxt) + mkv('Title location', v.TitleLocation);
+
+  var reg = air
+    ? mkv('Insurer', v.InsProvider) + mkv('Policy #', v.InsPolicy) + mkv('Insurance renewal', v.InsRenewal)
+    : mkv('Registration renewal', v.RegRenewal) + mkv('Mileage', v.Mileage) + mkv('Insurer', v.InsProvider) + mkv('Policy #', v.InsPolicy) + mkv('Insurance renewal', v.InsRenewal);
+
+  var svcHtml = svc.length
+    ? svc.slice().reverse().map(function(x){return '<div class="kv-row"><span class="k">'+esc(x.Date||'')+' · '+esc(x.Service||'')+(has(x.Mileage)?' <span style="color:var(--text-dim)">@'+esc(x.Mileage)+'</span>':'')+'</span><span class="v">'+money(x.Cost)+'</span></div>';}).join('')
+    : '<div class="empty" style="padding:6px 0">No service logged yet.</div>';
+
+  var vinSection = (!air && has(v.VIN))
+    ? '<div class="msec"><div class="h">Live specs from VIN (NHTSA)</div><div id="vinBox"><span class="vinspin">Decoding '+esc(v.VIN)+' …</span></div></div>'
+    : (air ? '<div class="msec"><div class="h">Aircraft</div><div class="mgrid">'+mkv('Home field', kv('Flying').home_airport)+mkv('Notes', v.Notes)+'</div></div>' : '');
+
+  var html='<button class="mclose" onclick="closeModal()">×</button>'
+    + '<div class="mhead"><div><h2>'+esc(vehName(v))+'</h2><div class="sub">'+esc(air?'Aircraft':(has(v.Owner)?v.Owner+'’s vehicle':'Vehicle'))+'</div></div>'
+    + '<div class="mval"><div class="big">'+(has(v.Value)?money(v.Value):'—')+'</div><div class="sm">'+(has(v.ValueAsOf)?'KBB est. · '+esc(v.ValueAsOf):'estimated value')+'</div></div></div>'
+    + '<div class="msec"><div class="h">Identity</div><div class="mgrid">'+identity+'</div></div>'
+    + '<div class="msec"><div class="h">Ownership &amp; value</div><div class="mgrid">'+ownership+'</div></div>'
+    + '<div class="msec"><div class="h">'+(air?'Insurance':'Registration &amp; insurance')+'</div><div class="mgrid">'+reg+'</div></div>'
+    + vinSection
+    + '<div class="msec"><div class="h">Service history</div>'+svcHtml+'</div>'
+    + (has(v.Notes)&&!air?'<div class="msec"><div class="h">Notes</div><div style="font-size:13.5px;color:var(--text-muted);line-height:1.5">'+esc(v.Notes)+'</div></div>':'');
+
+  $('modalSheet').innerHTML=html;
+  $('modal').classList.remove('hidden');
+  if(!air && has(v.VIN)) decodeVin(v.VIN);
+}
+function closeModal(){ $('modal').classList.add('hidden'); $('modalSheet').innerHTML=''; }
+window.addEventListener('keydown', function(e){ if(e.key==='Escape') closeModal(); });
+
+function decodeVin(vin){
+  var box=$('vinBox'); if(!box) return;
+  fetch('https://vpic.nhtsa.dot.gov/api/vehicles/DecodeVinValues/'+encodeURIComponent(vin)+'?format=json')
+    .then(function(r){return r.json();})
+    .then(function(j){
+      var r=(j&&j.Results&&j.Results[0])||{};
+      var fields=[['Body class','BodyClass'],['Drive type','DriveType'],['Engine','DisplacementL'],['Cylinders','EngineCylinders'],
+        ['Engine HP','EngineHP'],['Fuel','FuelTypePrimary'],['Transmission','TransmissionStyle'],['Doors','Doors'],
+        ['GVWR','GVWR'],['Series','Series'],['Plant','PlantCity'],['Plant country','PlantCountry'],['Mfr','Manufacturer']];
+      var rows=fields.map(function(f){var val=r[f[1]]; return (val&&String(val).trim()&&String(val)!=='Not Applicable')?mkv(f[0], f[1]==='DisplacementL'?(val+'L'):val):'';}).join('');
+      box.innerHTML = rows ? '<div class="mgrid">'+rows+'</div><div class="foot" style="margin-top:8px">Decoded live from the free NHTSA vPIC database.</div>'
+        : '<span class="vinspin">No decode returned for this VIN.</span>';
+    })
+    .catch(function(){ if($('vinBox')) $('vinBox').innerHTML='<span class="vinspin">Couldn’t reach the VIN database right now.</span>'; });
 }
 
 
