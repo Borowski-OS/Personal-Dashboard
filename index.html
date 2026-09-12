@@ -160,6 +160,25 @@
   .mgrid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:0 26px; }
   @media (max-width:560px){ .mgrid{grid-template-columns:1fr;} }
   .vinspin { color:var(--text-dim); font-size:13px; font-style:italic; }
+
+   
+  .ebtn { appearance:none; background:none; border:1px solid var(--card-border-2); color:var(--text-muted);
+    border-radius:7px; padding:3px 9px; font-size:12px; cursor:pointer; font-family:inherit; white-space:nowrap; }
+  .ebtn:hover { color:var(--text); border-color:#666; }
+  .ebtn.pri { background:linear-gradient(135deg,var(--gold),var(--orange)); color:#1a1a1a; border:none; font-weight:700; }
+  .ebtn.danger { border-color:rgba(239,68,68,.5); color:#fca5a5; }
+  .ebtn.danger:hover { background:rgba(239,68,68,.12); }
+  .editbar { display:flex; justify-content:flex-end; margin-bottom:10px; }
+  .nav-tab.editon { color:var(--gold) !important; }
+  .efield { margin-bottom:12px; }
+  .efield label { display:block; font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--text-muted); font-weight:600; margin-bottom:5px; }
+  .efield input, .efield textarea, .efield select { width:100%; padding:9px 11px; border-radius:8px; border:1px solid var(--card-border-2);
+    background:#1c1c1c; color:var(--text); font-family:inherit; font-size:14px; }
+  .efield input:focus, .efield textarea:focus { outline:none; border-color:var(--gold); }
+  .efield textarea { min-height:70px; resize:vertical; }
+  .eactions { display:flex; gap:10px; margin-top:20px; align-items:center; }
+  .eactions .spacer { flex:1; }
+  .esaved { color:var(--green); font-size:13px; }
   .loading { display:flex; align-items:center; justify-content:center; height:60vh; color:var(--text-muted); font-size:14px; }
   .spinner { width:26px; height:26px; border:3px solid #333; border-top-color:var(--gold); border-radius:50%; animation:spin 1s linear infinite; margin-right:12px; }
   @keyframes spin { to{transform:rotate(360deg);} }
@@ -192,6 +211,7 @@
     <button class="nav-tab" data-tab="travel" onclick="navGo('travel')">Travel</button>
   </div>
   <div class="nav-right">
+    <button class="refresh-btn" id="editToggle" onclick="toggleEdit()">✎ Edit</button>
     <button class="refresh-btn" onclick="reload()">↻ Refresh</button>
     <button class="refresh-btn" onclick="signOut()">Lock</button>
   </div>
@@ -409,19 +429,116 @@ function render(tab){
   applyLive();
 }
 
+
+
+var EDIT=false;
+var ESCHEMA={
+  Bills:{cols:['Vendor','Category','Amount','Frequency','Autopay','DueDay','Phone','URL','Account','Personal','Notes']},
+  Contacts:{cols:['Name','Company','Category','Phone','Email','URL','Notes']},
+  BudgetCategories:{cols:['Category','Type','MonthlyBudget','MonthlyActual','Notes']},
+  Accounts:{cols:['Name','Institution','Type','Last4','Balance','AsOf','Notes']},
+  Debts:{cols:['Name','Lender','Type','Balance','Rate','Payment','DueDay','Property','Notes']},
+  Investments:{cols:['Name','Type','Value','CostBasis','AsOf','Notes']},
+  SavingsGoals:{cols:['Goal','Target','Current','TargetDate','Notes']},
+  NetWorthHistory:{cols:['Date','NetWorth','Notes']},
+  Projects:{cols:['Name','Area','Status','Priority','Budget','Spent','Owner','TargetDate','Notes']},
+  ProjectTasks:{cols:['Project','Task','Done','Due','Notes']},
+  Aircraft:{cols:['Tail','MakeModel','Owner','HomeField','Insurer','AnnualDue','Notes']},
+  FlightLog:{cols:['Date','Aircraft','Route','Hours','Type','Notes']},
+  Hobbies:{cols:['Name','Who','Cadence','Gear','Goal','Budget','Log','Notes']},
+  Vehicles:{cols:['Name','Type','Year','Make','Model','Trim','VIN','Plate','Mileage','Owner','RegRenewal','InsProvider','InsPolicy','InsRenewal','LoanBalance','LoanLender','PurchaseDate','PurchasePrice','Value','ValueAsOf','TitleLocation','Notes','Specs']},
+  VehicleService:{cols:['Vehicle','Date','Mileage','Service','Cost','Shop','NextDue','Notes']},
+  Travel:{cols:['Trip','Destination','StartDate','EndDate','Purpose','Who','Status','Notes']},
+  TravelChecklist:{cols:['Trip','Item','Done','Notes']},
+  Points:{cols:['Program','Type','Number','Balance','Notes']},
+  Hunts:{cols:['Species','State','Method','Access','Window','Deadline','Cost','Notes']},
+  HuntPoints:{cols:['State','Species','Points','Category','Notes']},
+  Milestones:{cols:['Area','Milestone','Who','Status','Date','Notes']},
+  Quotes:{cols:['Quote','Author','Source','Tag']},
+  NextActions:{cols:['Action','Tab','Due','Done']},
+  HealthLog:{cols:['Date','Metric','Value','Notes']},
+  Highlights:{cols:['Label','Value','Sub','Tab','Order']},
+  Config:{kv:true}, Flying:{kv:true}, Health:{kv:true}, Family:{kv:true}
+};
+var TEXTAREA_FIELDS={Notes:1,Specs:1,Quote:1,Log:1,Access:1,Weak_areas:1};
+function toggleEdit(){ EDIT=!EDIT; var b=$('editToggle'); if(b){ b.textContent=EDIT?'✓ Done':'✎ Edit'; b.style.color=EDIT?'var(--gold)':''; } render(CURRENT); }
+function editBtn(tab,rownum){ return EDIT?'<button class="ebtn" onclick="event.stopPropagation();openEditor(\''+tab+'\','+rownum+')">✎</button>':''; }
+function addBtn(tab,label){ return EDIT?'<div class="editbar"><button class="ebtn pri" onclick="openEditor(\''+tab+'\')">＋ Add '+esc(label||'')+'</button></div>':''; }
+function kvEditBtn(tab){ return EDIT?'<button class="ebtn" onclick="openKvEditor(\''+tab+'\')">✎ Edit</button>':''; }
+
+function apiWrite(params){
+  var pw=sessionStorage.getItem(SS_PW);
+  var qs=Object.keys(params).map(function(k){return encodeURIComponent(k)+'='+encodeURIComponent(params[k]);}).join('&');
+  return jsonp(API_URL+'?pw='+pw+'&'+qs);
+}
+function fieldInput(col,val){ val=val==null?'':String(val);
+  if(TEXTAREA_FIELDS[col]) return '<textarea id="ef_'+col+'">'+esc(val)+'</textarea>';
+  return '<input id="ef_'+col+'" type="text" value="'+esc(val)+'">'; }
+function openEditor(tab,rownum){
+  var def=ESCHEMA[tab]; if(!def) return; if(def.kv) return openKvEditor(tab);
+  var row=rownum?(arr(tab).filter(function(r){return String(r.__row)===String(rownum);})[0]||{}):{};
+  var fields=def.cols.map(function(c){return '<div class="efield"><label>'+esc(c)+'</label>'+fieldInput(c,row[c])+'</div>';}).join('');
+  var title=(rownum?'Edit ':'Add ')+tab.replace(/([a-z])([A-Z])/g,'$1 $2');
+  $('modalSheet').innerHTML='<button class="mclose" onclick="closeModal()">×</button>'
+    +'<div class="mhead"><h2>'+esc(title)+'</h2></div><div id="eform">'+fields+'</div>'
+    +'<div class="eactions">'+(rownum?'<button class="ebtn danger" onclick="deleteRecord(\''+tab+'\','+rownum+')">Delete</button>':'')
+    +'<span class="spacer"></span><span class="esaved" id="esaved"></span>'
+    +'<button class="ebtn" onclick="closeModal()">Cancel</button>'
+    +'<button class="ebtn pri" onclick="saveRecord(\''+tab+'\','+(rownum||'null')+')">Save</button></div>';
+  $('modal').classList.remove('hidden');
+}
+function collectForm(cols){ var o={}; cols.forEach(function(c){ var el=$('ef_'+c); if(el) o[c]=el.value; }); return o; }
+async function saveRecord(tab,rownum){
+  var def=ESCHEMA[tab]; var obj=collectForm(def.cols); $('esaved').textContent='Saving…';
+  var p={action:'upsert',tab:tab,row:JSON.stringify(obj)}; if(rownum&&rownum!=='null') p.rownum=rownum;
+  var res=await apiWrite(p);
+  if(res&&res.ok){ await afterWrite(); } else { $('esaved').textContent='Error — try again'; }
+}
+async function deleteRecord(tab,rownum){
+  if(!window.confirm('Delete this record? This removes the row from your sheet.')) return;
+  var res=await apiWrite({action:'delete',tab:tab,rownum:rownum});
+  if(res&&res.ok){ await afterWrite(); } else { $('esaved').textContent='Error deleting'; }
+}
+function openKvEditor(tab){
+  var obj=kv(tab), keys=Object.keys(obj);
+  var rows=keys.map(function(k,i){return '<div class="efield"><label>'+esc(k)+'</label><input id="kv_'+i+'" data-k="'+esc(k)+'" type="text" value="'+esc(String(obj[k]))+'"></div>';}).join('');
+  var blanks=''; for(var j=0;j<3;j++){ blanks+='<div style="display:flex;gap:8px;margin-bottom:10px"><input id="nk_'+j+'" type="text" placeholder="New field name" style="flex:1;padding:9px 11px;border-radius:8px;border:1px solid var(--card-border-2);background:#1c1c1c;color:var(--text);font-family:inherit"><input id="nv_'+j+'" type="text" placeholder="Value" style="flex:1;padding:9px 11px;border-radius:8px;border:1px solid var(--card-border-2);background:#1c1c1c;color:var(--text);font-family:inherit"></div>'; }
+  $('modalSheet').innerHTML='<button class="mclose" onclick="closeModal()">×</button><div class="mhead"><h2>Edit '+esc(tab)+'</h2></div>'
+    +'<div id="eform">'+rows+'<div class="section-title" style="margin-top:14px">Add new fields</div>'+blanks+'</div>'
+    +'<div class="eactions"><span class="spacer"></span><span class="esaved" id="esaved"></span>'
+    +'<button class="ebtn" onclick="closeModal()">Cancel</button>'
+    +'<button class="ebtn pri" onclick="saveKv(\''+tab+'\','+keys.length+')">Save</button></div>';
+  $('modal').classList.remove('hidden');
+}
+async function saveKv(tab,n){
+  var obj={};
+  for(var i=0;i<n;i++){ var el=$('kv_'+i); if(el) obj[el.getAttribute('data-k')]=el.value; }
+  for(var j=0;j<3;j++){ var nk=$('nk_'+j),nv=$('nv_'+j); if(nk&&nk.value.trim()) obj[nk.value.trim()]=nv?nv.value:''; }
+  $('esaved').textContent='Saving…';
+  var res=await apiWrite({action:'setkv',tab:tab,row:JSON.stringify(obj)});
+  if(res&&res.ok){ await afterWrite(); } else { $('esaved').textContent='Error'; }
+}
+async function afterWrite(){
+  var api=localStorage.getItem(LS_API), pw=sessionStorage.getItem(SS_PW);
+  try{ var res=await jsonp(api+'?pw='+pw); if(res&&res.ok){ DATA=res.data||{}; $('stamp').textContent=fmtStamp(res.updated); } }catch(e){}
+  closeModal(); render(CURRENT);
+}
+
 function card(title, sub, body, accentVar){
   return '<div class="card"'+(accentVar?' style="border-top:3px solid var('+accentVar+')"':'')+'>'
     + (title?'<h2>'+esc(title)+'</h2>':'') + (sub?'<div class="sub">'+esc(sub)+'</div>':'') + body + '</div>';
 }
 function tableEl(cols, rows, opts){
   opts=opts||{};
-  if(!rows.length) return '<div class="empty">'+(opts.empty||'Nothing here yet — add rows in your sheet.')+'</div>';
-  var h='<div style="overflow-x:auto"><table class="tbl"><thead><tr>'+cols.map(function(c){return '<th'+(c.num?' class="num"':'')+'>'+esc(c.label)+'</th>';}).join('')+'</tr></thead><tbody>';
+  var canEdit = EDIT && opts.editTab;
+  var addBar = canEdit ? '<div class="editbar"><button class="ebtn pri" onclick="openEditor(\''+opts.editTab+'\')">＋ Add</button></div>' : '';
+  if(!rows.length) return addBar + '<div class="empty">'+(opts.empty||'Nothing here yet — add rows in your sheet.')+'</div>';
+  var h='<div style="overflow-x:auto"><table class="tbl"><thead><tr>'+cols.map(function(c){return '<th'+(c.num?' class="num"':'')+'>'+esc(c.label)+'</th>';}).join('')+(canEdit?'<th></th>':'')+'</tr></thead><tbody>';
   h+=rows.map(function(r){ return '<tr'+(r.__click?' class="clickable" onclick="'+r.__click+'"':'')+'>'+cols.map(function(c){
       var v = c.render ? c.render(r) : esc(r[c.key]==null?'':r[c.key]);
       return '<td'+(c.num?' class="num"':'')+'>'+v+'</td>';
-    }).join('')+'</tr>'; }).join('');
-  return h+'</tbody></table></div>';
+    }).join('')+(canEdit?'<td class="num"><button class="ebtn" onclick="event.stopPropagation();openEditor(\''+opts.editTab+'\','+(r.__row||'')+')">✎</button></td>':'')+'</tr>'; }).join('');
+  return addBar + h+'</tbody></table></div>';
 }
 function statTile(label,value,foot,tab){
   return '<div class="stat'+(tab?' link" onclick="navGo(\''+tab+'\')"':'"')+'>'
@@ -541,7 +658,7 @@ function renderBills(){
     {label:'Call', render:function(r){return has(r.Phone)?'<a class="tel" href="'+telHref(r.Phone)+'">'+esc(r.Phone)+'</a>':'';}}
   ];
   var personal=bills.filter(function(b){return b.Personal===''||b.Personal==null?true:truthy(b.Personal);});
-  var body = tableEl(cols, personal, {empty:'No bills yet. Add them in the Bills tab of your sheet — I can help pre-fill.'});
+  var body = tableEl(cols, personal, {empty:'No bills yet. Add them in the Bills tab of your sheet — I can help pre-fill.',editTab:'Bills'});
 
   var contacts = arr('Contacts');
   var cc = [
@@ -555,7 +672,7 @@ function renderBills(){
   return top
     + card('Bills & services','Sorted by monthly cost. Tap a phone number to call, or a vendor to open their site.', body, '--teal')
     + '<div style="height:22px"></div>'
-    + card('Vendor & service contacts','People and companies to reach when something breaks.', tableEl(cc, contacts, {empty:'No saved contacts yet.'}), '--teal');
+    + card('Vendor & service contacts','People and companies to reach when something breaks.', tableEl(cc, contacts, {empty:'No saved contacts yet.',editTab:'Contacts'}), '--teal');
 }
 
 
@@ -563,7 +680,7 @@ function renderBills(){
 function renderFamily(){
   var f=kv('Family');
   var keys=Object.keys(f).filter(function(k){return has(f[k]);});
-  if(!keys.length) return card('Family & Household','', '<div class="empty">Add household reference info in the Family tab of your sheet — door codes, account numbers, insurance claims, member info. Use keys like <span class="mono">Home|Front door codes</span> to group them.</div>','--amber');
+  if(!keys.length) return (EDIT?'<div class="editbar">'+kvEditBtn('Family')+'</div>':'')+card('Family & Household','', '<div class="empty">Add household reference info — door codes, account numbers, insurance claims. Use keys like <span class="mono">Home|Front door codes</span> to group them.</div>','--amber');
   
   var groups={}, order=[];
   keys.forEach(function(k){ var parts=String(k).split('|'); var g=parts.length>1?parts[0].trim():'General'; var label=parts.length>1?parts.slice(1).join('|').trim():k;
@@ -581,7 +698,7 @@ function renderFamily(){
     }).join('');
     return '<div class="card" style="border-top:3px solid var(--amber)"><h2>'+esc(g)+'</h2><div style="margin-top:6px">'+rows+'</div></div>';
   }).join('');
-  return '<div class="grid cols-2">'+cards+'</div>';
+  return (EDIT?'<div class="editbar">'+kvEditBtn('Family')+'</div>':'')+'<div class="grid cols-2">'+cards+'</div>';
 }
 
 
@@ -625,11 +742,13 @@ function renderProjects(){
     return '<div class="card" style="border-top:3px solid var(--orange)"><div style="display:flex;justify-content:space-between;align-items:start;gap:10px">'
       +'<div><h2>'+esc(p.Name)+'</h2><div class="sub" style="margin-bottom:8px">'+esc(p.Area||'')+(has(p.Owner)?' · '+esc(p.Owner):'')+'</div></div>'
       +'<span class="tag '+st+'">'+esc(p.Status||'')+'</span></div>'
+      +(EDIT?'<div style="margin:4px 0 8px">'+editBtn('Projects',p.__row)+'</div>':'')
       +(has(p.TargetDate)?'<div class="foot">Target: '+esc(p.TargetDate)+'</div>':'')
       +barHtml+taskBar+(has(p.Notes)?'<p style="font-size:13.5px;color:var(--text-muted);margin:12px 0 0">'+esc(p.Notes)+'</p>':'')+taskHtml+'</div>';
   }).join('');
 
   return tiles
+    + (EDIT?'<div class="editbar"><button class="ebtn pri" onclick="openEditor(\'Projects\')">＋ Add project</button> <button class="ebtn pri" onclick="openEditor(\'ProjectTasks\')" style="margin-left:8px">＋ Add task</button></div>':'')
     + card('Planner','Every open task, soonest first.', plannerHtml, '--orange')
     + '<div style="height:22px"></div>'
     + '<div class="grid cols-2">'+cards+'</div>';
@@ -679,12 +798,13 @@ function renderFlying(){
   var logCols=[{label:'Date',key:'Date'},{label:'Aircraft',key:'Aircraft'},{label:'Route',key:'Route'},
     {label:'Hrs',num:true,key:'Hours'},{label:'Type',render:function(r){return has(r.Type)?'<span class="chip">'+esc(r.Type)+'</span>':'';}},{label:'Notes',key:'Notes'}];
 
-  return pilots
+  return (EDIT?'<div class="editbar">'+kvEditBtn('Flying')+'</div>':'')
+    + pilots
     + '<div class="grid cols-2">'
     + card('PPL milestones','Brad\'s path to the certificate.', milestoneHtml, '--sky')
-    + card('Aircraft','', tableEl(acCols, ac, {empty:'Add your aircraft (e.g. Maule N51207) in the Aircraft tab.'}), '--sky')
+    + card('Aircraft','', tableEl(acCols, ac, {empty:'Add your aircraft (e.g. Maule N51207) in the Aircraft tab.',editTab:'Aircraft'}), '--sky')
     + '</div><div style="height:22px"></div>'
-    + card('Flight log','Most recent flights.', tableEl(logCols, log.slice().reverse(), {empty:'Log flights in the FlightLog tab.'}), '--sky');
+    + card('Flight log','Most recent flights.', tableEl(logCols, log.slice().reverse(), {empty:'Log flights in the FlightLog tab.',editTab:'FlightLog'}), '--sky');
 }
 
 
@@ -754,11 +874,11 @@ function renderMoney(){
     + card('Spending mix','Monthly budget by type.', '<div class="chart-wrap"><canvas id="mixChart"></canvas></div>', '--emerald')
     + '</div><div style="height:22px"></div>'
     + '<div class="grid cols-2">'
-    + card('Accounts', '', tableEl(acctCols, accounts, {empty:'Add accounts in the Accounts tab.'}), '--emerald')
-    + card('Debts & mortgages', '', tableEl(debtCols, debts, {empty:'Add debts/mortgages in the Debts tab.'}), '--emerald')
+    + card('Accounts', '', tableEl(acctCols, accounts, {empty:'Add accounts in the Accounts tab.',editTab:'Accounts'}), '--emerald')
+    + card('Debts & mortgages', '', tableEl(debtCols, debts, {empty:'Add debts/mortgages in the Debts tab.',editTab:'Debts'}), '--emerald')
     + '</div><div style="height:22px"></div>'
     + '<div class="grid cols-2">'
-    + card('Investments', '', tableEl(invCols, inv, {empty:'Add investments (brokerage, retirement, bitcoin) in the Investments tab.'}), '--emerald')
+    + card('Investments', '', tableEl(invCols, inv, {empty:'Add investments (brokerage, retirement, bitcoin) in the Investments tab.',editTab:'Investments'}), '--emerald')
     + card('Savings goals', '', goalsHtml, '--emerald')
     + '</div>';
 }
@@ -792,24 +912,25 @@ function drawMoneyCharts(){
 
 function renderHobbies(){
   var hs=arr('Hobbies');
-  var cards = hs.length ? '<div class="grid cols-3">'+hs.map(function(h){
+  var cards = hs.length ? addBtn('Hobbies','hobby')+'<div class="grid cols-3">'+hs.map(function(h){
     return '<div class="card" style="border-top:3px solid var(--violet)"><h2>'+esc(h.Name)+'</h2>'
       +'<div class="sub">'+esc(h.Who||'')+(has(h.Cadence)?' · '+esc(h.Cadence):'')+'</div>'
       +(has(h.Goal)?'<div class="kv-row"><span class="k">Goal</span><span class="v">'+esc(h.Goal)+'</span></div>':'')
       +(has(h.Gear)?'<div class="kv-row"><span class="k">Gear</span><span class="v">'+esc(h.Gear)+'</span></div>':'')
       +(has(h.Budget)?'<div class="kv-row"><span class="k">Budget</span><span class="v">'+money(h.Budget)+'</span></div>':'')
       +(has(h.Log)?'<p style="font-size:13px;color:var(--text-muted);margin:12px 0 0">'+esc(h.Log)+'</p>':'')
+      +(EDIT?'<div style="margin-top:10px">'+editBtn('Hobbies',h.__row)+'</div>':'')
       +'</div>';
   }).join('')+'</div>'
-  : card('Hobbies','', '<div class="empty">Add your hobbies (hunting, fishing, camping, aviation, etc.) in the Hobbies tab — who does it, cadence, gear, a goal.</div>','--violet');
+  : addBtn('Hobbies','hobby')+card('Hobbies','', '<div class="empty">Add your hobbies (hunting, fishing, camping, aviation, etc.) — who does it, cadence, gear, a goal.</div>','--violet');
 
   var ms=arr('Milestones').filter(function(m){return has(m.Milestone);});
   var msHtml='';
   if(ms.length){
     var stTag=function(s){s=String(s||'').toLowerCase(); var c=s.indexOf('done')>=0||s.indexOf('complete')>=0?'active':(s.indexOf('progress')>=0?'planning':'done'); return '<span class="tag '+c+'">'+esc(s||'planned')+'</span>';};
     msHtml='<div style="height:22px"></div>'+card('Goals & milestones','The bigger things you\'re working toward.',
-      ms.map(function(m){return '<div class="kv-row"><span class="k">'+esc(m.Milestone)+' <span style="color:var(--text-dim)">· '+esc(m.Area||'')+(has(m.Who)?' · '+esc(m.Who):'')+'</span></span><span class="v">'+stTag(m.Status)+(has(m.Date)?' <span class="foot" style="display:inline">'+esc(m.Date)+'</span>':'')+'</span></div>';}).join(''),'--violet');
-  }
+      ms.map(function(m){return '<div class="kv-row"><span class="k">'+(EDIT?'<button class="ebtn" style="padding:1px 7px;margin-right:6px" onclick="openEditor(\'Milestones\','+m.__row+')">✎</button>':'')+esc(m.Milestone)+' <span style="color:var(--text-dim)">· '+esc(m.Area||'')+(has(m.Who)?' · '+esc(m.Who):'')+'</span></span><span class="v">'+stTag(m.Status)+(has(m.Date)?' <span class="foot" style="display:inline">'+esc(m.Date)+'</span>':'')+'</span></div>';}).join('')+addBtn('Milestones','milestone'),'--violet');
+  } else if(EDIT){ msHtml='<div style="height:22px"></div>'+card('Goals & milestones','', addBtn('Milestones','milestone'),'--violet'); }
 
   
   var hunts=arr('Hunts').filter(function(h){return has(h.Species);});
@@ -829,7 +950,7 @@ function renderHobbies(){
       {label:'Notes',key:'Notes'}
     ];
     huntHtml='<div style="height:22px"></div>'+card('Hunt planner','DIY / no-guide options, ranked by your priority. Guided-only entries flagged red.',
-      tableEl(hcols, hunts, {}), '--violet');
+      tableEl(hcols, hunts, {editTab:'Hunts'}), '--violet');
   }
 
   
@@ -845,7 +966,7 @@ function renderHobbies(){
     var blocks=order.map(function(s){
       return '<div class="card" style="border-top:3px solid var(--violet)"><h2>'+esc(s)+'</h2>'
         +'<div class="sub">'+esc(s==='Wyoming'?'Preference points (nonresident)':'Bonus points')+'</div>'
-        +tableEl(cols, byState[s], {})+'</div>';
+        +tableEl(cols, byState[s], {editTab:'HuntPoints'})+'</div>';
     }).join('');
     hpHtml='<div style="height:22px"></div><div class="section-title">Preference &amp; bonus points</div><div class="grid cols-2">'+blocks+'</div>';
   }
@@ -876,9 +997,9 @@ function renderVehicles(){
       +'<div><h2>'+esc(vehName(v))+'</h2><div class="sub">'+esc(air?'Aircraft':(has(v.Owner)?v.Owner+'’s vehicle':'Vehicle'))+'</div></div>'
       +'<div style="text-align:right"><div class="mono" style="font-size:20px;font-weight:700">'+val+'</div><div class="foot">est. value</div></div></div>'
       +rows.map(function(r){return '<div class="kv-row"><span class="k">'+esc(r[0])+'</span><span class="v">'+esc(r[1])+'</span></div>';}).join('')
-      +'<div class="foot" style="margin-top:12px;color:var(--sky)">View full details &amp; live specs →</div></div>';
+      +'<div style="margin-top:12px;display:flex;justify-content:space-between;align-items:center"><span class="foot" style="color:var(--sky)">View full details &amp; live specs →</span>'+editBtn('Vehicles',v.__row)+'</div></div>';
   }).join('');
-  return '<div class="grid cols-2">'+cards+'</div>';
+  return addBtn('Vehicles','vehicle')+'<div class="grid cols-2">'+cards+'</div>';
 }
 
 function mkv(label,val){ return has(val)?'<div class="kv-row"><span class="k">'+esc(label)+'</span><span class="v">'+esc(val)+'</span></div>':''; }
@@ -955,15 +1076,60 @@ function decodeVin(vin){
 
 function renderHealth(){
   var h=kv('Health'), log=arr('HealthLog');
-  var rows=[['Program',h.program],['Weekly rhythm',h.weekly_shape],['Weight',h.weight],
+  var cur=num(h.weight)||208, goal=num(h.weight_goal)||185, togo=Math.max(0,Math.round(cur-goal));
+  var proteinLo=Math.round(goal*0.9), proteinHi=Math.round(goal*1.1);
+
+  var tiles='<div class="grid cols-4" style="margin-bottom:22px">'
+    + statTile('Current weight', cur+' lb', has(h.weight_updated)?('as of '+esc(h.weight_updated)):'')
+    + statTile('Goal weight', goal+' lb', togo+' lb to go')
+    + statTile('Protein / day', proteinLo+'–'+proteinHi+' g', 'preserve & build muscle')
+    + statTile('Target pace', '~1 lb/wk', '~'+Math.max(1,Math.round(togo))+' wks at ~500 cal deficit')
+    + '</div>';
+
+  var rows=[['Program',h.program],['Weekly rhythm',h.weekly_shape],['Current weight',h.weight],['Goal',h.weight_goal?(h.weight_goal+' lb'):''],
     ['Resting HR',h.resting_hr],['Recovery',h.recovery_note],['Next appointment',h.next_appointment]]
     .filter(function(r){return has(r[1]);});
-  var infoHtml=rows.length?rows.map(function(r){return '<div class="kv-row"><span class="k">'+esc(r[0])+'</span><span class="v">'+esc(r[1])+'</span></div>';}).join(''):'<div class="empty">Add your program and metrics in the Health tab. (Can mirror your Personal-OS Whoop + training data.)</div>';
+  var infoHtml=(rows.length?rows.map(function(r){return '<div class="kv-row"><span class="k">'+esc(r[0])+'</span><span class="v">'+esc(r[1])+'</span></div>';}).join(''):'<div class="empty">Add your metrics with the ✎ Edit button.</div>');
+
+  
+  var plan=[
+    ['Mon','Long run — Zone 2 (conversational)','endurance base; 45–75 min'],
+    ['Tue','CompTrain strength + short metcon','heavy lift, then 8–12 min conditioning'],
+    ['Wed','Rest / mobility or easy spin','recovery — keep it truly easy'],
+    ['Thu','CompTrain lift (strength focus) + accessory','pull/press + core; preserves muscle in a deficit'],
+    ['Fri','CompTrain lift + bike intervals','1 quality/interval session for the week'],
+    ['Sat','Long bike — Zone 2','2–3+ hrs aerobic; your big endurance day'],
+    ['Sun','Rest','full recovery + meal prep']
+  ];
+  var planHtml=plan.map(function(p){return '<div class="kv-row"><span class="k"><strong>'+p[0]+'</strong> · '+esc(p[1])+'</span><span class="v" style="color:var(--text-dim);font-weight:500;max-width:45%">'+esc(p[2])+'</span></div>';}).join('')
+    +'<p style="font-size:12.5px;color:var(--text-dim);margin:12px 0 0">Keep hard CrossFit and hard endurance on separate days, and keep ~80% of endurance in Zone 2 — that\'s what lets you build the run/bike engine while lifting heavy 3×/wk to hold muscle. Deficit + heavy lifting + high protein = lose fat, keep muscle.</p>';
+
+  var nutrition='<div class="kv-row"><span class="k">Calories</span><span class="v">~2,300–2,500 avg (≈500 deficit)</span></div>'
+    +'<div class="kv-row"><span class="k">Protein</span><span class="v">'+proteinLo+'–'+proteinHi+' g/day (~1 g/lb goal wt)</span></div>'
+    +'<div class="kv-row"><span class="k">Carbs</span><span class="v">Cycle: more on long bike/run + metcon days, less on rest/lift days</span></div>'
+    +'<div class="kv-row"><span class="k">Fats</span><span class="v">~70–85 g/day</span></div>'
+    +'<p style="font-size:12.5px;color:var(--text-muted);margin:12px 0 0">Anchor every meal on 40–50g protein (eggs, Greek yogurt, chicken, beef, whey). Fuel the long Sat bike and Mon run with carbs before/during; pull carbs on Wed/Sun. A modest ~500 cal/day deficit (not aggressive) protects strength and recovery — at 208→185 that\'s ~5–6 months. Weigh daily, track the 7-day average, adjust ~200 cal if the average stalls 2 weeks.</p>';
+
+  var connect='<p style="font-size:13px;color:var(--text-muted);margin:0 0 6px">I can populate this panel from:</p>'
+    +'<div class="kv-row"><span class="k">Whoop</span><span class="v" style="color:var(--text-dim)">recovery, HRV, sleep, strain — export/API</span></div>'
+    +'<div class="kv-row"><span class="k">Strava / Garmin</span><span class="v" style="color:var(--text-dim)">runs & rides, HR, pace/power</span></div>'
+    +'<div class="kv-row"><span class="k">Apple Health + smart scale</span><span class="v" style="color:var(--text-dim)">daily weight, steps, workouts</span></div>'
+    +'<div class="kv-row"><span class="k">MyFitnessPal / Cronometer</span><span class="v" style="color:var(--text-dim)">calories & macros</span></div>'
+    +'<div class="kv-row"><span class="k">CompTrain</span><span class="v" style="color:var(--text-dim)">the daily programming</span></div>'
+    +'<p style="font-size:12px;color:var(--text-dim);margin:10px 0 0">No live fitness connector is wired in yet — for now, log weight/metrics right here with ✎ Edit, or export any of the above and I\'ll import the history.</p>';
+
   var logCols=[{label:'Date',key:'Date'},{label:'Metric',key:'Metric'},{label:'Value',num:true,key:'Value'},{label:'Notes',key:'Notes'}];
-  return '<div class="grid cols-2">'
-    + card('Training & health','Your rhythm and the essentials.', infoHtml, '--pink')
-    + card('Recent log','', tableEl(logCols, log.slice().reverse(), {empty:'Log metrics in the HealthLog tab.'}), '--pink')
-    + '</div>';
+  return (EDIT?'<div class="editbar">'+kvEditBtn('Health')+'</div>':'')
+    + tiles
+    + '<div class="grid cols-2">'
+    + card('Training plan','Hybrid: CompTrain strength + Zone-2 endurance.', planHtml, '--pink')
+    + card('Nutrition — lose fat, keep muscle', 'Targets for 208 → 185.', nutrition, '--pink')
+    + '</div><div style="height:22px"></div>'
+    + '<div class="grid cols-2">'
+    + card('Your metrics','Rhythm and essentials.', infoHtml, '--pink')
+    + card('Log & connections','', connect, '--pink')
+    + '</div><div style="height:22px"></div>'
+    + card('Recent log','', tableEl(logCols, log.slice().reverse(), {empty:'Log weight & metrics with ✎ Edit.',editTab:'HealthLog'}), '--pink');
 }
 
 
@@ -979,13 +1145,14 @@ function renderTravel(){
       +'<div class="sub">'+esc(t.Destination||'')+(has(t.StartDate)?' · '+esc(t.StartDate)+(has(t.EndDate)?' – '+esc(t.EndDate):''):'')+'</div>'
       +(has(t.Purpose)?'<div class="kv-row"><span class="k">Purpose</span><span class="v">'+esc(t.Purpose)+'</span></div>':'')
       +(has(t.Who)?'<div class="kv-row"><span class="k">Who</span><span class="v">'+esc(t.Who)+'</span></div>':'')
-      +clHtml+'</div>';
+      +clHtml
+      +(EDIT?'<div style="margin-top:10px">'+editBtn('Travel',t.__row)+'</div>':'')+'</div>';
   }
   var pointsCols=[{label:'Program',key:'Program'},{label:'Type',render:function(r){return has(r.Type)?'<span class="chip">'+esc(r.Type)+'</span>':'';}},{label:'Number',key:'Number'},{label:'Balance',num:true,key:'Balance'}];
-  var out='';
+  var out=addBtn('Travel','trip')+(EDIT?'<div class="editbar" style="margin-top:-4px"><button class="ebtn pri" onclick="openEditor(\'TravelChecklist\')">＋ Add checklist item</button></div>':'');
   out += upcoming.length?'<div class="section-title">Upcoming</div><div class="grid cols-2">'+upcoming.map(tripCard).join('')+'</div>'
-    : card('Travel','', '<div class="empty">Add trips in the Travel tab. I can also pull upcoming travel from your Google Calendar.</div>','--cyan');
-  if(points.length) out+='<div style="height:22px"></div>'+card('Points & miles','', tableEl(pointsCols, points, {}), '--cyan');
+    : card('Travel','', '<div class="empty">Add trips with ✎ Edit. I can also pull upcoming travel from your Google Calendar.</div>','--cyan');
+  out+='<div style="height:22px"></div>'+card('Points & miles','', tableEl(pointsCols, points, {editTab:'Points'}), '--cyan');
   if(past.length) out+='<div style="height:22px"></div><div class="section-title">Past trips</div><div class="grid cols-3">'+past.map(tripCard).join('')+'</div>';
   return out;
 }
