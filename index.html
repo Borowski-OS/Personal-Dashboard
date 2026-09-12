@@ -46,6 +46,7 @@
   .nav-tab.active { color:#fff; }
   .nav-tab[data-tab="overview"].active { border-bottom-color:var(--gold); }
   .nav-tab[data-tab="bills"].active    { border-bottom-color:var(--teal); }
+  .nav-tab[data-tab="family"].active   { border-bottom-color:var(--amber); }
   .nav-tab[data-tab="projects"].active { border-bottom-color:var(--orange); }
   .nav-tab[data-tab="flying"].active   { border-bottom-color:var(--sky); }
   .nav-tab[data-tab="money"].active    { border-bottom-color:var(--emerald); }
@@ -162,6 +163,7 @@
   <div class="nav-tabs" id="navTabs">
     <button class="nav-tab active" data-tab="overview" onclick="navGo('overview')">Overview</button>
     <button class="nav-tab" data-tab="bills" onclick="navGo('bills')">Home &amp; Bills</button>
+    <button class="nav-tab" data-tab="family" onclick="navGo('family')">Family</button>
     <button class="nav-tab" data-tab="projects" onclick="navGo('projects')">Projects</button>
     <button class="nav-tab" data-tab="flying" onclick="navGo('flying')">Flying</button>
     <button class="nav-tab" data-tab="money" onclick="navGo('money')">Money</button>
@@ -218,6 +220,7 @@ var CURRENT = 'overview';
 var TABS = {
   overview:{title:'Overview', sub:'Your whole life, one glance.'},
   bills:{title:'Home & Bills', sub:'What you pay, who you pay, and how to reach them.'},
+  family:{title:'Family & Household', sub:'The reference stuff you always end up hunting for.'},
   projects:{title:'Projects', sub:'House & family projects and their next steps.'},
   flying:{title:'Flying', sub:'Training progress, hours, and your aircraft.'},
   money:{title:'Money & Budget', sub:'Budget, accounts, net worth, and investments.'},
@@ -237,6 +240,42 @@ function telHref(p){ return 'tel:'+String(p).replace(/[^0-9+]/g,''); }
 function arr(name){ return (DATA&&DATA[name])||[]; }
 function kv(name){ return (DATA&&DATA[name])||{}; }
 function has(v){ return v!=null && String(v).trim()!==''; }
+
+ 
+var MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function parseDate(v){ if(v==null||v==='') return null; var d=new Date(v); return isNaN(d.getTime())?null:d; }
+ 
+function daysUntilDueDay(day){ day=parseInt(day,10); if(isNaN(day)||day<1||day>31) return null;
+  var now=new Date(); var t=new Date(now.getFullYear(),now.getMonth(),day);
+  if(t< new Date(now.getFullYear(),now.getMonth(),now.getDate())) t=new Date(now.getFullYear(),now.getMonth()+1,day);
+  return Math.round((t-new Date(now.getFullYear(),now.getMonth(),now.getDate()))/864e5); }
+ 
+function daysUntilDate(v){ var d=parseDate(v); if(!d){ var m=String(v).match(/([A-Za-z]{3,})\s+(\d{4})/);
+    if(m){ var mi=MONTHS.findIndex(function(x){return m[1].toLowerCase().slice(0,3)===x.toLowerCase();}); if(mi>=0) d=new Date(+m[2],mi,1); } }
+  if(!d) return null; var now=new Date(); return Math.round((d-new Date(now.getFullYear(),now.getMonth(),now.getDate()))/864e5); }
+function fmtDue(days){ if(days==null) return '';
+  if(days<0) return Math.abs(days)+'d overdue'; if(days===0) return 'today'; if(days===1) return 'tomorrow';
+  if(days<=31) return 'in '+days+'d'; if(days<=120) return 'in '+Math.round(days/30)+'mo'; return 'in '+Math.round(days/30)+'mo'; }
+function dueClass(days){ if(days==null) return ''; if(days<0) return 'neg'; if(days<=7) return 'neg'; if(days<=21) return ''; return ''; }
+
+
+
+var LIVE = { btc:null, btcChg:null };
+function fetchLive(){
+  try{
+    fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd&include_24hr_change=true')
+      .then(function(r){return r.json();})
+      .then(function(j){ if(j&&j.bitcoin){ LIVE.btc=j.bitcoin.usd; LIVE.btcChg=j.bitcoin.usd_24h_change; applyLive(); } })
+      .catch(function(){});
+  }catch(e){}
+}
+function applyLive(){
+  document.querySelectorAll('[data-live="btc"]').forEach(function(el){
+    if(LIVE.btc==null){ el.textContent='…'; return; }
+    var chg=LIVE.btcChg; var chgTxt=(chg==null)?'':(' '+(chg>=0?'▲':'▼')+Math.abs(chg).toFixed(1)+'%');
+    el.innerHTML='$'+Math.round(LIVE.btc).toLocaleString('en-US')+'<span class="foot" style="display:inline;margin-left:6px;color:'+(chg>=0?'var(--green)':'var(--red)')+'">'+chgTxt+'</span>';
+  });
+}
 
 
 
@@ -297,6 +336,7 @@ async function boot(api, hash){
     $('loading').classList.add('hidden');
     var hashTab = (location.hash||'').replace('#','');
     navGo(TABS[hashTab] ? hashTab : 'overview');
+    fetchLive();
   }catch(e){
     $('gateErr').textContent = 'Connection problem loading your data. Try again.';
   }
@@ -340,11 +380,12 @@ function render(tab){
   clearCharts();
   var el = $('panels');
   el.innerHTML = ({
-    overview: renderOverview, bills: renderBills, projects: renderProjects,
+    overview: renderOverview, bills: renderBills, family: renderFamily, projects: renderProjects,
     flying: renderFlying, money: renderMoney, hobbies: renderHobbies,
     vehicles: renderVehicles, health: renderHealth, travel: renderTravel
   }[tab] || function(){return '';})();
   if(tab==='money') drawMoneyCharts();
+  applyLive();
 }
 
 function card(title, sub, body, accentVar){
@@ -384,41 +425,75 @@ function budgetTotals(){
     if(!isNaN(bb)) b+=bb; if(!isNaN(aa)) a+=aa; }); return {budget:b, actual:a};
 }
 
+ 
+function upcomingAlerts(){
+  var out=[];
+  arr('Bills').forEach(function(b){ if(!has(b.DueDay)) return; if(truthy(b.Autopay)) return;
+    var d=daysUntilDueDay(b.DueDay); if(d!=null&&d<=14) out.push({d:d, label:esc(b.Vendor)+' due', sub:money(b.Amount)+' · not autopay', tab:'bills'}); });
+  arr('Debts').forEach(function(x){ if(!has(x.DueDay)) return; var d=daysUntilDueDay(x.DueDay);
+    if(d!=null&&d<=10) out.push({d:d, label:esc(x.Name)+' payment', sub:has(x.Payment)?money(x.Payment):'', tab:'money'}); });
+  arr('Vehicles').forEach(function(v){
+    ['RegRenewal','InsRenewal'].forEach(function(f){ if(!has(v[f])) return; var d=daysUntilDate(v[f]);
+      if(d!=null&&d<=60) out.push({d:d, label:esc(v.Name)+(f==='RegRenewal'?' registration':' insurance')+' renewal', sub:esc(String(v[f])), tab:'vehicles'}); }); });
+  arr('Aircraft').forEach(function(a){ if(!has(a.AnnualDue)) return; var d=daysUntilDate(a.AnnualDue);
+    if(d!=null&&d<=60) out.push({d:d, label:esc(a.Tail)+' annual', sub:esc(String(a.AnnualDue)), tab:'flying'}); });
+  arr('Travel').forEach(function(t){ if(String(t.Status||'').toLowerCase()==='past'||!has(t.StartDate)) return; var d=daysUntilDate(t.StartDate);
+    if(d!=null&&d>=0&&d<=90) out.push({d:d, label:esc(t.Trip||t.Destination), sub:'trip · '+esc(String(t.StartDate)), tab:'travel'}); });
+  arr('ProjectTasks').forEach(function(t){ if(truthy(t.Done)||!has(t.Due)) return; var d=daysUntilDate(t.Due);
+    if(d!=null&&d<=21) out.push({d:d, label:esc(t.Task), sub:esc(t.Project||'')+' task', tab:'projects'}); });
+  out.sort(function(a,b){return a.d-b.d;});
+  return out;
+}
+
 
 
 function renderOverview(){
   var bills=totalMonthlyBills(), nw=netWorth(), bt=budgetTotals();
   var tiles=[];
+  tiles.push(statTile('Net worth', nw?money(nw):'—', 'assets − debts', 'money'));
   tiles.push(statTile('Monthly bills', bills?money(bills):'—', arr('Bills').length+' tracked', 'bills'));
-  tiles.push(statTile('Budget / mo', bt.budget?money(bt.budget):'—', bt.actual?('actual '+money(bt.actual)):'set in Money', 'money'));
-  tiles.push(statTile('Net worth', nw?money(nw):'—', 'accounts − debts + investments', 'money'));
-  var fl=arr('FlightLog').slice(-1)[0]; var fly=kv('Flying');
+  var fly=kv('Flying');
   tiles.push(statTile('Flying', has(fly.total_hours)?fly.total_hours+' hrs':'—', fly.next_lesson_focus||fly.stage||'set in Flying', 'flying'));
-  var vh=arr('Vehicles').length, hb=arr('Hobbies').length, tr=arr('Travel').filter(function(t){return String(t.Status||'').toLowerCase()!=='past';}).length;
   tiles.push(statTile('Projects', arr('Projects').filter(function(p){return String(p.Status||'').toLowerCase()!=='done';}).length||'—', 'active', 'projects'));
+  var tr=arr('Travel').filter(function(t){return String(t.Status||'').toLowerCase()!=='past';}).length;
   tiles.push(statTile('Upcoming trips', tr||'—', 'see Travel', 'travel'));
+  
+  tiles.push('<div class="stat link" onclick="navGo(\'money\')"><div class="label">Bitcoin (live)</div><div class="value mono" data-live="btc">…</div><div class="foot">market spot · updates on load</div></div>');
+
+  
+  var al=upcomingAlerts();
+  var alertHtml = al.length
+    ? al.slice(0,8).map(function(a){return '<div class="kv-row" style="cursor:pointer" onclick="navGo(\''+a.tab+'\')"><span class="k">'+a.label+(a.sub?' <span style="color:var(--text-dim)">· '+a.sub+'</span>':'')+'</span><span class="v '+dueClass(a.d)+'">'+fmtDue(a.d)+'</span></div>';}).join('')
+    : '<div class="empty">Nothing due in the next couple weeks. 🎉</div>';
 
   
   var actions = arr('NextActions').filter(function(a){return !truthy(a.Done)&&has(a.Action);})
     .map(function(a){return {t:a.Action, tab:a.Tab||'overview', due:a.Due};});
-  arr('ProjectTasks').forEach(function(t){ if(!truthy(t.Done)&&has(t.Task)&&has(t.Due)) actions.push({t:t.Task+' ('+t.Project+')',tab:'projects',due:t.Due}); });
   var actionsHtml = actions.length
     ? actions.slice(0,8).map(function(a){return '<div class="kv-row" style="cursor:pointer" onclick="navGo(\''+a.tab+'\')"><span class="k">'+esc(a.t)+'</span><span class="v">'+(has(a.due)?esc(a.due):'')+'</span></div>';}).join('')
-    : '<div class="empty">No open next-actions. Add them in the NextActions tab of your sheet.</div>';
+    : '<div class="empty">No open next-actions yet.</div>';
 
   var highlights = arr('Highlights').filter(function(h){return has(h.Label)&&has(h.Value);})
     .sort(function(a,b){return num(a.Order)-num(b.Order);});
   var hlHtml = highlights.length
     ? '<div class="grid cols-3" style="margin-bottom:22px">'+highlights.map(function(h){return statTile(h.Label,esc(h.Value),h.Sub,h.Tab);}).join('')+'</div>' : '';
 
-  return hlHtml
+  
+  var quotes=arr('Quotes').filter(function(q){return has(q.Quote);});
+  var qHtml='';
+  if(quotes.length){
+    var doy=Math.floor((Date.now()-new Date(new Date().getFullYear(),0,0))/864e5);
+    var q=quotes[doy%quotes.length];
+    qHtml='<div class="card" style="border-left:3px solid var(--gold);margin-bottom:22px;background:linear-gradient(90deg,rgba(234,179,8,.05),transparent)">'
+      +'<div style="font-size:17px;line-height:1.55;font-weight:400;color:var(--text)">“'+esc(q.Quote)+'”</div>'
+      +'<div class="foot" style="margin-top:10px;color:var(--text-muted)">— '+esc(q.Author||'Unknown')+(has(q.Source)?', <span style="font-style:italic">'+esc(q.Source)+'</span>':'')+'</div></div>';
+  }
+
+  return qHtml + hlHtml
     + '<div class="grid cols-3" style="margin-bottom:22px">'+tiles.join('')+'</div>'
     + '<div class="grid cols-2">'
-    + card('Next actions','Across every area', actionsHtml, '--gold')
-    + card('Jump to','', '<div class="grid cols-2" style="gap:12px">'
-        + Object.keys(TABS).filter(function(t){return t!=='overview';}).map(function(t){
-            return '<div class="stat link" onclick="navGo(\''+t+'\')"><div class="value" style="font-size:16px">'+esc(TABS[t].title)+'</div><div class="foot">'+esc(TABS[t].sub)+'</div></div>';
-          }).join('')+'</div>', '--gold')
+    + card('Coming up','Due dates & renewals across everything — autopay bills hidden.', alertHtml, '--gold')
+    + card('Next actions','Things you\'ve flagged to do', actionsHtml, '--gold')
     + '</div>';
 }
 
@@ -464,11 +539,57 @@ function renderBills(){
 
 
 
+function renderFamily(){
+  var f=kv('Family');
+  var keys=Object.keys(f).filter(function(k){return has(f[k]);});
+  if(!keys.length) return card('Family & Household','', '<div class="empty">Add household reference info in the Family tab of your sheet — door codes, account numbers, insurance claims, member info. Use keys like <span class="mono">Home|Front door codes</span> to group them.</div>','--amber');
+  
+  var groups={}, order=[];
+  keys.forEach(function(k){ var parts=String(k).split('|'); var g=parts.length>1?parts[0].trim():'General'; var label=parts.length>1?parts.slice(1).join('|').trim():k;
+    if(!groups[g]){ groups[g]=[]; order.push(g); } groups[g].push({label:label, val:f[k]}); });
+  
+  var pref=['People','Home','Utilities & accounts','Insurance & claims','Codes & IDs','Medical','General'];
+  order.sort(function(a,b){ var ia=pref.indexOf(a), ib=pref.indexOf(b); return (ia<0?99:ia)-(ib<0?99:ib); });
+  var codeRe=/(code|acct|account|number|pin|combo|vin|claim|#)/i;
+  var cards=order.map(function(g){
+    var rows=groups[g].map(function(r){
+      var mono=codeRe.test(r.label)||/^[\d\s#-]+$/.test(String(r.val));
+      var val=String(r.val);
+      var vhtml = /^\d{3}[-.\s]?\d{3}[-.\s]?\d{4}$/.test(val.trim()) ? '<a class="tel" href="'+telHref(val)+'">'+esc(val)+'</a>' : (mono?'<span class="mono">'+esc(val)+'</span>':esc(val));
+      return '<div class="kv-row"><span class="k">'+esc(r.label)+'</span><span class="v">'+vhtml+'</span></div>';
+    }).join('');
+    return '<div class="card" style="border-top:3px solid var(--amber)"><h2>'+esc(g)+'</h2><div style="margin-top:6px">'+rows+'</div></div>';
+  }).join('');
+  return '<div class="grid cols-2">'+cards+'</div>';
+}
+
+
+
 function renderProjects(){
   var ps = arr('Projects'), tasks=arr('ProjectTasks');
   if(!ps.length) return card('Projects','House & family projects', '<div class="empty">No projects yet. Add them in the Projects tab — name, area, status, budget, target date.</div>','--orange');
   var order={active:0,planning:1,blocked:2,idea:3,done:9};
   ps=ps.slice().sort(function(a,b){return (order[String(a.Status||'').toLowerCase()]||5)-(order[String(b.Status||'').toLowerCase()]||5);});
+
+  
+  function cnt(s){ return ps.filter(function(p){return String(p.Status||'').toLowerCase()===s;}).length; }
+  var totBudget=ps.reduce(function(s,p){var n=num(p.Budget);return s+(isNaN(n)?0:n);},0);
+  var totSpent=ps.reduce(function(s,p){var n=num(p.Spent);return s+(isNaN(n)?0:n);},0);
+  var openTasks=tasks.filter(function(t){return !truthy(t.Done)&&has(t.Task);});
+  var tiles='<div class="grid cols-4" style="margin-bottom:22px">'
+    + statTile('Active', cnt('active')||'—', cnt('planning')+' planning · '+cnt('blocked')+' blocked')
+    + statTile('Open tasks', openTasks.length||'—', tasks.length+' total')
+    + statTile('Budgeted', totBudget?money(totBudget):'—', totSpent?('spent '+money(totSpent)):'')
+    + statTile('Remaining', totBudget?money(totBudget-totSpent):'—', 'across projects')
+    + '</div>';
+
+  
+  var planned=openTasks.map(function(t){return {t:t, d:daysUntilDate(t.Due)};})
+    .sort(function(a,b){ if(a.d==null&&b.d==null) return 0; if(a.d==null) return 1; if(b.d==null) return -1; return a.d-b.d; });
+  var plannerHtml = planned.length
+    ? planned.slice(0,12).map(function(x){return '<div class="kv-row"><span class="k">○ '+esc(x.t.Task)+' <span style="color:var(--text-dim)">· '+esc(x.t.Project||'')+'</span></span><span class="v '+dueClass(x.d)+'">'+(x.d!=null?fmtDue(x.d):esc(x.t.Due||''))+'</span></div>';}).join('')
+    : '<div class="empty">No open tasks. Add tasks in the ProjectTasks tab.</div>';
+
   var cards = ps.map(function(p){
     var st=String(p.Status||'').toLowerCase();
     var budget=num(p.Budget), spent=num(p.Spent);
@@ -477,40 +598,69 @@ function renderProjects(){
       barHtml='<div class="bar'+((!isNaN(spent)&&spent>budget)?' over':'')+'"><span style="width:'+pct+'%"></span></div>'
         +'<div class="foot">'+money(isNaN(spent)?0:spent)+' of '+money(budget)+'</div>'; }
     var pt=tasks.filter(function(t){return String(t.Project||'').trim()===String(p.Name||'').trim();});
-    var taskHtml = pt.length?'<div style="margin-top:12px">'+pt.map(function(t){return '<div class="kv-row"><span class="k">'+(truthy(t.Done)?'✓ ':'○ ')+esc(t.Task)+'</span><span class="v" style="color:var(--text-dim)">'+esc(t.Due||'')+'</span></div>';}).join('')+'</div>':'';
+    var doneN=pt.filter(function(t){return truthy(t.Done);}).length;
+    var taskBar = pt.length?'<div class="foot" style="margin-top:10px">Tasks '+doneN+'/'+pt.length+'</div><div class="bar"><span style="width:'+Math.round(doneN/pt.length*100)+'%"></span></div>':'';
+    var taskHtml = pt.length?'<div style="margin-top:10px">'+pt.map(function(t){return '<div class="kv-row"><span class="k">'+(truthy(t.Done)?'✓ ':'○ ')+esc(t.Task)+'</span><span class="v" style="color:var(--text-dim)">'+esc(t.Due||'')+'</span></div>';}).join('')+'</div>':'';
     return '<div class="card" style="border-top:3px solid var(--orange)"><div style="display:flex;justify-content:space-between;align-items:start;gap:10px">'
       +'<div><h2>'+esc(p.Name)+'</h2><div class="sub" style="margin-bottom:8px">'+esc(p.Area||'')+(has(p.Owner)?' · '+esc(p.Owner):'')+'</div></div>'
       +'<span class="tag '+st+'">'+esc(p.Status||'')+'</span></div>'
       +(has(p.TargetDate)?'<div class="foot">Target: '+esc(p.TargetDate)+'</div>':'')
-      +barHtml+(has(p.Notes)?'<p style="font-size:13.5px;color:var(--text-muted);margin:12px 0 0">'+esc(p.Notes)+'</p>':'')+taskHtml+'</div>';
+      +barHtml+taskBar+(has(p.Notes)?'<p style="font-size:13.5px;color:var(--text-muted);margin:12px 0 0">'+esc(p.Notes)+'</p>':'')+taskHtml+'</div>';
   }).join('');
-  return '<div class="grid cols-2">'+cards+'</div>';
+
+  return tiles
+    + card('Planner','Every open task, soonest first.', plannerHtml, '--orange')
+    + '<div style="height:22px"></div>'
+    + '<div class="grid cols-2">'+cards+'</div>';
 }
 
 
 
 function renderFlying(){
   var f=kv('Flying'), ac=arr('Aircraft'), log=arr('FlightLog');
-  var tiles='<div class="grid cols-4" style="margin-bottom:22px">'
-    + statTile('Total hours', has(f.total_hours)?f.total_hours:'—', has(f.dual_hours)||has(f.solo_hours)?('dual '+(f.dual_hours||'0')+' · solo '+(f.solo_hours||'0')):'')
-    + statTile('Working toward', has(f.rating_goal)?esc(f.rating_goal):'—', f.stage||'')
-    + statTile('Written', has(f.written_status)?esc(f.written_status):'—', has(f.checkride_target)?'checkride '+esc(f.checkride_target):'')
-    + statTile('Fly days', esc(f.fly_days||'—'), has(f.home_airport)?esc(f.home_airport):'')
+
+  
+  function pilotCard(name, role, hours, sub, rows){
+    return '<div class="card" style="border-top:3px solid var(--sky)">'
+      +'<div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px"><h2>'+esc(name)+'</h2>'
+      +'<span class="mono" style="font-size:20px;font-weight:700">'+esc(hours)+'<span class="foot" style="display:inline;margin-left:4px">hrs</span></span></div>'
+      +'<div class="sub">'+esc(role)+'</div>'
+      +rows.filter(function(r){return has(r[1]);}).map(function(r){return '<div class="kv-row"><span class="k">'+esc(r[0])+'</span><span class="v">'+esc(r[1])+'</span></div>';}).join('')+'</div>';
+  }
+  var bradRows=[['Working toward',f.rating_goal],['Stage',f.stage],['Home field',f.home_airport],
+    ['Fly days',f.fly_days],['Ground school',f.ground_school],['Next lesson',f.next_lesson_focus],['Weak areas',f.weak_areas],
+    ['CFI',has(f.cfi_name)?(f.cfi_name+(has(f.cfi_phone)?' · '+f.cfi_phone:'')):'']];
+  var chelseaRows=[['Ratings',f.chelsea_ratings],['Working toward',f.chelsea_working],['Role',f.chelsea_role]];
+  var pilots='<div class="grid cols-2" style="margin-bottom:22px">'
+    + pilotCard('Brad','Student pilot', has(f.total_hours)?f.total_hours:'—',
+        'dual '+(f.dual_hours||'0')+' · solo '+(f.solo_hours||'0'), bradRows)
+    + pilotCard('Chelsea', has(f.chelsea_role)?String(f.chelsea_role).split(';')[0]:'Rated pilot', has(f.chelsea_hours)?f.chelsea_hours:'—',
+        '', chelseaRows)
     + '</div>';
-  var info = [['Stage',f.stage],['Home airport',f.home_airport],['Training area',f.training_area],
-    ['Weak areas',f.weak_areas],['Next lesson',f.next_lesson_focus],['CFI',f.cfi_name]]
-    .filter(function(r){return has(r[1]);});
-  var infoHtml = info.length?info.map(function(r){return '<div class="kv-row"><span class="k">'+esc(r[0])+'</span><span class="v">'+esc(r[1])+(r[0]==='CFI'&&has(f.cfi_phone)?' · <a class="tel" href="'+telHref(f.cfi_phone)+'">'+esc(f.cfi_phone)+'</a>':'')+'</span></div>';}).join(''):'<div class="empty">Add your training details in the Flying tab.</div>';
+
+  
+  function ms(done, label, detail){
+    return '<div class="kv-row"><span class="k">'+(done?'<span style="color:var(--green)">✓</span> ':'<span style="color:var(--text-dim)">○</span> ')+esc(label)+'</span><span class="v" style="color:var(--text-dim)">'+esc(detail||'')+'</span></div>';
+  }
+  var soloDone=num(f.solo_hours)>0, xcDone=num(f.xc_hours)>0;
+  var writtenDone=/pass|complete|done/i.test(String(f.written_status||''));
+  var milestoneHtml=
+      ms(has(f.total_hours), 'Begin primary training', has(f.total_hours)?f.total_hours+' hrs logged':'')
+    + ms(/pass|current|valid|done/i.test(String(f.ppl_medical||'')), 'FAA medical certificate', f.ppl_medical||'update in sheet (ppl_medical)')
+    + ms(soloDone, 'First solo', soloDone?(f.solo_hours+' solo hrs'):'pre-solo — landings & maneuvers')
+    + ms(writtenDone, 'Written (knowledge) exam', f.written_status||'not started')
+    + ms(xcDone, 'Solo cross-country', xcDone?(f.xc_hours+' XC hrs'):'after solo')
+    + ms(false, 'Checkride (PPL)', has(f.checkride_target)?('target '+f.checkride_target):'target TBD');
 
   var acCols=[{label:'Tail',render:function(r){return '<strong>'+esc(r.Tail)+'</strong>';}},
-    {label:'Aircraft',key:'MakeModel'},{label:'Home field',key:'HomeField'},
+    {label:'Aircraft',key:'MakeModel'},{label:'Owner',key:'Owner'},{label:'Home field',key:'HomeField'},
     {label:'Insurer',key:'Insurer'},{label:'Annual due',key:'AnnualDue'}];
   var logCols=[{label:'Date',key:'Date'},{label:'Aircraft',key:'Aircraft'},{label:'Route',key:'Route'},
     {label:'Hrs',num:true,key:'Hours'},{label:'Type',render:function(r){return has(r.Type)?'<span class="chip">'+esc(r.Type)+'</span>':'';}},{label:'Notes',key:'Notes'}];
 
-  return tiles
+  return pilots
     + '<div class="grid cols-2">'
-    + card('Training','Where you are and what\'s next.', infoHtml, '--sky')
+    + card('PPL milestones','Brad\'s path to the certificate.', milestoneHtml, '--sky')
     + card('Aircraft','', tableEl(acCols, ac, {empty:'Add your aircraft (e.g. Maule N51207) in the Aircraft tab.'}), '--sky')
     + '</div><div style="height:22px"></div>'
     + card('Flight log','Most recent flights.', tableEl(logCols, log.slice().reverse(), {empty:'Log flights in the FlightLog tab.'}), '--sky');
@@ -565,7 +715,18 @@ function renderMoney(){
     ? card('Net worth over time','', '<div class="chart-wrap"><canvas id="nwChart"></canvas></div>', '--emerald') + '<div style="height:22px"></div>'
     : '';
 
+  
+  var cfg=kv('Config');
+  var mktRate=cfg.market_mortgage_30yr, asof=cfg.market_rate_asof;
+  var yourRates=debts.filter(function(d){return String(d.Type||'').toLowerCase().indexOf('mortgage')>=0&&has(d.Rate);})
+    .map(function(d){var r=num(d.Rate); var pct=r<1?(r*100):r; return esc(d.Name.replace(/ Mortgage$/,''))+' '+pct.toFixed(2)+'%';}).join(' · ');
+  var mkt='<div class="grid cols-2" style="margin-bottom:22px">'
+    + '<div class="stat"><div class="label">Bitcoin (live spot)</div><div class="value mono" data-live="btc">…</div><div class="foot">market price · your holdings self-reported in Investments</div></div>'
+    + '<div class="stat"><div class="label">30-yr mortgage — market</div><div class="value mono">'+(has(mktRate)?esc(mktRate)+'%':'—')+'</div><div class="foot">'+(has(asof)?'as of '+esc(asof)+' · ':'')+(yourRates?'you: '+yourRates:'')+'</div></div>'
+    + '</div>';
+
   return tiles
+    + mkt
     + nwCard
     + '<div class="grid cols-2">'
     + card('Budget vs. actual','This month by category.', budgetHtml, '--emerald')
@@ -610,8 +771,7 @@ function drawMoneyCharts(){
 
 function renderHobbies(){
   var hs=arr('Hobbies');
-  if(!hs.length) return card('Hobbies','', '<div class="empty">Add your hobbies (hunting, fishing, camping, aviation, etc.) in the Hobbies tab — who does it, cadence, gear, a goal.</div>','--violet');
-  return '<div class="grid cols-3">'+hs.map(function(h){
+  var cards = hs.length ? '<div class="grid cols-3">'+hs.map(function(h){
     return '<div class="card" style="border-top:3px solid var(--violet)"><h2>'+esc(h.Name)+'</h2>'
       +'<div class="sub">'+esc(h.Who||'')+(has(h.Cadence)?' · '+esc(h.Cadence):'')+'</div>'
       +(has(h.Goal)?'<div class="kv-row"><span class="k">Goal</span><span class="v">'+esc(h.Goal)+'</span></div>':'')
@@ -619,7 +779,39 @@ function renderHobbies(){
       +(has(h.Budget)?'<div class="kv-row"><span class="k">Budget</span><span class="v">'+money(h.Budget)+'</span></div>':'')
       +(has(h.Log)?'<p style="font-size:13px;color:var(--text-muted);margin:12px 0 0">'+esc(h.Log)+'</p>':'')
       +'</div>';
-  }).join('')+'</div>';
+  }).join('')+'</div>'
+  : card('Hobbies','', '<div class="empty">Add your hobbies (hunting, fishing, camping, aviation, etc.) in the Hobbies tab — who does it, cadence, gear, a goal.</div>','--violet');
+
+  var ms=arr('Milestones').filter(function(m){return has(m.Milestone);});
+  var msHtml='';
+  if(ms.length){
+    var stTag=function(s){s=String(s||'').toLowerCase(); var c=s.indexOf('done')>=0||s.indexOf('complete')>=0?'active':(s.indexOf('progress')>=0?'planning':'done'); return '<span class="tag '+c+'">'+esc(s||'planned')+'</span>';};
+    msHtml='<div style="height:22px"></div>'+card('Goals & milestones','The bigger things you\'re working toward.',
+      ms.map(function(m){return '<div class="kv-row"><span class="k">'+esc(m.Milestone)+' <span style="color:var(--text-dim)">· '+esc(m.Area||'')+(has(m.Who)?' · '+esc(m.Who):'')+'</span></span><span class="v">'+stTag(m.Status)+(has(m.Date)?' <span class="foot" style="display:inline">'+esc(m.Date)+'</span>':'')+'</span></div>';}).join(''),'--violet');
+  }
+
+  
+  var hunts=arr('Hunts').filter(function(h){return has(h.Species);});
+  var huntHtml='';
+  if(hunts.length){
+    var pri={elk:0,caribou:1,moose:2,deer:3,'black bear':4};
+    hunts=hunts.slice().sort(function(a,b){ var pa=pri[String(a.Species||'').toLowerCase()], pb=pri[String(b.Species||'').toLowerCase()];
+      return (pa==null?9:pa)-(pb==null?9:pb); });
+    var hcols=[
+      {label:'Species',render:function(r){return '<strong>'+esc(r.Species)+'</strong>';}},
+      {label:'State',key:'State'},
+      {label:'Method',render:function(r){return has(r.Method)?'<span class="chip">'+esc(r.Method)+'</span>':'';}},
+      {label:'Access',render:function(r){var g=String(r.Access||'').toLowerCase(); var cls=g.indexOf('guide')>=0&&g.indexOf('no guide')<0&&g.indexOf('diy')<0?'blocked':'active'; return has(r.Access)?'<span class="tag '+cls+'">'+esc(r.Access)+'</span>':'';}},
+      {label:'Window',key:'Window'},
+      {label:'Apply by',render:function(r){return has(r.Deadline)?'<span class="mono">'+esc(r.Deadline)+'</span>':'';}},
+      {label:'Cost',num:true,render:function(r){return esc(r.Cost||'');}},
+      {label:'Notes',key:'Notes'}
+    ];
+    huntHtml='<div style="height:22px"></div>'+card('Hunt planner','DIY / no-guide options, ranked by your priority. Guided-only entries flagged red.',
+      tableEl(hcols, hunts, {}), '--violet');
+  }
+
+  return cards + msHtml + huntHtml;
 }
 
 
