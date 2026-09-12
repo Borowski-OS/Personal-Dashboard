@@ -876,7 +876,10 @@ function renderMoney(){
     + '<div class="stat"><div class="label">30-yr mortgage — market</div><div class="value mono">'+(has(mktRate)?esc(mktRate)+'%':'—')+'</div><div class="foot">'+(has(asof)?'as of '+esc(asof)+' · ':'')+(yourRates?'you: '+yourRates:'')+'</div></div>'
     + '</div>';
 
-  return tiles
+  var budgetUrl=kv('Config').budget_sheet_url;
+  var budgetLink = has(budgetUrl) ? '<div class="editbar" style="justify-content:flex-start;margin-bottom:16px"><a class="ebtn pri" href="'+esc(budgetUrl)+'" target="_blank" rel="noopener" style="text-decoration:none">📊 Open Borowski budget sheet →</a></div>' : '';
+  return budgetLink
+    + tiles
     + mkt
     + nwCard
     + '<div class="grid cols-2">'
