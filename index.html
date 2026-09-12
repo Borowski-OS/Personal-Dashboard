@@ -547,6 +547,14 @@ async function afterWrite(){
   try{ var res=await jsonp(api+'?pw='+pw); if(res&&res.ok){ DATA=res.data||{}; $('stamp').textContent=fmtStamp(res.updated); } }catch(e){}
   closeModal(); render(CURRENT);
 }
+async function quickLogWeight(){
+  var w=window.prompt('Today’s weight (lb):'); if(w==null) return; w=String(w).trim();
+  if(!w||isNaN(parseFloat(w))){ if(w) alert('Enter a number.'); return; }
+  var today=new Date().toISOString().slice(0,10);
+  await apiWrite({action:'upsert',tab:'HealthLog',row:JSON.stringify({Date:today,Metric:'Weight',Value:w,Notes:''})});
+  await apiWrite({action:'setkv',tab:'Health',row:JSON.stringify({weight:w,weight_updated:new Date().toLocaleDateString('en-US',{month:'short',day:'numeric'})})});
+  await afterWrite();
+}
 async function stravaSync(){
   var el=$('stravaStatus'); if(el) el.textContent='Syncing from Strava…';
   var res=await apiWrite({action:'syncstrava'});
@@ -1280,7 +1288,7 @@ function renderHealth(){
   var woCard = stravaOn ? '<div style="height:22px"></div>'+card('Recent workouts','Auto-synced from Strava.', tableEl(woCols, workouts.slice().reverse().slice(0,15), {}), '--pink') : '';
 
   var logCols=[{label:'Date',key:'Date'},{label:'Metric',key:'Metric'},{label:'Value',num:true,key:'Value'},{label:'Notes',key:'Notes'}];
-  return (EDIT?'<div class="editbar">'+kvEditBtn('Health')+'</div>':'')
+  return '<div class="editbar" style="gap:8px">'+(EDIT?kvEditBtn('Health'):'')+'<button class="ebtn pri" onclick="quickLogWeight()">＋ Log weight</button></div>'
     + tiles
     + '<div class="grid cols-2">'
     + card('Training plan','Hybrid: CompTrain strength + Zone-2 endurance.', planHtml, '--pink')
