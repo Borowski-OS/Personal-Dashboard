@@ -6,7 +6,7 @@
 <title>Life OS</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&amp;family=DM&#43;Mono:wght@400;500&amp;display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
   :root {
@@ -25,7 +25,7 @@
   a { color:inherit; }
   .mono { font-family:'DM Mono',monospace; }
 
-  /* ---- top nav ---- */
+   
   #topNav { position:fixed; top:0; left:0; right:0; height:var(--nav-h); z-index:2050;
     display:flex; align-items:center; gap:10px; padding:0 24px;
     background:rgba(22,22,22,0.94); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
@@ -84,7 +84,7 @@
   .card .sub { color:var(--text-muted); font-size:13px; margin-bottom:16px; font-weight:500; }
   .card.accent-t { border-top:3px solid var(--card-border); }
 
-  /* stat tiles */
+   
   .stat { background:var(--card-bg); border:1px solid var(--card-border); border-radius:12px; padding:18px 20px; }
   .stat .label { color:var(--text-muted); font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:.06em; }
   .stat .value { font-size:26px; font-weight:700; margin-top:8px; letter-spacing:-.5px; }
@@ -122,7 +122,7 @@
   .kv-row .v { font-weight:600; text-align:right; }
   .section-title { font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--text-dim); margin:6px 0 12px; }
 
-  /* gate */
+   
   #gate { position:fixed; inset:0; z-index:3000; background:radial-gradient(1200px 600px at 50% -10%, #262626, #151515);
     display:flex; align-items:center; justify-content:center; padding:20px; }
   #gate .box { width:100%; max-width:400px; background:var(--card-bg); border:1px solid var(--card-border);
@@ -176,7 +176,7 @@
   </div>
 </nav>
 
-<!-- Password / setup gate -->
+
 <div id="gate">
   <div class="box">
     <div class="logo" id="gateLogo">L</div>
@@ -188,7 +188,7 @@
     <input id="pwInput" type="password" placeholder="••••••••" autocomplete="current-password" />
     <button onclick="submitGate()">Unlock</button>
     <div class="err" id="gateErr"></div>
-    <div class="tiny">First time? Deploy the Apps Script web app (see SETUP.md), paste its <span class="mono">/exec</span> URL above once — it's remembered on this device. The password is the one you set in your sheet's Config tab.</div>
+    <div class="tiny">Enter the family password to view the dashboard. It's remembered on this device.</div>
   </div>
 </div>
 
@@ -207,12 +207,12 @@
 </main>
 
 <script>
-/* ============================================================
-   Config + tiny helpers
-   ============================================================ */
+
+
+var API_URL = 'https://script.google.com/macros/s/AKfycbwdO_d4gj2Rj_cLM7JFvehuRUHuwFFocaxJz0MwJxKYhECksIHVe3p3VdhbgjKioWd-/exec';
 var LS_API = 'lifeos_api_url';
 var SS_PW  = 'lifeos_pw_hash';
-var DATA = null;        // full dataset from the web app
+var DATA = null;        
 var CURRENT = 'overview';
 
 var TABS = {
@@ -238,17 +238,15 @@ function arr(name){ return (DATA&&DATA[name])||[]; }
 function kv(name){ return (DATA&&DATA[name])||{}; }
 function has(v){ return v!=null && String(v).trim()!==''; }
 
-/* ============================================================
-   SHA-256 (Web Crypto) for the password gate
-   ============================================================ */
+
+
 async function sha256(str){
   var buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
   return Array.from(new Uint8Array(buf)).map(function(b){return b.toString(16).padStart(2,'0');}).join('');
 }
 
-/* ============================================================
-   JSONP loader (works cross-origin from GitHub Pages)
-   ============================================================ */
+
+
 function jsonp(url){
   return new Promise(function(resolve,reject){
     var cb = 'lifeos_cb_' + Math.random().toString(36).slice(2);
@@ -262,26 +260,22 @@ function jsonp(url){
   });
 }
 
-/* ============================================================
-   Gate
-   ============================================================ */
+
+
 window.addEventListener('DOMContentLoaded', function(){
-  var api = localStorage.getItem(LS_API);
-  if(api){ $('apiInput').value = api; $('apiWrap').classList.add('hidden'); }
+  localStorage.setItem(LS_API, API_URL);
+  var aw = $('apiWrap'); if(aw) aw.classList.add('hidden');
   var pw = sessionStorage.getItem(SS_PW);
-  if(api && pw){ boot(api, pw); }
+  if(pw){ boot(API_URL, pw); }
   $('pwInput').addEventListener('keydown', function(e){ if(e.key==='Enter') submitGate(); });
-  $('apiInput').addEventListener('keydown', function(e){ if(e.key==='Enter') $('pwInput').focus(); });
 });
 
 async function submitGate(){
   $('gateErr').textContent='';
-  var api = ($('apiInput').value||localStorage.getItem(LS_API)||'').trim();
-  var pw  = $('pwInput').value;
-  if(!api){ $('gateErr').textContent='Paste your dashboard data URL.'; return; }
+  var pw = $('pwInput').value;
   if(!pw){ $('gateErr').textContent='Enter your password.'; return; }
   var hash = await sha256(pw);
-  boot(api, hash);
+  boot(API_URL, hash);
 }
 
 async function boot(api, hash){
@@ -325,9 +319,8 @@ async function reload(){
 }
 function signOut(){ sessionStorage.removeItem(SS_PW); location.reload(); }
 
-/* ============================================================
-   Tab routing
-   ============================================================ */
+
+
 function navGo(tab){
   CURRENT = tab;
   document.querySelectorAll('#topNav .nav-tab').forEach(function(b){ b.classList.toggle('active', b.dataset.tab===tab); });
@@ -339,9 +332,8 @@ function navGo(tab){
 }
 window.addEventListener('hashchange', function(){ var t=(location.hash||'').replace('#',''); if(TABS[t]&&t!==CURRENT) navGo(t); });
 
-/* ============================================================
-   Render dispatch
-   ============================================================ */
+
+
 var charts = [];
 function clearCharts(){ charts.forEach(function(c){ try{c.destroy();}catch(e){} }); charts=[]; }
 function render(tab){
@@ -375,7 +367,7 @@ function statTile(label,value,foot,tab){
     +(foot?'<div class="foot">'+esc(foot)+'</div>':'')+'</div>';
 }
 
-/* ---------- money math shared by Overview + Money ---------- */
+ 
 function billMonthly(b){ var n=num(b.Amount); if(isNaN(n)) return 0; var f=String(b.Frequency||'monthly').toLowerCase();
   if(f.indexOf('year')>=0||f.indexOf('ann')>=0) return n/12; if(f.indexOf('quart')>=0) return n/3;
   if(f.indexOf('week')>=0) return n*4.33; return n; }
@@ -392,9 +384,8 @@ function budgetTotals(){
     if(!isNaN(bb)) b+=bb; if(!isNaN(aa)) a+=aa; }); return {budget:b, actual:a};
 }
 
-/* ============================================================
-   OVERVIEW
-   ============================================================ */
+
+
 function renderOverview(){
   var bills=totalMonthlyBills(), nw=netWorth(), bt=budgetTotals();
   var tiles=[];
@@ -407,7 +398,7 @@ function renderOverview(){
   tiles.push(statTile('Projects', arr('Projects').filter(function(p){return String(p.Status||'').toLowerCase()!=='done';}).length||'—', 'active', 'projects'));
   tiles.push(statTile('Upcoming trips', tr||'—', 'see Travel', 'travel'));
 
-  // Next actions: explicit + derived (renewals soon, tasks due)
+  
   var actions = arr('NextActions').filter(function(a){return !truthy(a.Done)&&has(a.Action);})
     .map(function(a){return {t:a.Action, tab:a.Tab||'overview', due:a.Due};});
   arr('ProjectTasks').forEach(function(t){ if(!truthy(t.Done)&&has(t.Task)&&has(t.Due)) actions.push({t:t.Task+' ('+t.Project+')',tab:'projects',due:t.Due}); });
@@ -431,9 +422,8 @@ function renderOverview(){
     + '</div>';
 }
 
-/* ============================================================
-   HOME & BILLS
-   ============================================================ */
+
+
 function renderBills(){
   var bills = arr('Bills').slice().sort(function(a,b){return billMonthly(b)-billMonthly(a);});
   var monthly=totalMonthlyBills();
@@ -472,9 +462,8 @@ function renderBills(){
     + card('Vendor & service contacts','People and companies to reach when something breaks.', tableEl(cc, contacts, {empty:'No saved contacts yet.'}), '--teal');
 }
 
-/* ============================================================
-   PROJECTS
-   ============================================================ */
+
+
 function renderProjects(){
   var ps = arr('Projects'), tasks=arr('ProjectTasks');
   if(!ps.length) return card('Projects','House & family projects', '<div class="empty">No projects yet. Add them in the Projects tab — name, area, status, budget, target date.</div>','--orange');
@@ -498,9 +487,8 @@ function renderProjects(){
   return '<div class="grid cols-2">'+cards+'</div>';
 }
 
-/* ============================================================
-   FLYING
-   ============================================================ */
+
+
 function renderFlying(){
   var f=kv('Flying'), ac=arr('Aircraft'), log=arr('FlightLog');
   var tiles='<div class="grid cols-4" style="margin-bottom:22px">'
@@ -528,9 +516,8 @@ function renderFlying(){
     + card('Flight log','Most recent flights.', tableEl(logCols, log.slice().reverse(), {empty:'Log flights in the FlightLog tab.'}), '--sky');
 }
 
-/* ============================================================
-   MONEY & BUDGET
-   ============================================================ */
+
+
 function renderMoney(){
   var bt=budgetTotals(), nw=netWorth();
   var accounts=arr('Accounts'), debts=arr('Debts'), inv=arr('Investments'), goals=arr('SavingsGoals');
@@ -546,7 +533,7 @@ function renderMoney(){
     + statTile('Debts', debts.length?money(liabilities):'—', debts.length+' accounts')
     + '</div>';
 
-  // Budget vs actual bars by category
+  
   var cats=arr('BudgetCategories').filter(function(c){return has(c.Category)&&(has(c.MonthlyBudget)||has(c.MonthlyActual));});
   var budgetHtml = cats.length ? cats.map(function(c){
       var b=num(c.MonthlyBudget)||0, a=num(c.MonthlyActual); var pct=b>0?Math.min(100,Math.round((isNaN(a)?0:a)/b*100)):0;
@@ -619,9 +606,8 @@ function drawMoneyCharts(){
     options:{plugins:{legend:{labels:{color:'#f0f0f0',font:{family:'Montserrat'}}}},cutout:'62%'}}));
 }
 
-/* ============================================================
-   HOBBIES
-   ============================================================ */
+
+
 function renderHobbies(){
   var hs=arr('Hobbies');
   if(!hs.length) return card('Hobbies','', '<div class="empty">Add your hobbies (hunting, fishing, camping, aviation, etc.) in the Hobbies tab — who does it, cadence, gear, a goal.</div>','--violet');
@@ -636,9 +622,8 @@ function renderHobbies(){
   }).join('')+'</div>';
 }
 
-/* ============================================================
-   VEHICLES
-   ============================================================ */
+
+
 function renderVehicles(){
   var vs=arr('Vehicles'), svc=arr('VehicleService');
   if(!vs.length) return card('Vehicles','', '<div class="empty">Add your vehicles in the Vehicles tab — mileage, registration & insurance renewals, loan.</div>','--rose');
@@ -657,9 +642,8 @@ function renderVehicles(){
   return '<div class="grid cols-2">'+cards+'</div>';
 }
 
-/* ============================================================
-   HEALTH & FITNESS
-   ============================================================ */
+
+
 function renderHealth(){
   var h=kv('Health'), log=arr('HealthLog');
   var rows=[['Program',h.program],['Weekly rhythm',h.weekly_shape],['Weight',h.weight],
@@ -673,9 +657,8 @@ function renderHealth(){
     + '</div>';
 }
 
-/* ============================================================
-   TRAVEL
-   ============================================================ */
+
+
 function renderTravel(){
   var trips=arr('Travel'), checklist=arr('TravelChecklist'), points=arr('Points');
   var upcoming=trips.filter(function(t){return String(t.Status||'').toLowerCase()!=='past';});
