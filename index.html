@@ -1134,8 +1134,10 @@ function renderHealth(){
     +'<div class="kv-row"><span class="k">Cronometer</span><span class="v" style="color:var(--text-dim)">macros — export & I\'ll import</span></div>'
     +'<p style="font-size:12px;color:var(--text-dim);margin:10px 0 0">Weight isn\'t in Strava — log it here with ✎ Edit (or a smart scale via Apple Health later).</p>';
 
-  var woCols=[{label:'Date',key:'Date'},{label:'Type',render:function(r){return has(r.Type)?'<span class="chip">'+esc(r.Type)+'</span>':'';}},
-    {label:'Workout',key:'Name'},{label:'Dist',num:true,key:'Distance'},{label:'Time',num:true,key:'Duration'},
+  function woDate(r){ var m=String(r.Date||'').match(/(\d{4})-(\d{2})-(\d{2})/); return m?(MONTHS[+m[2]-1]+' '+(+m[3])):esc(r.Date||''); }
+  function woDur(r){ var d=String(r.Duration||''); var m=d.match(/T(\d\d):(\d\d)/); if(m){ var h=+m[1]; return (h?h+'h ':'')+(+m[2])+'m'; } return esc(d); }
+  var woCols=[{label:'Date',render:woDate},{label:'Type',render:function(r){return has(r.Type)?'<span class="chip">'+esc(String(r.Type).replace(/([a-z])([A-Z])/g,'$1 $2'))+'</span>':'';}},
+    {label:'Workout',key:'Name'},{label:'Dist',num:true,key:'Distance'},{label:'Time',num:true,render:woDur},
     {label:'Avg HR',num:true,key:'AvgHR'},{label:'Elev',num:true,key:'Elevation'}];
   var woCard = stravaOn ? '<div style="height:22px"></div>'+card('Recent workouts','Auto-synced from Strava.', tableEl(woCols, workouts.slice().reverse().slice(0,15), {}), '--pink') : '';
 
