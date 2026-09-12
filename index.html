@@ -14,7 +14,7 @@
     --text:#f0f0f0; --text-muted:#9a9a9a; --text-dim:#6a6a6a;
     --green:#22c55e; --red:#ef4444; --amber:#f59e0b;
     --gold:#eab308; --teal:#2dd4bf; --orange:#f97316; --sky:#38bdf8;
-    --emerald:#34d399; --violet:#a78bfa; --rose:#fb7185; --pink:#f472b6; --cyan:#22d3ee;
+    --emerald:#34d399; --violet:#a78bfa; --rose:#fb7185; --pink:#f472b6; --cyan:#22d3ee; --indigo:#818cf8;
     --nav-h:58px;
   }
   * { box-sizing:border-box; }
@@ -50,6 +50,7 @@
   .nav-tab[data-tab="projects"].active { border-bottom-color:var(--orange); }
   .nav-tab[data-tab="flying"].active   { border-bottom-color:var(--sky); }
   .nav-tab[data-tab="money"].active    { border-bottom-color:var(--emerald); }
+  .nav-tab[data-tab="ventures"].active { border-bottom-color:var(--indigo); }
   .nav-tab[data-tab="hobbies"].active  { border-bottom-color:var(--violet); }
   .nav-tab[data-tab="vehicles"].active { border-bottom-color:var(--rose); }
   .nav-tab[data-tab="health"].active   { border-bottom-color:var(--pink); }
@@ -205,6 +206,7 @@
     <button class="nav-tab" data-tab="projects" onclick="navGo('projects')">Projects</button>
     <button class="nav-tab" data-tab="flying" onclick="navGo('flying')">Flying</button>
     <button class="nav-tab" data-tab="money" onclick="navGo('money')">Money</button>
+    <button class="nav-tab" data-tab="ventures" onclick="navGo('ventures')">Ventures</button>
     <button class="nav-tab" data-tab="hobbies" onclick="navGo('hobbies')">Hobbies</button>
     <button class="nav-tab" data-tab="vehicles" onclick="navGo('vehicles')">Vehicles</button>
     <button class="nav-tab" data-tab="health" onclick="navGo('health')">Health</button>
@@ -265,6 +267,7 @@ var TABS = {
   projects:{title:'Projects', sub:'House & family projects and their next steps.'},
   flying:{title:'Flying', sub:'Training progress, hours, and your aircraft.'},
   money:{title:'Money & Budget', sub:'Budget, accounts, net worth, and investments.'},
+  ventures:{title:'Ventures', sub:'Your buy-box, capital plan, and deal pipeline.'},
   hobbies:{title:'Hobbies', sub:'The things you love doing.'},
   vehicles:{title:'Vehicles', sub:'Maintenance, renewals, and service history.'},
   health:{title:'Health & Fitness', sub:'Training rhythm and health admin.'},
@@ -422,7 +425,7 @@ function render(tab){
   var el = $('panels');
   el.innerHTML = ({
     overview: renderOverview, bills: renderBills, family: renderFamily, projects: renderProjects,
-    flying: renderFlying, money: renderMoney, hobbies: renderHobbies,
+    flying: renderFlying, money: renderMoney, ventures: renderVentures, hobbies: renderHobbies,
     vehicles: renderVehicles, health: renderHealth, travel: renderTravel
   }[tab] || function(){return '';})();
   if(tab==='money') drawMoneyCharts();
@@ -454,6 +457,8 @@ var ESCHEMA={
   Hunts:{cols:['Species','State','Method','Access','Window','Deadline','Cost','Notes']},
   HuntPoints:{cols:['State','Species','Points','Category','Notes']},
   Workouts:{cols:['Date','Type','Name','Distance','Duration','AvgHR','Elevation','Calories','StravaID','Notes']},
+  Deals:{cols:['Name','Sector','Location','Price','SDE','CashNeeded','MonthlyNet','OwnerHrs','Stage','Notes']},
+  Ventures:{kv:true},
   Milestones:{cols:['Area','Milestone','Who','Status','Date','Notes']},
   Quotes:{cols:['Quote','Author','Source','Tag']},
   NextActions:{cols:['Action','Tab','Due','Done']},
@@ -596,7 +601,7 @@ function upcomingAlerts(){
 
 
 var DOMAIN={overview:['Life','--gold'],bills:['Home','--teal'],family:['Family','--amber'],projects:['Projects','--orange'],
-  flying:['Flying','--sky'],money:['Money','--emerald'],hobbies:['Hobbies','--violet'],vehicles:['Vehicles','--rose'],
+  flying:['Flying','--sky'],money:['Money','--emerald'],ventures:['Ventures','--indigo'],hobbies:['Hobbies','--violet'],vehicles:['Vehicles','--rose'],
   health:['Health','--pink'],travel:['Travel','--cyan']};
 function domChip(tab){ var d=DOMAIN[tab]||DOMAIN.overview; return '<span class="chip" style="background:transparent;border:1px solid var('+d[1]+');color:var('+d[1]+');font-size:10px;padding:1px 7px;margin:0">'+d[0]+'</span>'; }
 function weekWorkouts(){ var now=Date.now(); return arr('Workouts').filter(function(w){var m=String(w.Date||'').match(/(\d{4})-(\d{2})-(\d{2})/); if(!m) return false; var d=new Date(+m[1],+m[2]-1,+m[3]).getTime(); return (now-d)<=7.5*864e5 && d<=now+864e5;}).length; }
@@ -966,6 +971,58 @@ function drawMoneyCharts(){
     data:{labels:labels,datasets:[{data:labels.map(function(l){return Math.round(byType[l]);}),
       backgroundColor:labels.map(function(l){return colors[l]||'#9a9a9a';}),borderColor:'#242424',borderWidth:3}]},
     options:{plugins:{legend:{labels:{color:'#f0f0f0',font:{family:'Montserrat'}}}},cutout:'62%'}}));
+}
+
+
+
+function grpKv(obj, accentVar){
+  var keys=Object.keys(obj).filter(function(k){return has(obj[k]);});
+  if(!keys.length) return '';
+  var groups={}, order=[];
+  keys.forEach(function(k){ var p=String(k).split('|'); var g=p.length>1?p[0].trim():'General'; var label=p.length>1?p.slice(1).join('|').trim():k;
+    if(!groups[g]){groups[g]=[];order.push(g);} groups[g].push([label,obj[k]]); });
+  return order.map(function(g){
+    return '<div class="card" style="border-top:3px solid var('+accentVar+')"><h2 style="font-size:15px">'+esc(g)+'</h2><div style="margin-top:6px">'
+      +groups[g].map(function(r){return '<div class="kv-row"><span class="k">'+esc(r[0])+'</span><span class="v" style="max-width:60%;text-align:right">'+esc(r[1])+'</span></div>';}).join('')
+      +'</div></div>';
+  }).join('');
+}
+function renderVentures(){
+  var v=kv('Ventures'), deals=arr('Deals');
+  
+  var cash=arr('Accounts').reduce(function(s,a){var n=num(a.Balance);var t=String(a.Type||'').toLowerCase();return s+(isNaN(n)||t.indexOf('credit')>=0?0:n);},0);
+  var crypto=arr('Investments').filter(function(i){return /crypto|btc|bitcoin/i.test(String(i.Type)+' '+String(i.Name));}).reduce(function(s,i){return s+(num(i.Value)||0);},0);
+  var reVal=arr('Investments').filter(function(i){return /real estate/i.test(String(i.Type));}).reduce(function(s,i){return s+(num(i.Value)||0);},0);
+  var reDebt=arr('Debts').filter(function(d){return /mortgage|heloc/i.test(String(d.Type));}).reduce(function(s,d){return s+(num(d.Balance)||0);},0);
+  var equity=reVal-reDebt;
+  var tiles='<div class="grid cols-4" style="margin-bottom:22px">'
+    + statTile('Liquid cash', money(cash), 'thin — build first')
+    + statTile('Crypto', money(crypto), 'acquisition fund (trim on ladder)')
+    + statTile('Home equity', money(equity), 'RE value − mortgages')
+    + '<div class="stat"><div class="label">Bitcoin (live)</div><div class="value mono" data-live="btc">…</div><div class="foot">watch vs. your $250k target</div></div>'
+    + '</div>';
+
+  var box=grpKv(v, '--indigo');
+  var boxCard = box ? '<div class="grid cols-2" style="margin-bottom:22px">'+box+'</div>'
+    : card('Ventures','', '<div class="empty">Add your buy-box & capital plan with ✎ Edit — use keys like <span class="mono">Buy-box|Price</span> or <span class="mono">Capital plan|At $250K</span>.</div>','--indigo');
+
+  var dcols=[
+    {label:'Business',render:function(r){return '<strong>'+esc(r.Name)+'</strong>'+(has(r.Location)?'<div class="foot" style="color:var(--text-dim)">'+esc(r.Location)+'</div>':'');}},
+    {label:'Sector',render:function(r){return has(r.Sector)?'<span class="chip">'+esc(r.Sector)+'</span>':'';}},
+    {label:'Price',num:true,render:function(r){return money(r.Price);}},
+    {label:'SDE',num:true,render:function(r){return money(r.SDE);}},
+    {label:'Cash in',num:true,render:function(r){return money(r.CashNeeded);}},
+    {label:'~$/mo net',num:true,render:function(r){return has(r.MonthlyNet)?money(r.MonthlyNet):'';}},
+    {label:'Owner hrs',num:true,key:'OwnerHrs'},
+    {label:'Stage',render:function(r){return has(r.Stage)?'<span class="tag '+(/(pass|dead)/i.test(r.Stage)?'blocked':(/(offer|dilig|loi|close)/i.test(r.Stage)?'active':'planning'))+'">'+esc(r.Stage)+'</span>':'';}},
+    {label:'Notes',key:'Notes'}
+  ];
+
+  return tiles
+    + (EDIT?'<div class="editbar">'+kvEditBtn('Ventures')+'</div>':'')
+    + boxCard
+    + card('Deal pipeline','Screening estimates — underwrite before trusting SDE. Turn on ✎ Edit to add or update deals.',
+        tableEl(dcols, deals, {empty:'No deals yet. Add candidates with ✎ Edit — price, SDE, cash needed, stage.',editTab:'Deals'}), '--indigo');
 }
 
 
