@@ -339,7 +339,28 @@ function dueClass(days){ if(days==null) return ''; if(days<0) return 'neg'; if(d
 
 
 
-var LIVE = { btc:null, btcChg:null, metar:null, metarFlag:null };
+var LIVE = { btc:null, btcChg:null, metar:null, metarFlag:null, metars:{}, apFetched:false };
+function metarCeil(m){ var c=null; (m.clouds||[]).forEach(function(x){ if((x.cover==='BKN'||x.cover==='OVC'||x.cover==='OVX')&&x.base!=null&&(c==null||x.base<c)) c=x.base; }); return c; }
+function metarCat(m){ var vis=(m.visib!=null)?parseFloat(m.visib):99, ceil=metarCeil(m); ceil=(ceil==null)?99999:ceil;
+  if(ceil<500||vis<1) return ['LIFR','--violet']; if(ceil<1000||vis<3) return ['IFR','--rose']; if(ceil<3000||vis<5) return ['MVFR','--sky']; return ['VFR','--green']; }
+function metarDecode(m){ var p=[];
+  if(m.wspd!=null){ var wd=(m.wspd===0)?'calm':((m.wdir==='VRB'?'VRB':(m.wdir!=null?m.wdir+'°':'?'))+'@'+m.wspd+(m.wgst?'G'+m.wgst:'')+'kt'); p.push('Wind '+wd); }
+  if(m.visib!=null) p.push('Vis '+m.visib+'sm');
+  var c=metarCeil(m); p.push('Ceil '+(c==null?'unlimited':c+'ft'));
+  if(m.altim!=null){ var inhg=m.altim>100?(m.altim*0.0295300):m.altim; p.push('Alt '+inhg.toFixed(2)+'"'); }
+  if(m.temp!=null) p.push(Math.round(m.temp)+'°/'+(m.dewp!=null?Math.round(m.dewp):'?')+'°C');
+  return p.join(' · '); }
+function fetchAirports(force){
+  if(LIVE.apFetched&&!force) return;
+  var ids=arr('Airports').map(function(a){return String(a.Icao||'').trim().toUpperCase();}).filter(Boolean);
+  if(!ids.length) return; LIVE.apFetched=true;
+  try{
+    fetch('https://aviationweather.gov/api/data/metar?ids='+ids.join(',')+'&format=json')
+      .then(function(r){return r.json();})
+      .then(function(a){ (a||[]).forEach(function(m){ if(m&&m.icaoId) LIVE.metars[m.icaoId]=m; }); if(CURRENT==='flying') render('flying'); })
+      .catch(function(){});
+  }catch(e){}
+}
 function fetchLive(){
   try{
     fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd&include_24hr_change=true')
@@ -482,6 +503,7 @@ function render(tab){
     vehicles: renderVehicles, health: renderHealth
   }[tab] || function(){return '';})();
   if(tab==='home') drawMoneyCharts();
+  if(tab==='flying') fetchAirports();
   applyLive();
 }
 
@@ -500,6 +522,7 @@ var ESCHEMA={
   Projects:{cols:['Name','Area','Status','Priority','Budget','Spent','Owner','TargetDate','Notes']},
   ProjectTasks:{cols:['Project','Task','Done','Due','Notes']},
   Aircraft:{cols:['Tail','MakeModel','Owner','HomeField','Insurer','AnnualDue','Notes']},
+  Airports:{cols:['Icao','Name','WxType','WxFreq','Phone','Notes']},
   FlightLog:{cols:['Date','Aircraft','Route','Hours','Type','Notes']},
   Hobbies:{cols:['Name','Who','Cadence','Gear','Goal','Budget','Log','Notes']},
   Vehicles:{cols:['Name','Type','Year','Make','Model','Trim','VIN','Plate','Mileage','Owner','RegRenewal','InsProvider','InsPolicy','InsRenewal','LoanBalance','LoanLender','PurchaseDate','PurchasePrice','Value','ValueAsOf','TitleLocation','Notes','Specs']},
@@ -1064,7 +1087,29 @@ function renderFlying(){
     + card('PPL milestones','Brad\'s path to the certificate.', milestoneHtml, '--sky')
     + card('Aircraft','', tableEl(acCols, ac, {empty:'Add your aircraft (e.g. Maule N51207) in the Aircraft tab.',editTab:'Aircraft'}), '--sky')
     + '</div><div style="height:22px"></div>'
+    + '<div style="height:22px"></div>'
+    + '<div class="section-title" style="display:flex;justify-content:space-between"><span>Live airport weather (AWOS / ATIS)</span>'+(EDIT?'<button class="ebtn pri" onclick="openEditor(\'Airports\')" style="text-transform:none;letter-spacing:0">＋ Add airport</button>':'')+'</div>'
+    + airportsHtml()
+    + '<div style="height:22px"></div>'
     + card('Flight log','Most recent flights.', tableEl(logCols, log.slice().reverse(), {empty:'Log flights in the FlightLog tab.',editTab:'FlightLog'}), '--sky');
+}
+function airportsHtml(){
+  var aps=arr('Airports').filter(function(a){return has(a.Icao);});
+  if(!aps.length) return '<div class="empty">Add airports (KMEV, KRNO…) with ✎ Edit to see live weather.</div>';
+  var cards=aps.map(function(a){
+    var icao=String(a.Icao).trim().toUpperCase(), m=LIVE.metars[icao], cat=m?metarCat(m):null;
+    var badge=cat?'<span class="tag" style="background:transparent;border:1px solid var('+cat[1]+');color:var('+cat[1]+')">'+cat[0]+'</span>':'<span class="foot">loading…</span>';
+    var wx=m?metarDecode(m):'fetching live weather…';
+    var freq=has(a.WxFreq)?((a.WxType||'AWOS')+' '+a.WxFreq):'';
+    var ph=has(a.Phone)?'<a class="tel" href="'+telHref(a.Phone)+'">'+esc(a.Phone)+'</a>':'';
+    return '<div class="card" style="border-top:3px solid var(--sky)">'
+      +'<div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px"><h2 style="font-size:16px">'+esc(icao)+' <span class="foot" style="font-weight:400">'+esc(a.Name||'')+'</span></h2>'+badge+'</div>'
+      +'<div style="margin-top:8px;font-size:13.5px;color:var(--text)">'+esc(wx)+'</div>'
+      +((freq||ph)?'<div class="kv-row" style="margin-top:8px"><span class="k">'+esc(freq)+'</span><span class="v">'+ph+(EDIT?' '+editBtn('Airports',a.__row):'')+'</span></div>':(EDIT?'<div style="margin-top:8px">'+editBtn('Airports',a.__row)+'</div>':''))
+      +(m&&m.rawOb?'<div class="mono" style="margin-top:8px;font-size:11px;color:var(--text-dim);white-space:normal;word-break:break-word">'+esc(m.rawOb)+'</div>':'')
+      +'</div>';
+  }).join('');
+  return '<div class="grid cols-2">'+cards+'</div>';
 }
 
 
