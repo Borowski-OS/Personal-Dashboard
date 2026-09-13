@@ -127,10 +127,10 @@
   .empty { color:var(--text-dim); font-size:13.5px; font-style:italic; padding:14px 2px; }
   .pos{color:var(--green);} .neg{color:var(--red);}
   .chart-wrap { width:100%; height:280px; }
-  .kv-row { display:flex; justify-content:space-between; gap:14px; padding:9px 0; border-bottom:1px solid #2c2c2c; font-size:14px; }
+  .kv-row { display:flex; justify-content:space-between; gap:14px; padding:9px 0; border-bottom:1px solid #2c2c2c; font-size:14px; flex-wrap:wrap; }
   .kv-row:last-child { border-bottom:none; }
-  .kv-row .k { color:var(--text-muted); }
-  .kv-row .v { font-weight:600; text-align:right; }
+  .kv-row .k { color:var(--text-muted); min-width:0; overflow-wrap:anywhere; }
+  .kv-row .v { font-weight:600; text-align:right; min-width:0; overflow-wrap:anywhere; }
   .section-title { font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--text-dim); margin:6px 0 12px; }
 
    
@@ -180,9 +180,17 @@
   }
 
    
+  img, svg, canvas, video { max-width:100%; }
+  .stat .value, .stat .value.mono { overflow-wrap:anywhere; }
+  .chart-wrap { max-width:100%; overflow:hidden; }
+
+   
   @media (max-width:640px){
+    html, body { max-width:100%; overflow-x:hidden; }
+    .header { flex-wrap:wrap; }
     .header h1 { font-size:23px; }
     .stat .value { font-size:22px; }
+    .stat .value.mono { font-size:20px; }
     .subnav { overflow-x:auto; flex-wrap:nowrap; -webkit-overflow-scrolling:touch; }
     .subnav::-webkit-scrollbar { display:none; }
     #modal { padding:16px 10px; }
@@ -569,7 +577,7 @@ var EDIT=false;
 var ESCHEMA={
   Bills:{cols:['Vendor','Category','Amount','Frequency','Autopay','DueDay','Phone','URL','Account','Personal','Notes']},
   Contacts:{cols:['Name','Company','Category','Phone','Email','URL','Notes']},
-  BudgetCategories:{cols:['Category','Type','MonthlyBudget','MonthlyActual','Notes']},
+  BudgetCategories:{cols:['Category','Type','MonthlyBudget','MonthlyActual','Notes','SpendHist']},
   Accounts:{cols:['Name','Institution','Type','Last4','Balance','AsOf','Notes']},
   Debts:{cols:['Name','Lender','Type','Balance','Rate','Payment','DueDay','Property','Notes']},
   Investments:{cols:['Name','Type','Value','CostBasis','AsOf','Notes']},
@@ -890,10 +898,7 @@ function renderOverview(){
 
   
   var tiles=[
-    statTile('Net worth', nw?money(nw):'—', 'assets − debts', 'money', '--emerald'),
-    statTile('Weight', (!isNaN(cur)?cur+' lb':'—'), (!isNaN(cur)&&!isNaN(goal)?('goal '+goal+' · '+Math.max(0,Math.round(cur-goal))+' to go'):'set in Health'), 'health', '--pink'),
     statTile('Flying', has(fly.total_hours)?fly.total_hours+' hrs':'—', fly.stage||'set in Flying', 'flying', '--sky'),
-    statTile('Workouts / wk', wk||'—', 'from Strava · aim 5–6', 'health', '--pink'),
     statTile('Active projects', actProj||'—', 'in progress', 'projects', '--orange'),
     '<div class="stat link" onclick="navGo(\'money\')" style="border-top:2px solid var(--gold)"><div class="label">Bitcoin (live)</div><div class="value mono" data-live="btc">…</div><div class="foot">market spot</div></div>'
   ];
@@ -1297,6 +1302,45 @@ function btcLadderCard(){
 
 
 
+function budgetPlanHtml(){
+  var cats=arr('BudgetCategories').filter(function(c){return has(c.Category)&&has(c.MonthlyBudget);});
+  if(!cats.length) return '<div class="empty">Add categories with a monthly budget in the BudgetCategories tab.</div>';
+  var anyActual=cats.some(function(c){return has(c.MonthlyActual);});
+  var typeOrder=['Needs','Wants','Savings','Tithe','Other'];
+  var groups={}; cats.forEach(function(c){ var t=String(c.Type||'Other'); if(typeOrder.indexOf(t)<0) t='Other'; (groups[t]=groups[t]||[]).push(c); });
+  var out='';
+  typeOrder.forEach(function(t){ var list=groups[t]; if(!list) return;
+    list.sort(function(a,b){return (num(b.MonthlyBudget)||0)-(num(a.MonthlyBudget)||0);});
+    var sub=list.reduce(function(s,c){return s+(num(c.MonthlyBudget)||0);},0);
+    var subAct=list.reduce(function(s,c){var a=num(c.MonthlyActual);return s+(isNaN(a)?0:a);},0);
+    out+='<div style="display:flex;justify-content:space-between;align-items:baseline;margin:16px 0 4px"><span class="tag '+t.toLowerCase()+'" style="font-size:11px">'+esc(t)+'</span><span class="foot mono">'+(subAct?money(subAct)+' avg / ':'')+money(sub)+'/mo</span></div>';
+    out+=list.map(function(c){
+      var b=num(c.MonthlyBudget)||0, a=num(c.MonthlyActual);
+      var right='<span class="mono">'+(isNaN(a)?'':'<span style="color:var('+(a>b*1.05?'--rose':'--text)')+'">'+money(a)+'</span> <span style="color:var(--text-dim)">/ </span>')+money(b)+'</span>';
+      var trend='';
+      if(!isNaN(a)){
+        var series=has(c.SpendHist)?String(c.SpendHist).split('|').map(function(x){return Math.round(num(x)||0);}):[];
+        var over=a>b*1.05, under=a<b*0.55&&b>0;
+        var dcol=over?'--rose':(under?'--text-dim':'--green');
+        var pct=b>0?Math.round(a/b*100):0;
+        trend='<div style="display:flex;align-items:center;gap:10px;margin-top:3px">'
+          +(series.length>1?'<span style="flex:1;max-width:140px">'+sparkline(series,dcol)+'</span>':'<span style="flex:1"></span>')
+          +'<span class="foot mono" style="color:var('+dcol+')">'+pct+'% of budget'+(over?' · over by '+money(a-b):(under?' · room to spend':' · on track'))+'</span></div>';
+      }
+      return '<div style="padding:7px 0;border-bottom:1px solid #2c2c2c"><div style="display:flex;justify-content:space-between;gap:10px;font-size:13.5px"><span>'+esc(c.Category)+(has(c.Notes)?' <span class="foot" style="color:var(--text-dim)">'+esc(c.Notes)+'</span>':'')+'</span>'+right+'</div>'+trend+'</div>';
+    }).join('');
+  });
+  var grand=cats.reduce(function(s,c){return s+(num(c.MonthlyBudget)||0);},0);
+  var grandAct=cats.reduce(function(s,c){var a=num(c.MonthlyActual);return s+(isNaN(a)?0:a);},0);
+  var head='<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px"><span class="foot">'+(grandAct?'Avg spend / Planned':'Planned total')+'</span><span class="mono" style="font-size:18px;font-weight:700">'+(grandAct?money(grandAct)+' / ':'')+money(grand)+'/mo</span></div>';
+  var note = anyActual
+    ? '<p class="foot" style="margin:12px 0 0;color:var(--text-dim)">Avg = your average monthly spend on that line (from your transactions). Red = running over budget. Re-upload a Monarch CSV anytime and I\'ll refresh these.</p>'
+    : '<p class="foot" style="margin:12px 0 0;color:var(--text-dim)">Showing your plan. Send me a Monarch CSV export and each line gets an average-spend and trend vs budget.</p>';
+  return head+out+note;
+}
+
+
+
 function renderMoney(){
   var bt=budgetTotals(), nw=netWorth();
   var accounts=arr('Accounts'), debts=arr('Debts'), inv=arr('Investments'), goals=arr('SavingsGoals');
@@ -1313,15 +1357,7 @@ function renderMoney(){
     + '</div>';
 
   
-  var cats=arr('BudgetCategories').filter(function(c){return has(c.Category)&&(has(c.MonthlyBudget)||has(c.MonthlyActual));});
-  var budgetHtml = cats.length ? cats.map(function(c){
-      var b=num(c.MonthlyBudget)||0, a=num(c.MonthlyActual); var pct=b>0?Math.min(100,Math.round((isNaN(a)?0:a)/b*100)):0;
-      var over=!isNaN(a)&&a>b&&b>0;
-      return '<div style="margin-bottom:14px"><div style="display:flex;justify-content:space-between;font-size:13.5px">'
-        +'<span>'+esc(c.Category)+' <span class="tag '+String(c.Type||'').toLowerCase()+'">'+esc(c.Type||'')+'</span></span>'
-        +'<span class="mono">'+(isNaN(a)?'':money(a)+' / ')+money(b)+'</span></div>'
-        +'<div class="bar'+(over?' over':'')+'"><span style="width:'+pct+'%"></span></div></div>';
-    }).join('') : '<div class="empty">Add categories with monthly budget & actual in the BudgetCategories tab.</div>';
+  var budgetHtml = budgetPlanHtml();
 
   var acctCols=[{label:'Account',render:function(r){return '<strong>'+esc(r.Name)+'</strong>'+(has(r.Institution)?' <span class="foot" style="color:var(--text-dim)">'+esc(r.Institution)+'</span>':'')+(has(r.Last4)?' <span class="mono" style="color:var(--text-dim)">…'+esc(r.Last4)+'</span>':'');}},
     {label:'Type',render:function(r){return has(r.Type)?'<span class="chip">'+esc(r.Type)+'</span>':'';}},
@@ -1416,7 +1452,7 @@ function renderMoney(){
     + card('Asset allocation','Where your net worth lives.', '<div class="chart-wrap"><canvas id="allocChart"></canvas></div>', '--emerald')
     + card('Spending mix','Monthly budget by type.', '<div class="chart-wrap"><canvas id="mixChart"></canvas></div>', '--emerald')
     + '</div><div style="height:22px"></div>'
-    + card('Budget vs. actual','This month by category.', budgetHtml, '--emerald')
+    + card('Monthly plan','Your budget by line, with spend history where transactions are uploaded.', budgetHtml, '--emerald')
     + '<div style="height:22px"></div>'
     + '<div class="grid cols-2">'
     + card('Accounts', '', tableEl(acctCols, accounts, {empty:'Add accounts in the Accounts tab.',editTab:'Accounts'}), '--emerald')
@@ -1820,7 +1856,9 @@ function renderHealth(){
   var woCols=[{label:'Date',render:woDate},{label:'Type',render:function(r){return has(r.Type)?'<span class="chip">'+esc(String(r.Type).replace(/([a-z])([A-Z])/g,'$1 $2'))+'</span>':'';}},
     {label:'Workout',key:'Name'},{label:'Dist',num:true,key:'Distance'},{label:'Time',num:true,render:woDur},
     {label:'Avg HR',num:true,key:'AvgHR'},{label:'Elev',num:true,key:'Elevation'}];
-  var woCard = stravaOn ? '<div style="height:22px"></div>'+card('Recent workouts','Auto-synced from Strava.', tableEl(woCols, workouts.slice().reverse().slice(0,15), {}), '--pink') : '';
+  function woTs(r){ var m=String(r.Date||'').match(/(\d{4})-(\d{2})-(\d{2})/); return m?new Date(+m[1],+m[2]-1,+m[3]).getTime():0; }
+  var woRecent = workouts.slice().sort(function(a,b){return woTs(b)-woTs(a);}).slice(0,15);   
+  var woCard = stravaOn ? '<div style="height:22px"></div>'+card('Recent workouts','Auto-synced from Strava — most recent first.', tableEl(woCols, woRecent, {}), '--pink') : '';
 
   var logCols=[{label:'Date',key:'Date'},{label:'Metric',key:'Metric'},{label:'Value',num:true,key:'Value'},{label:'Notes',key:'Notes'}];
   return '<div class="editbar" style="gap:8px">'+(EDIT?kvEditBtn('Health'):'')+'<button class="ebtn pri" onclick="quickLogWeight()">＋ Log weight</button></div>'
