@@ -354,12 +354,7 @@ function fetchAirports(force){
   if(LIVE.apFetched&&!force) return;
   var ids=arr('Airports').map(function(a){return String(a.Icao||'').trim().toUpperCase();}).filter(Boolean);
   if(!ids.length) return; LIVE.apFetched=true;
-  try{
-    fetch('https://aviationweather.gov/api/data/metar?ids='+ids.join(',')+'&format=json')
-      .then(function(r){return r.json();})
-      .then(function(a){ (a||[]).forEach(function(m){ if(m&&m.icaoId) LIVE.metars[m.icaoId]=m; }); if(CURRENT==='flying') render('flying'); })
-      .catch(function(){});
-  }catch(e){}
+  wxFetch(ids, function(a){ (a||[]).forEach(function(m){ if(m&&m.icaoId) LIVE.metars[m.icaoId]=m; }); if(CURRENT==='flying') render('flying'); });
 }
 function fetchLive(){
   try{
@@ -369,21 +364,21 @@ function fetchLive(){
       .catch(function(){});
   }catch(e){}
   
-  try{
-    fetch('https://aviationweather.gov/api/data/metar?ids=KMEV&format=json')
-      .then(function(r){return r.json();})
-      .then(function(a){ if(a&&a.length){ var m=a[0];
-        var vis=(m.visib!=null)?parseFloat(m.visib):null, ceil=null;
-        (m.clouds||[]).forEach(function(c){ if((c.cover==='BKN'||c.cover==='OVC')&&c.base!=null&&(ceil==null||c.base<ceil)) ceil=c.base; });
-        var wind=m.wspd!=null?m.wspd:0, gust=m.wgst||0;
-        var vfr = (vis==null||vis>=3) && (ceil==null||ceil>=1500);
-        var good = vfr && wind<18 && gust<25;
-        LIVE.metar={ vis:vis, ceil:ceil, wind:wind, gust:gust, raw:m.rawOb||'' };
-        LIVE.metarFlag = good?'good':(vfr?'marginal':'ifr');
-        if(CURRENT==='overview') render('overview');
-      }})
-      .catch(function(){});
-  }catch(e){}
+  wxFetch(['KMEV'], function(list){ if(!list||!list.length) return; var m=list[0];
+    var vis=(m.visib!=null)?parseFloat(m.visib):null, ceil=metarCeil(m);
+    var wind=m.wspd!=null?m.wspd:0, gust=m.wgst||0;
+    var vfr=(vis==null||vis>=3)&&(ceil==null||ceil>=1500), good=vfr&&wind<18&&gust<25;
+    LIVE.metar={ vis:vis, ceil:ceil, wind:wind, gust:gust, raw:m.rawOb||'' };
+    LIVE.metarFlag = good?'good':(vfr?'marginal':'ifr');
+    LIVE.metars[m.icaoId||'KMEV']=m;
+    if(CURRENT==='overview') render('overview');
+  });
+}
+ 
+function wxFetch(ids, cb){
+  var pw=sessionStorage.getItem(SS_PW); if(!pw) return;
+  jsonp(API_URL+'?pw='+pw+'&action=wx&ids='+encodeURIComponent(ids.join(',')))
+    .then(function(res){ if(res&&res.ok) cb(res.metars||[]); }).catch(function(){});
 }
 function applyLive(){
   document.querySelectorAll('[data-live="btc"]').forEach(function(el){
