@@ -341,7 +341,12 @@ function dueClass(days){ if(days==null) return ''; if(days<0) return 'neg'; if(d
 
 var LIVE = { btc:null, btcChg:null, metar:null, metarFlag:null, metars:{}, apFetched:false };
 function metarCeil(m){ var c=null; (m.clouds||[]).forEach(function(x){ if((x.cover==='BKN'||x.cover==='OVC'||x.cover==='OVX')&&x.base!=null&&(c==null||x.base<c)) c=x.base; }); return c; }
-function metarCat(m){ var vis=(m.visib!=null)?parseFloat(m.visib):99, ceil=metarCeil(m); ceil=(ceil==null)?99999:ceil;
+function metarAgeMin(m){ return (m&&m.obsTime)? (Date.now()/1000 - m.obsTime)/60 : null; }
+function metarStale(m){ var a=metarAgeMin(m); return a!=null && a>90; }   
+function ageLabel(min){ if(min==null) return ''; if(min<90) return Math.round(min)+'m ago';
+  if(min<1440) return Math.round(min/60)+'h old'; return Math.round(min/1440)+'d old'; }
+function metarCat(m){ if(metarStale(m)) return ['STALE','--amber'];
+  var vis=(m.visib!=null)?parseFloat(m.visib):99, ceil=metarCeil(m); ceil=(ceil==null)?99999:ceil;
   if(ceil<500||vis<1) return ['LIFR','--violet']; if(ceil<1000||vis<3) return ['IFR','--rose']; if(ceil<3000||vis<5) return ['MVFR','--sky']; return ['VFR','--green']; }
 function metarDecode(m){ var p=[];
   if(m.wspd!=null){ var wd=(m.wspd===0)?'calm':((m.wdir==='VRB'?'VRB':(m.wdir!=null?m.wdir+'°':'?'))+'@'+m.wspd+(m.wgst?'G'+m.wgst:'')+'kt'); p.push('Wind '+wd); }
@@ -349,6 +354,7 @@ function metarDecode(m){ var p=[];
   var c=metarCeil(m); p.push('Ceil '+(c==null?'unlimited':c+'ft'));
   if(m.altim!=null){ var inhg=m.altim>100?(m.altim*0.0295300):m.altim; p.push('Alt '+inhg.toFixed(2)+'"'); }
   if(m.temp!=null) p.push(Math.round(m.temp)+'°/'+(m.dewp!=null?Math.round(m.dewp):'?')+'°C');
+  var a=metarAgeMin(m); if(a!=null) p.push('obs '+ageLabel(a));
   return p.join(' · '); }
 function fetchAirports(force){
   if(LIVE.apFetched&&!force) return;
@@ -368,8 +374,8 @@ function fetchLive(){
     var vis=(m.visib!=null)?parseFloat(m.visib):null, ceil=metarCeil(m);
     var wind=m.wspd!=null?m.wspd:0, gust=m.wgst||0;
     var vfr=(vis==null||vis>=3)&&(ceil==null||ceil>=1500), good=vfr&&wind<18&&gust<25;
-    LIVE.metar={ vis:vis, ceil:ceil, wind:wind, gust:gust, raw:m.rawOb||'' };
-    LIVE.metarFlag = good?'good':(vfr?'marginal':'ifr');
+    LIVE.metar={ vis:vis, ceil:ceil, wind:wind, gust:gust, raw:m.rawOb||'', age:metarAgeMin(m) };
+    LIVE.metarFlag = metarStale(m) ? 'stale' : (good?'good':(vfr?'marginal':'ifr'));
     LIVE.metars[m.icaoId||'KMEV']=m;
     if(CURRENT==='overview') render('overview');
   });
@@ -794,7 +800,9 @@ function radarHtml(){
     else if(LIVE.btc>=212500) out.push({sev:'watch',icon:'₿',t:'Bitcoin nearing $250k ($'+Math.round(LIVE.btc).toLocaleString('en-US')+')',sub:'within 15% of your trim target',tab:'ventures'});
   }
   
-  if(LIVE.metarFlag){ var fm={good:['good','KMEV looks flyable'],marginal:['watch','KMEV marginal for VFR'],ifr:['bad','KMEV below VFR']}[LIVE.metarFlag];
+  if(LIVE.metarFlag==='stale'){
+    out.push({sev:'watch',icon:'🛩️',t:'KMEV METAR is stale — call the AWOS',sub:'network feed hasn\'t updated; dial 119.325 / (775) 782-6264 for real-time',tab:'flying'});
+  } else if(LIVE.metarFlag){ var fm={good:['good','KMEV looks flyable'],marginal:['watch','KMEV marginal for VFR'],ifr:['bad','KMEV below VFR']}[LIVE.metarFlag];
     var m=LIVE.metar||{}, det=(m.wind!=null?('wind '+Math.round(m.wind)+(m.gust?'G'+Math.round(m.gust):'')+'kt'):'')+(m.vis!=null?' · vis '+m.vis+'sm':'')+(m.ceil!=null?' · ceil '+m.ceil+'ft':'');
     out.push({sev:fm[0],icon:'🛩️',t:fm[1],sub:det||'live METAR',tab:'flying'}); }
   
@@ -1100,6 +1108,7 @@ function airportsHtml(){
     return '<div class="card" style="border-top:3px solid var(--sky)">'
       +'<div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px"><h2 style="font-size:16px">'+esc(icao)+' <span class="foot" style="font-weight:400">'+esc(a.Name||'')+'</span></h2>'+badge+'</div>'
       +'<div style="margin-top:8px;font-size:13.5px;color:var(--text)">'+esc(wx)+'</div>'
+      +((m&&metarStale(m))?'<div class="foot" style="margin-top:6px;color:var(--amber)">⚠ Network feed stale — call AWOS'+(has(a.WxFreq)?' '+esc(a.WxFreq):'')+(has(a.Phone)?' / '+esc(a.Phone):'')+' for real-time</div>':'')
       +((freq||ph)?'<div class="kv-row" style="margin-top:8px"><span class="k">'+esc(freq)+'</span><span class="v">'+ph+(EDIT?' '+editBtn('Airports',a.__row):'')+'</span></div>':(EDIT?'<div style="margin-top:8px">'+editBtn('Airports',a.__row)+'</div>':''))
       +(m&&m.rawOb?'<div class="mono" style="margin-top:8px;font-size:11px;color:var(--text-dim);white-space:normal;word-break:break-word">'+esc(m.rawOb)+'</div>':'')
       +'</div>';
