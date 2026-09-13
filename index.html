@@ -369,7 +369,7 @@ function jsonp(url){
   return new Promise(function(resolve,reject){
     var cb = 'lifeos_cb_' + Math.random().toString(36).slice(2);
     var s = document.createElement('script');
-    var t = setTimeout(function(){ cleanup(); reject(new Error('timeout')); }, 15000);
+    var t = setTimeout(function(){ cleanup(); reject(new Error('timeout')); }, 35000);
     function cleanup(){ clearTimeout(t); delete window[cb]; if(s.parentNode) s.parentNode.removeChild(s); }
     window[cb] = function(data){ cleanup(); resolve(data); };
     s.onerror = function(){ cleanup(); reject(new Error('network')); };
