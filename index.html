@@ -977,6 +977,26 @@ function printReview(){
   window.print();
 }
 function money2(v){ var n=num(v); if(isNaN(n)) return '—'; if(Math.abs(n)>=1000) return '$'+Math.round(n/1000)+'k'; return money(v); }
+function printBinder(){
+  var f=kv('Family');
+  function sec(title, pairs){ var rows=pairs.filter(function(p){return has(p[1]);})
+    .map(function(p){return '<tr><td style="padding:5px 14px 5px 0;color:#555;vertical-align:top;white-space:nowrap">'+esc(p[0])+'</td><td style="padding:5px 0;font-weight:600">'+esc(p[1])+'</td></tr>';}).join('');
+    return rows?'<h2 style="font-size:15px;margin:16px 0 4px;border-bottom:1px solid #ccc;padding-bottom:3px">'+esc(title)+'</h2><table style="border-collapse:collapse;width:100%">'+rows+'</table>':''; }
+  
+  var groups={}, order=[];
+  Object.keys(f).forEach(function(k){ if(!has(f[k])) return; var parts=String(k).split('|'); var g=parts.length>1?parts[0].trim():'General'; var label=parts.length>1?parts.slice(1).join('|').trim():k;
+    if(!groups[g]){groups[g]=[];order.push(g);} groups[g].push([label,f[k]]); });
+  var acct=arr('Accounts').map(function(a){return [a.Name+(has(a.Last4)?' …'+a.Last4:''), a.Institution||'']; });
+  var debts=arr('Debts').map(function(d){return [d.Name+(has(d.Lender)?' ('+d.Lender+')':''), (has(d.Balance)?money(d.Balance):'')]; });
+  var body=order.map(function(g){return sec(g, groups[g]);}).join('')
+    + sec('Accounts', acct) + sec('Debts & loans', debts);
+  var box=document.getElementById('printArea');
+  box.innerHTML='<h1 style="font-size:24px;margin:0 0 2px">Emergency Binder</h1>'
+    +'<div style="color:#666;margin-bottom:6px">Everything Chelsea (or family) needs if something happens to Brad.</div>'
+    +'<div style="color:#999;font-size:12px;margin-bottom:8px">Generated '+new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})+' · Keep this printout somewhere secure.</div>'
+    + (body||'<p>No family reference info entered yet.</p>');
+  window.print();
+}
 
 
 
@@ -1058,7 +1078,7 @@ function emergencyBinderCard(){
   var have=want.filter(function(w){return Object.keys(f).some(function(k){var label=k.split('|').pop();return (w[1].test(label)||w[1].test(k))&&has(f[k]);});}).length;
   var head='<div class="sub">If something happens to you, Chelsea can find everything here. '+have+' of '+want.length+' essentials documented. '
     +(EDIT?'Use keys like <span class="mono">Emergency|Life insurance</span> in Family to fill gaps.':'Turn on ✎ Edit → Family to fill any gaps.')+'</div>';
-  return '<div class="card" style="border-top:3px solid var(--rose)"><div style="display:flex;justify-content:space-between;align-items:center"><h2>🗂️ Emergency binder</h2>'+(EDIT?kvEditBtn('Family'):'')+'</div>'+head+'<div style="margin-top:8px">'+rows+'</div></div>';
+  return '<div class="card" style="border-top:3px solid var(--rose)"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><h2>🗂️ Emergency binder</h2><span style="display:flex;gap:8px">'+(EDIT?kvEditBtn('Family'):'')+'<button class="ebtn" onclick="printBinder()" style="text-transform:none;letter-spacing:0">🖨 Print for Chelsea</button></span></div>'+head+'<div style="margin-top:8px">'+rows+'</div></div>';
 }
 function renderFamily(){
   var f=kv('Family');
