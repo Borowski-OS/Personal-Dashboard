@@ -2,8 +2,15 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <title>Life OS</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#161616">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Life OS">
+<link rel="apple-touch-icon" href="icon.svg">
+<link rel="icon" href="icon.svg" type="image/svg&#43;xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&amp;family=DM&#43;Mono:wght@400;500&amp;display=swap" rel="stylesheet">
@@ -55,6 +62,7 @@
   .nav-tab[data-tab="hobbies"].active  { border-bottom-color:var(--violet); }
   .nav-tab[data-tab="vehicles"].active { border-bottom-color:var(--rose); }
   .nav-tab[data-tab="health"].active   { border-bottom-color:var(--pink); }
+  .nav-tab[data-tab="faith"].active    { border-bottom-color:var(--gold); }
   .nav-tab[data-tab="travel"].active   { border-bottom-color:var(--cyan); }
   .nav-right { display:flex; align-items:center; gap:14px; flex-shrink:0; }
   .refresh-btn { background:none; border:1px solid var(--card-border-2); color:var(--text-muted);
@@ -246,6 +254,7 @@
     <button class="nav-tab" data-tab="hobbies" onclick="navGo('hobbies')">Hobbies</button>
     <button class="nav-tab" data-tab="vehicles" onclick="navGo('vehicles')">Vehicles</button>
     <button class="nav-tab" data-tab="health" onclick="navGo('health')">Health</button>
+    <button class="nav-tab" data-tab="faith" onclick="navGo('faith')">Faith</button>
   </div>
   <div class="nav-right">
     <button class="refresh-btn" id="editToggle" onclick="toggleEdit()">✎ Edit</button>
@@ -304,7 +313,8 @@ var TABS = {
   ventures:{title:'Ventures', sub:'Your buy-box, capital plan, and deal pipeline.'},
   hobbies:{title:'Hobbies', sub:'The things you love doing.'},
   vehicles:{title:'Vehicles', sub:'Maintenance, renewals, and service history.'},
-  health:{title:'Health & Fitness', sub:'Training rhythm and health admin.'}
+  health:{title:'Health & Fitness', sub:'Training rhythm and health admin.'},
+  faith:{title:'Faith & Rhythm', sub:'Rule of life, people to pray for, and decisions made in prayer.'}
 };
  
 var TAB_ALIAS = { bills:'home', family:'home', money:'home', travel:'home' };
@@ -505,7 +515,7 @@ function render(tab){
   el.innerHTML = ({
     overview: renderOverview, home: renderHome, projects: renderProjects,
     flying: renderFlying, ventures: renderVentures, hobbies: renderHobbies,
-    vehicles: renderVehicles, health: renderHealth
+    vehicles: renderVehicles, health: renderHealth, faith: renderFaith
   }[tab] || function(){return '';})();
   if(tab==='home') drawMoneyCharts();
   if(tab==='flying') fetchAirports();
@@ -545,10 +555,15 @@ var ESCHEMA={
   Quotes:{cols:['Quote','Author','Source','Tag']},
   NextActions:{cols:['Action','Tab','Due','Done']},
   HealthLog:{cols:['Date','Metric','Value','Notes']},
+  Habits:{cols:['Practice','Cadence','Streak','LastDone','Notes']},
+  Prayer:{cols:['Name','For','Status','LastContact','Notes']},
+  Journal:{cols:['Date','Decision','Rationale','Revisit','Outcome']},
+  Giving:{cols:['Date','Recipient','Type','Amount','Notes']},
+  Rentals:{cols:['Property','Rent','Mortgage','Taxes','Insurance','Other','Notes']},
   Highlights:{cols:['Label','Value','Sub','Tab','Order']},
   Config:{kv:true}, Flying:{kv:true}, Health:{kv:true}, Family:{kv:true}
 };
-var TEXTAREA_FIELDS={Notes:1,Specs:1,Quote:1,Log:1,Access:1,Weak_areas:1};
+var TEXTAREA_FIELDS={Notes:1,Specs:1,Quote:1,Log:1,Access:1,Weak_areas:1,Rationale:1,For:1,Decision:1,Detail:1};
 function toggleEdit(){ EDIT=!EDIT; var b=$('editToggle'); if(b){ b.textContent=EDIT?'✓ Done':'✎ Edit'; b.style.color=EDIT?'var(--gold)':''; } render(CURRENT); }
 function editBtn(tab,rownum){ return EDIT?'<button class="ebtn" onclick="event.stopPropagation();openEditor(\''+tab+'\','+rownum+')">✎</button>':''; }
 function addBtn(tab,label){ return EDIT?'<div class="editbar"><button class="ebtn pri" onclick="openEditor(\''+tab+'\')">＋ Add '+esc(label||'')+'</button></div>':''; }
@@ -967,10 +982,36 @@ function renderBills(){
 
 
 
+function emergencyBinderCard(){
+  var f=kv('Family');
+  
+  var want=[
+    ['Life insurance', /life insurance|life policy|term life/i],
+    ['Beneficiaries', /beneficiar/i],
+    ['Will / trust', /\bwill\b|living trust|estate/i],
+    ['Executor / trustee', /executor|trustee/i],
+    ['Power of attorney', /power of attorney|\bpoa\b/i],
+    ['Advance directive', /advance directive|health.?care proxy|living will/i],
+    ['Password manager', /password manager|1password|bitwarden|lastpass/i],
+    ['Safe / documents', /\bsafe\b|safe deposit|document location|fireproof/i],
+    ['Key accounts access', /account access|emergency access|master list/i]
+  ];
+  var rows=want.map(function(w){
+    var hit=Object.keys(f).filter(function(k){var label=k.split('|').pop(); return w[1].test(label)||w[1].test(k);})
+      .filter(function(k){return has(f[k]);});
+    if(hit.length){ var v=hit.map(function(k){return String(f[k]);}).join(' · ');
+      return '<div class="kv-row"><span class="k">✓ '+esc(w[0])+'</span><span class="v mono" style="max-width:60%;text-align:right">'+esc(v)+'</span></div>'; }
+    return '<div class="kv-row"><span class="k" style="color:var(--text-dim)">○ '+esc(w[0])+'</span><span class="v" style="color:var(--rose)">not documented</span></div>';
+  }).join('');
+  var have=want.filter(function(w){return Object.keys(f).some(function(k){var label=k.split('|').pop();return (w[1].test(label)||w[1].test(k))&&has(f[k]);});}).length;
+  var head='<div class="sub">If something happens to you, Chelsea can find everything here. '+have+' of '+want.length+' essentials documented. '
+    +(EDIT?'Use keys like <span class="mono">Emergency|Life insurance</span> in Family to fill gaps.':'Turn on ✎ Edit → Family to fill any gaps.')+'</div>';
+  return '<div class="card" style="border-top:3px solid var(--rose)"><div style="display:flex;justify-content:space-between;align-items:center"><h2>🗂️ Emergency binder</h2>'+(EDIT?kvEditBtn('Family'):'')+'</div>'+head+'<div style="margin-top:8px">'+rows+'</div></div>';
+}
 function renderFamily(){
   var f=kv('Family');
   var keys=Object.keys(f).filter(function(k){return has(f[k]);});
-  if(!keys.length) return (EDIT?'<div class="editbar">'+kvEditBtn('Family')+'</div>':'')+card('Family & Household','', '<div class="empty">Add household reference info — door codes, account numbers, insurance claims. Use keys like <span class="mono">Home|Front door codes</span> to group them.</div>','--amber');
+  if(!keys.length) return (EDIT?'<div class="editbar">'+kvEditBtn('Family')+'</div>':'')+emergencyBinderCard()+'<div style="height:22px"></div>'+card('Family & Household','', '<div class="empty">Add household reference info — door codes, account numbers, insurance claims. Use keys like <span class="mono">Home|Front door codes</span> to group them.</div>','--amber');
   
   var groups={}, order=[];
   keys.forEach(function(k){ var parts=String(k).split('|'); var g=parts.length>1?parts[0].trim():'General'; var label=parts.length>1?parts.slice(1).join('|').trim():k;
@@ -988,7 +1029,7 @@ function renderFamily(){
     }).join('');
     return '<div class="card" style="border-top:3px solid var(--amber)"><h2>'+esc(g)+'</h2><div style="margin-top:6px">'+rows+'</div></div>';
   }).join('');
-  return (EDIT?'<div class="editbar">'+kvEditBtn('Family')+'</div>':'')+'<div class="grid cols-2">'+cards+'</div>';
+  return (EDIT?'<div class="editbar">'+kvEditBtn('Family')+'</div>':'')+emergencyBinderCard()+'<div style="height:22px"></div><div class="grid cols-2">'+cards+'</div>';
 }
 
 
@@ -1180,6 +1221,56 @@ function renderMoney(){
     + '<div class="stat"><div class="label">30-yr mortgage — market</div><div class="value mono">'+(has(mktRate)?esc(mktRate)+'%':'—')+'</div><div class="foot">'+(has(asof)?'as of '+esc(asof)+' · ':'')+(yourRates?'you: '+yourRates:'')+'</div></div>'
     + '</div>';
 
+  
+  var giving=arr('Giving').filter(function(g){return has(g.Amount)||has(g.Recipient);});
+  var thisYr=String(new Date().getFullYear());
+  var givingYtd=giving.filter(function(g){return String(g.Date||'').indexOf(thisYr)>=0;}).reduce(function(s,g){var n=num(g.Amount);return s+(isNaN(n)?0:n);},0);
+  var givingByType={}; giving.filter(function(g){return String(g.Date||'').indexOf(thisYr)>=0;}).forEach(function(g){var t=g.Type||'Other';var n=num(g.Amount);if(!isNaN(n))givingByType[t]=(givingByType[t]||0)+n;});
+  var gTypeHtml=Object.keys(givingByType).map(function(t){return '<div class="kv-row"><span class="k">'+esc(t)+'</span><span class="v mono">'+money(givingByType[t])+'</span></div>';}).join('');
+  var gCols=[{label:'Date',key:'Date'},{label:'Recipient',render:function(r){return '<strong>'+esc(r.Recipient)+'</strong>';}},
+    {label:'Type',render:function(r){return has(r.Type)?'<span class="chip">'+esc(r.Type)+'</span>':'';}},
+    {label:'Amount',num:true,render:function(r){return money(r.Amount,2);}},{label:'Notes',key:'Notes'}];
+  var givingCard=card('Giving & tithe — '+thisYr,'Generosity is a first-line value, not a leftover.',
+    '<div class="grid cols-2" style="margin-bottom:16px">'+statTile('Given this year', money(givingYtd), giving.length+' gifts logged')
+      +'<div class="stat"><div class="label">By type</div>'+(gTypeHtml||'<div class="foot">Log gifts to see the breakdown.</div>')+'</div></div>'
+    + tableEl(gCols, giving.slice().reverse(), {empty:'Log tithes, offerings, and charitable gifts here.',editTab:'Giving'}), '--gold');
+
+  
+  var subRe=/subscription|stream|software|saas|media|music|membership|\bapp\b|cloud|news|premium|plus/i;
+  var subs=arr('Bills').filter(function(b){ return has(b.Vendor) && (subRe.test(String(b.Category||''))||subRe.test(String(b.Vendor||''))||subRe.test(String(b.Notes||''))); })
+    .map(function(b){return {v:b.Vendor, cat:b.Category, mo:billMonthly(b)};}).filter(function(s){return s.mo>0;}).sort(function(a,b){return b.mo-a.mo;});
+  var subTotal=subs.reduce(function(s,x){return s+x.mo;},0);
+  var subBody = subs.length ? '<div class="grid cols-2" style="margin-bottom:16px">'
+      + statTile('Subscriptions', money(subTotal)+'/mo', money(subTotal*12)+'/yr')
+      + statTile('Count', subs.length, 'recurring services') + '</div>'
+      + subs.map(function(s){return '<div class="kv-row"><span class="k">'+esc(s.v)+(has(s.cat)?' <span class="chip">'+esc(s.cat)+'</span>':'')+'</span><span class="v mono">'+money(s.mo)+'/mo · '+money(s.mo*12)+'/yr</span></div>';}).join('')
+      + '<p style="font-size:12.5px;color:var(--text-dim);margin:12px 0 0">Auto-detected from your bills by name/category. Cancel anything you haven\'t used this month — every $15/mo you drop is $180/yr back toward acquisition capital.</p>'
+    : '<div class="empty">No subscription-type bills detected. Tag recurring services in Bills (category like “Streaming”, “Software”, “Membership”) and they\'ll show up here.</div>';
+  var subCard=card('Subscription audit','Recurring services quietly draining cash flow.', subBody, '--emerald');
+
+  
+  var rentals=arr('Rentals').filter(function(r){return has(r.Property);});
+  var rentalCard='';
+  if(rentals.length){
+    var rBody=rentals.map(function(r){
+      var rent=num(r.Rent)||0, exp=(num(r.Mortgage)||0)+(num(r.Taxes)||0)+(num(r.Insurance)||0)+(num(r.Other)||0);
+      var net=rent-exp; var pos=net>=0;
+      return '<div class="card" style="border-top:3px solid var(--emerald);margin-bottom:0"><div style="display:flex;justify-content:space-between"><h2 style="font-size:15px">'+esc(r.Property)+'</h2>'
+        +'<span class="tag '+(pos?'active':'')+'" style="'+(pos?'':'color:var(--rose)')+'">'+(pos?'+':'')+money(net)+'/mo</span></div>'
+        +'<div class="kv-row"><span class="k">Rent</span><span class="v mono">'+money(rent)+'</span></div>'
+        +'<div class="kv-row"><span class="k">Mortgage</span><span class="v mono">'+money(num(r.Mortgage)||0)+'</span></div>'
+        +'<div class="kv-row"><span class="k">Taxes</span><span class="v mono">'+money(num(r.Taxes)||0)+'</span></div>'
+        +'<div class="kv-row"><span class="k">Insurance</span><span class="v mono">'+money(num(r.Insurance)||0)+'</span></div>'
+        +(has(r.Other)?'<div class="kv-row"><span class="k">Other</span><span class="v mono">'+money(num(r.Other)||0)+'</span></div>':'')
+        +'<div class="kv-row" style="border-top:1px solid var(--card-border);margin-top:4px;padding-top:8px"><span class="k"><strong>Net cash flow</strong></span><span class="v mono" style="color:'+(pos?'var(--green)':'var(--rose)')+'">'+(pos?'+':'')+money(net)+'/mo · '+(pos?'+':'')+money(net*12)+'/yr</span></div>'
+        +(EDIT?'<div style="margin-top:8px">'+editBtn('Rentals',r.__row)+'</div>':'')+'</div>';
+    }).join('');
+    rentalCard=(EDIT?'<div class="editbar">'+addBtn('Rentals','property')+'</div>':'')
+      +'<div class="section-title" style="margin-top:0">Rental P&amp;L</div><div class="grid cols-2">'+rBody+'</div>';
+  } else if(EDIT){
+    rentalCard='<div class="editbar">'+addBtn('Rentals','property')+'</div><div class="empty">Add the Lahontan rental (rent, mortgage, taxes, insurance) to track monthly cash flow.</div>';
+  }
+
   var budgetUrl=kv('Config').budget_sheet_url;
   var budgetLink = has(budgetUrl) ? '<div class="editbar" style="justify-content:flex-start;margin-bottom:16px"><a class="ebtn pri" href="'+esc(budgetUrl)+'" target="_blank" rel="noopener" style="text-decoration:none">📊 Open Borowski budget sheet →</a></div>' : '';
   return budgetLink
@@ -1197,7 +1288,9 @@ function renderMoney(){
     + '<div class="grid cols-2">'
     + card('Investments', '', tableEl(invCols, inv, {empty:'Add investments (brokerage, retirement, bitcoin) in the Investments tab.',editTab:'Investments'}), '--emerald')
     + card('Savings goals', '', goalsHtml, '--emerald')
-    + '</div>';
+    + '</div><div style="height:22px"></div>'
+    + '<div class="grid cols-2">' + givingCard + subCard + '</div>'
+    + (rentalCard?'<div style="height:22px"></div>'+rentalCard:'');
 }
 function drawMoneyCharts(){
   if(!window.Chart) return;
@@ -1515,6 +1608,77 @@ function renderHealth(){
 
 
 
+function ymd(d){ d=d||new Date(); return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2); }
+function daysBetween(a,b){ var da=parseDate(a), db=parseDate(b); if(!da||!db) return null;
+  return Math.round((new Date(db.getFullYear(),db.getMonth(),db.getDate())-new Date(da.getFullYear(),da.getMonth(),da.getDate()))/864e5); }
+async function habitDidToday(rownum){
+  var row=arr('Habits').filter(function(r){return String(r.__row)===String(rownum);})[0]; if(!row) return;
+  var today=ymd(); var last=row.LastDone; var streak=parseInt(row.Streak,10)||0;
+  var gap=has(last)?daysBetween(last,new Date()):null;
+  if(gap===0){ return; }                       
+  if(gap===1||streak===0||gap==null){ streak=streak+1; } else { streak=1; }  
+  await apiWrite({action:'upsert',tab:'Habits',rownum:rownum,row:JSON.stringify({Practice:row.Practice,Cadence:row.Cadence,Streak:streak,LastDone:today,Notes:row.Notes||''})});
+  await afterWrite();
+}
+function renderFaith(){
+  var habits=arr('Habits'), prayer=arr('Prayer'), journal=arr('Journal');
+  var today=ymd();
+  var doneToday=habits.filter(function(h){return String(h.LastDone||'').slice(0,10)===today;}).length;
+  var bestStreak=habits.reduce(function(m,h){var s=parseInt(h.Streak,10)||0;return s>m?s:m;},0);
+  var openLoops=prayer.filter(function(p){return String(p.Status||'').toLowerCase()!=='closed'&&String(p.Status||'').toLowerCase()!=='answered';}).length;
+
+  var tiles='<div class="grid cols-4" style="margin-bottom:22px">'
+    + statTile('Practices today', doneToday+' / '+(habits.length||0), 'kept so far today')
+    + statTile('Best streak', bestStreak+(bestStreak===1?' day':' days'), 'longest active run')
+    + statTile('People on the list', prayer.length||'—', openLoops+' need follow-up')
+    + statTile('Decisions logged', journal.length||'—', 'in the journal')
+    + '</div>';
+
+  
+  var habitBody = habits.length ? habits.map(function(h){
+    var doneT=String(h.LastDone||'').slice(0,10)===today;
+    var streak=parseInt(h.Streak,10)||0;
+    var flame=streak>0?('🔥 '+streak+(streak===1?'d':'d')):'—';
+    return '<div class="kv-row" style="align-items:center"><span class="k"><strong>'+esc(h.Practice)+'</strong>'
+      +(has(h.Cadence)?' <span class="chip">'+esc(h.Cadence)+'</span>':'')
+      +(has(h.Notes)?'<div class="foot" style="color:var(--text-dim)">'+esc(h.Notes)+'</div>':'')+'</span>'
+      +'<span class="v" style="display:flex;gap:10px;align-items:center"><span class="mono" style="color:'+(streak>0?'var(--orange)':'var(--text-dim)')+'">'+flame+'</span>'
+      +'<button class="ebtn'+(doneT?'':' pri')+'" onclick="habitDidToday('+h.__row+')"'+(doneT?' disabled style="opacity:.5"':'')+'>'+(doneT?'✓ done':'✓ today')+'</button>'
+      +editBtn('Habits',h.__row)+'</span></div>';
+  }).join('') : '<div class="empty">Add rhythms of your rule of life — daily prayer, scripture, sabbath, exercise — then tap ✓ to build a streak.</div>';
+  var habitCard = (EDIT?'<div class="editbar">'+addBtn('Habits','practice')+'</div>':'')
+    + card('Rule of life','Your rhythms. Tap ✓ each day to keep the streak.', habitBody, '--gold');
+
+  
+  var prCols=[
+    {label:'Name',render:function(r){return '<strong>'+esc(r.Name)+'</strong>';}},
+    {label:'Praying for',render:function(r){return esc(r.For||'');}},
+    {label:'Status',render:function(r){var s=String(r.Status||'').toLowerCase();var cl=(s==='answered'?'active':(s==='closed'?'':''));return has(r.Status)?'<span class="tag '+cl+'">'+esc(r.Status)+'</span>':'';}},
+    {label:'Last contact',render:function(r){return has(r.LastContact)?esc(r.LastContact):'<span style="color:var(--text-dim)">—</span>';}},
+    {label:'Notes',render:function(r){return esc(r.Notes||'');}}
+  ];
+  var prayerCard=card('People & prayer','Who you\'re praying for and following up with.', tableEl(prCols, prayer, {empty:'Add people to pray for and stay in touch with.',editTab:'Prayer'}), '--gold');
+
+  
+  var jCols=[
+    {label:'Date',render:function(r){return esc(r.Date||'');}},
+    {label:'Decision',render:function(r){return '<strong>'+esc(r.Decision)+'</strong>'+(has(r.Rationale)?'<div class="foot" style="color:var(--text-dim);white-space:normal">'+esc(r.Rationale)+'</div>':'');}},
+    {label:'Revisit',render:function(r){var d=daysUntilDate(r.Revisit);return has(r.Revisit)?'<span class="'+(d!=null?dueClass(d):'')+'">'+esc(r.Revisit)+'</span>':'';}},
+    {label:'Outcome',render:function(r){return esc(r.Outcome||'');}}
+  ];
+  var journalCard=card('Decision journal','Big calls, why you made them, and when to revisit — so you can learn from your own judgment.', tableEl(jCols, journal.slice().reverse(), {empty:'Log a decision, your reasoning, and a date to revisit it.',editTab:'Journal'}), '--gold');
+
+  return '<div class="editbar">'+(EDIT?'':'<span style="font-size:12.5px;color:var(--text-dim)">Tip: turn on ✎ Edit to add practices, people, or decisions.</span>')+'</div>'
+    + tiles
+    + habitCard
+    + '<div style="height:22px"></div>'
+    + prayerCard
+    + '<div style="height:22px"></div>'
+    + journalCard;
+}
+
+
+
 function renderTravel(){
   var trips=arr('Travel'), checklist=arr('TravelChecklist'), points=arr('Points');
   var upcoming=trips.filter(function(t){return String(t.Status||'').toLowerCase()!=='past';});
@@ -1536,6 +1700,13 @@ function renderTravel(){
   out+='<div style="height:22px"></div>'+card('Points & miles','', tableEl(pointsCols, points, {editTab:'Points'}), '--cyan');
   if(past.length) out+='<div style="height:22px"></div><div class="section-title">Past trips</div><div class="grid cols-3">'+past.map(tripCard).join('')+'</div>';
   return out;
+}
+
+ 
+if('serviceWorker' in navigator){
+  window.addEventListener('load', function(){
+    navigator.serviceWorker.register('sw.js').catch(function(){});
+  });
 }
 </script>
 </body>
