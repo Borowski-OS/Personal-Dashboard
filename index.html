@@ -775,6 +775,13 @@ function smartSteps(){
   
   var fn=flyingNextStep(); if(!out.some(function(s){return /written|solo|checkride/i.test(s.t)&&s.tab==='flying';})) out.push({t:fn, tab:'flying', d:null, sort:45});
   
+  arr('Hunts').filter(function(hn){return has(hn.Deadline);}).forEach(function(hn){ var d=daysUntilDate(hn.Deadline);
+    if(d!=null && d>=-2 && d<=45) out.push({t:'Apply: '+hn.Species+' ('+hn.State+') draw closes '+hn.Deadline, tab:'hobbies', d:d, sort:(d<=14?4:20)}); });
+  
+  var today=(function(){var n=new Date();return n.getFullYear()+'-'+('0'+(n.getMonth()+1)).slice(-2)+'-'+('0'+n.getDate()).slice(-2);})();
+  arr('Habits').filter(function(hb){return /daily/i.test(String(hb.Cadence||''))&&String(hb.LastDone||'').slice(0,10)!==today;}).slice(0,3).forEach(function(hb){
+    var st=parseInt(hb.Streak,10)||0; out.push({t:'Keep your '+hb.Practice+(st>1?' streak ('+st+'d)':''), tab:'faith', d:0, sort:12}); });
+  
   var seen={}; out=out.filter(function(s){var k=s.t.toLowerCase().slice(0,24); if(seen[k])return false; seen[k]=1; return true;});
   out.sort(function(a,b){return a.sort-b.sort;});
   return out;
@@ -914,6 +921,10 @@ function renderOverview(){
   var projCard=snapCard('projects', srow('Active', actProj+' project'+(actProj===1?'':'s'))+srow('Open tasks', openTasks.length)+(openTasks.length?srow('Next', esc(openTasks[0].t.Task).slice(0,32)):''));
   var homeAlert=al.filter(function(a){return a.tab==='bills'||a.tab==='vehicles'||a.tab==='family';})[0];
   var homeCard=snapCard('bills', srow('Bills / mo', money2(bills))+srow('Contacts', arr('Contacts').length)+(homeAlert?srow('Coming up', esc(homeAlert.label)+' '+fmtDue(homeAlert.d)):srow('Renewals','none soon')));
+  var today0=(function(){var n=new Date();return n.getFullYear()+'-'+('0'+(n.getMonth()+1)).slice(-2)+'-'+('0'+n.getDate()).slice(-2);})();
+  var habits0=arr('Habits'), doneT0=habits0.filter(function(x){return String(x.LastDone||'').slice(0,10)===today0;}).length;
+  var bestS0=habits0.reduce(function(m,x){var s=parseInt(x.Streak,10)||0;return s>m?s:m;},0);
+  var faithCard=snapCard('faith', srow('Today', doneT0+' / '+(habits0.length||0)+' practices')+srow('Best streak', bestS0+'d')+srow('Prayer list', arr('Prayer').length+' people'));
 
   var quotes=arr('Quotes').filter(function(q){return has(q.Quote);});
   var qHtml='';
@@ -946,7 +957,7 @@ function renderOverview(){
     + card('Coming up','Due dates & renewals — autopay hidden.', alertHtml, '--gold')
     + '</div>'
     + '<div class="section-title" style="display:flex;justify-content:space-between"><span>Every area at a glance</span><button class="ebtn" onclick="printReview()" style="text-transform:none;letter-spacing:0;font-weight:600">🖨 Monthly review</button></div>'
-    + '<div class="grid cols-3">'+moneyCard+flyCard+healthCard+huntCard+projCard+homeCard+'</div>';
+    + '<div class="grid cols-3">'+moneyCard+flyCard+healthCard+huntCard+projCard+homeCard+faithCard+'</div>';
 }
 function printReview(){
   var nw=netWorth(), bills=totalMonthlyBills(), h=kv('Health'), fly=kv('Flying');
@@ -1380,9 +1391,11 @@ function renderMoney(){
     + mkt
     + nwCard
     + '<div class="grid cols-2">'
-    + card('Budget vs. actual','This month by category.', budgetHtml, '--emerald')
+    + card('Asset allocation','Where your net worth lives.', '<div class="chart-wrap"><canvas id="allocChart"></canvas></div>', '--emerald')
     + card('Spending mix','Monthly budget by type.', '<div class="chart-wrap"><canvas id="mixChart"></canvas></div>', '--emerald')
     + '</div><div style="height:22px"></div>'
+    + card('Budget vs. actual','This month by category.', budgetHtml, '--emerald')
+    + '<div style="height:22px"></div>'
     + '<div class="grid cols-2">'
     + card('Accounts', '', tableEl(acctCols, accounts, {empty:'Add accounts in the Accounts tab.',editTab:'Accounts'}), '--emerald')
     + card('Debts & mortgages', '', tableEl(debtCols, debts, {empty:'Add debts/mortgages in the Debts tab.',editTab:'Debts'}), '--emerald')
@@ -1410,6 +1423,30 @@ function drawMoneyCharts(){
         options:{plugins:{legend:{display:false}},
           scales:{x:{ticks:{color:'#9a9a9a',font:{family:'Montserrat'}},grid:{color:'#2c2c2c'}},
             y:{ticks:{color:'#9a9a9a',font:{family:'DM Mono'},callback:function(v){return '$'+(v/1000)+'k';}},grid:{color:'#2c2c2c'}}}}}));
+    }
+  }
+  var alloc=$('allocChart');
+  if(alloc){
+    var byClass={};
+    function cls(t){ t=String(t||'').toLowerCase();
+      if(/real estate|fundrise|property|house/.test(t)) return 'Real estate';
+      if(/retire|401|403|ira|pers|roth/.test(t)) return 'Retirement';
+      if(/crypto|btc|bitcoin|sol/.test(t)) return 'Crypto';
+      if(/aircraft|plane|maule/.test(t)) return 'Aircraft';
+      if(/vehicle|truck|car|rav4|tacoma/.test(t)) return 'Vehicles';
+      if(/metal|gold|silver/.test(t)) return 'Precious metals';
+      if(/broker|stock|individual/.test(t)) return 'Brokerage';
+      return 'Other'; }
+    arr('Investments').forEach(function(x){var v=num(x.Value); if(!isNaN(v)&&v>0){var k=cls(x.Type||x.Name); byClass[k]=(byClass[k]||0)+v;}});
+    arr('Accounts').forEach(function(x){var t=String(x.Type||'').toLowerCase(); var v=num(x.Balance); if(t.indexOf('credit')<0&&!isNaN(v)&&v>0){ byClass['Cash']=(byClass['Cash']||0)+v; }});
+    var aLabels=Object.keys(byClass).sort(function(a,b){return byClass[b]-byClass[a];});
+    if(aLabels.length){
+      var aColors={'Real estate':'#34d399','Retirement':'#38bdf8','Crypto':'#eab308','Aircraft':'#7dd3fc','Vehicles':'#fb7185','Precious metals':'#fbbf24','Brokerage':'#a78bfa','Cash':'#4ade80','Other':'#9a9a9a'};
+      charts.push(new Chart(alloc.getContext('2d'),{type:'doughnut',
+        data:{labels:aLabels,datasets:[{data:aLabels.map(function(l){return Math.round(byClass[l]);}),
+          backgroundColor:aLabels.map(function(l){return aColors[l]||'#9a9a9a';}),borderColor:'#242424',borderWidth:3}]},
+        options:{plugins:{legend:{position:'right',labels:{color:'#f0f0f0',font:{family:'Montserrat',size:11},boxWidth:12}},
+          tooltip:{callbacks:{label:function(c){return c.label+': $'+c.parsed.toLocaleString();}}}},cutout:'58%'}}));
     }
   }
   var cvs=$('mixChart'); if(!cvs) return;
