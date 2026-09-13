@@ -339,12 +339,28 @@ function dueClass(days){ if(days==null) return ''; if(days<0) return 'neg'; if(d
 
 
 
-var LIVE = { btc:null, btcChg:null };
+var LIVE = { btc:null, btcChg:null, metar:null, metarFlag:null };
 function fetchLive(){
   try{
     fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd&include_24hr_change=true')
       .then(function(r){return r.json();})
-      .then(function(j){ if(j&&j.bitcoin){ LIVE.btc=j.bitcoin.usd; LIVE.btcChg=j.bitcoin.usd_24h_change; applyLive(); } })
+      .then(function(j){ if(j&&j.bitcoin){ LIVE.btc=j.bitcoin.usd; LIVE.btcChg=j.bitcoin.usd_24h_change; applyLive(); if(CURRENT==='overview') render('overview'); } })
+      .catch(function(){});
+  }catch(e){}
+  
+  try{
+    fetch('https://aviationweather.gov/api/data/metar?ids=KMEV&format=json')
+      .then(function(r){return r.json();})
+      .then(function(a){ if(a&&a.length){ var m=a[0];
+        var vis=(m.visib!=null)?parseFloat(m.visib):null, ceil=null;
+        (m.clouds||[]).forEach(function(c){ if((c.cover==='BKN'||c.cover==='OVC')&&c.base!=null&&(ceil==null||c.base<ceil)) ceil=c.base; });
+        var wind=m.wspd!=null?m.wspd:0, gust=m.wgst||0;
+        var vfr = (vis==null||vis>=3) && (ceil==null||ceil>=1500);
+        var good = vfr && wind<18 && gust<25;
+        LIVE.metar={ vis:vis, ceil:ceil, wind:wind, gust:gust, raw:m.rawOb||'' };
+        LIVE.metarFlag = good?'good':(vfr?'marginal':'ifr');
+        if(CURRENT==='overview') render('overview');
+      }})
       .catch(function(){});
   }catch(e){}
 }
@@ -495,6 +511,7 @@ var ESCHEMA={
   HuntPoints:{cols:['State','Species','Points','Category','Notes']},
   Workouts:{cols:['Date','Type','Name','Distance','Duration','AvgHR','Elevation','Calories','StravaID','Notes']},
   Deals:{cols:['Name','Sector','Location','Price','SDE','CashNeeded','MonthlyNet','OwnerHrs','Stage','Notes']},
+  Signals:{cols:['Date','Kind','Headline','Detail','Tab','Severity']},
   Ventures:{kv:true},
   Milestones:{cols:['Area','Milestone','Who','Status','Date','Notes']},
   Quotes:{cols:['Quote','Author','Source','Tag']},
@@ -735,6 +752,43 @@ function snapCard(tab, rowsHtml){ var d=DOMAIN[tab];
     +'<div style="margin-top:8px">'+rowsHtml+'</div></div>'; }
 function srow(k,v){ return '<div class="kv-row" style="padding:7px 0"><span class="k">'+esc(k)+'</span><span class="v">'+v+'</span></div>'; }
 
+function kindIcon(k){ k=String(k||'').toLowerCase();
+  if(k.indexOf('refi')>=0||k.indexOf('rate')>=0) return '🏦';
+  if(k.indexOf('deal')>=0||k.indexOf('biz')>=0||k.indexOf('vent')>=0) return '📈';
+  if(k.indexOf('hunt')>=0) return '🦌';
+  if(k.indexOf('crypto')>=0||k.indexOf('btc')>=0) return '₿';
+  if(k.indexOf('home')>=0||k.indexOf('real')>=0||k.indexOf('market')>=0) return '🏠';
+  if(k.indexOf('fly')>=0||k.indexOf('weather')>=0) return '🛩️';
+  return '📰'; }
+function radarHtml(){
+  var out=[], sevColor={good:'--green',watch:'--amber',bad:'--red'};
+  
+  var mkt=num(kv('Config').market_mortgage_30yr);
+  if(!isNaN(mkt)) arr('Debts').filter(function(d){return /mortgage/i.test(String(d.Type))&&has(d.Rate);}).forEach(function(d){
+    var r=num(d.Rate); if(isNaN(r)) return; if(r<1) r=r*100;
+    if(mkt<=r-0.5){ var bal=num(d.Balance)||0, save=Math.round(bal*(r-mkt)/100);
+      out.push({sev:'good',icon:'🏦',t:'Refi '+esc(String(d.Name).replace(/ Mortgage$/,'')),sub:'market '+mkt+'% vs your '+r.toFixed(2)+'% · ~$'+save.toLocaleString('en-US')+'/yr saved — get a quote',tab:'home'}); }
+  });
+  
+  if(LIVE.btc!=null){
+    if(LIVE.btc>=1000000) out.push({sev:'good',icon:'₿',t:'Bitcoin crossed $1M',sub:'your 10-yr target — trim & diversify per plan',tab:'ventures'});
+    else if(LIVE.btc>=250000) out.push({sev:'good',icon:'₿',t:'Bitcoin crossed $250k',sub:'ladder trigger — trim toward ~15% for acquisition capital',tab:'ventures'});
+    else if(LIVE.btc>=212500) out.push({sev:'watch',icon:'₿',t:'Bitcoin nearing $250k ($'+Math.round(LIVE.btc).toLocaleString('en-US')+')',sub:'within 15% of your trim target',tab:'ventures'});
+  }
+  
+  if(LIVE.metarFlag){ var fm={good:['good','KMEV looks flyable'],marginal:['watch','KMEV marginal for VFR'],ifr:['bad','KMEV below VFR']}[LIVE.metarFlag];
+    var m=LIVE.metar||{}, det=(m.wind!=null?('wind '+Math.round(m.wind)+(m.gust?'G'+Math.round(m.gust):'')+'kt'):'')+(m.vis!=null?' · vis '+m.vis+'sm':'')+(m.ceil!=null?' · ceil '+m.ceil+'ft':'');
+    out.push({sev:fm[0],icon:'🛩️',t:fm[1],sub:det||'live METAR',tab:'flying'}); }
+  
+  arr('Signals').filter(function(s){return has(s.Headline);})
+    .sort(function(a,b){return String(b.Date).localeCompare(String(a.Date));})
+    .forEach(function(s){ out.push({sev:String(s.Severity||'watch').toLowerCase(),icon:kindIcon(s.Kind),t:s.Headline,sub:s.Detail||'',tab:s.Tab||'overview'}); });
+  if(!out.length) return '<div class="empty">Radar is clear — it refreshes with your daily sync.</div>';
+  return out.slice(0,12).map(function(o){ var c=sevColor[o.sev]||'--amber';
+    return '<div class="kv-row" style="cursor:pointer" onclick="navGo(\''+o.tab+'\')"><span class="k"><span style="color:var('+c+')">'+o.icon+'</span> '+esc(o.t)+(o.sub?' <span style="color:var(--text-dim)">· '+esc(o.sub)+'</span>':'')+'</span></div>';
+  }).join('');
+}
+
 function renderOverview(){
   var bills=totalMonthlyBills(), nw=netWorth();
   var fly=kv('Flying'), h=kv('Health'), cur=num(h.weight), goal=num(h.weight_goal);
@@ -794,6 +848,8 @@ function renderOverview(){
 
   return qHtml
     + '<div class="grid cols-3" style="margin-bottom:22px">'+tiles.join('')+'</div>'
+    + card('📡 Radar','What changed out there that affects your plans, money, and flying.', radarHtml(), '--gold')
+    + '<div style="height:22px"></div>'
     + trends
     + '<div class="grid cols-2" style="margin-bottom:22px">'
     + card('Your next steps','Auto-built from your goals, tasks & status — soonest first.', stepsHtml, '--gold')
