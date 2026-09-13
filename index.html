@@ -764,7 +764,7 @@ function renderOverview(){
   
   var debts=arr('Debts').slice().sort(function(a,b){return num(b.Balance)-num(a.Balance);});
   var bd=debts[0]; var bdRate=bd?num(bd.Rate):NaN; if(bdRate<1) bdRate=bdRate*100;
-  var money=snapCard('money', srow('Net worth', money2(nw))+srow('Bills / mo', money2(bills))+(bd?srow('Top debt', esc(String(bd.Name).replace(/ Mortgage$/,''))+' '+money2(bd.Balance)+(isNaN(bdRate)?'':' @'+bdRate.toFixed(2)+'%')):''));
+  var moneyCard=snapCard('money', srow('Net worth', money2(nw))+srow('Bills / mo', money2(bills))+(bd?srow('Top debt', esc(String(bd.Name).replace(/ Mortgage$/,''))+' '+money2(bd.Balance)+(isNaN(bdRate)?'':' @'+bdRate.toFixed(2)+'%')):''));
   var flyCard=snapCard('flying', srow('Hours', has(fly.total_hours)?fly.total_hours+' hrs':'—')+srow('Stage', esc(fly.stage||'—'))+srow('Next', esc(flyingNextStep())));
   var lw=lastWorkout();
   var healthCard=snapCard('health', srow('Weight', (!isNaN(cur)?cur+' → '+(isNaN(goal)?'':goal)+' lb':'—'))+srow('This week', wk+' workouts')+(lw?srow('Last', esc(String(lw.Type||'').replace(/([a-z])([A-Z])/g,'$1 $2'))+' '+esc(lw.Distance||'')):''));
@@ -804,7 +804,7 @@ function renderOverview(){
     + card('Coming up','Due dates & renewals — autopay hidden.', alertHtml, '--gold')
     + '</div>'
     + '<div class="section-title" style="display:flex;justify-content:space-between"><span>Every area at a glance</span><button class="ebtn" onclick="printReview()" style="text-transform:none;letter-spacing:0;font-weight:600">🖨 Monthly review</button></div>'
-    + '<div class="grid cols-3">'+money+flyCard+healthCard+huntCard+projCard+homeCard+'</div>';
+    + '<div class="grid cols-3">'+moneyCard+flyCard+healthCard+huntCard+projCard+homeCard+'</div>';
 }
 function printReview(){
   var nw=netWorth(), bills=totalMonthlyBills(), h=kv('Health'), fly=kv('Flying');
