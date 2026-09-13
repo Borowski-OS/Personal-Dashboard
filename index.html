@@ -164,6 +164,24 @@
   [id^="sec-"] { scroll-margin-top:calc(var(--nav-h) + 62px); }
 
    
+  #printArea { display:none; }
+  @media print {
+    body { background:#fff; color:#000; padding:0; }
+    #topNav, #app, #modal { display:none !important; }
+    #printArea { display:block !important; padding:32px; color:#000; }
+  }
+
+   
+  @media (max-width:640px){
+    .header h1 { font-size:23px; }
+    .stat .value { font-size:22px; }
+    .subnav { overflow-x:auto; flex-wrap:nowrap; -webkit-overflow-scrolling:touch; }
+    .subnav::-webkit-scrollbar { display:none; }
+    #modal { padding:16px 10px; }
+    #modal .sheet { padding:20px 18px 24px; }
+  }
+
+   
   #modal { position:fixed; inset:0; z-index:2600; background:rgba(10,10,10,.7); backdrop-filter:blur(4px);
     display:flex; align-items:flex-start; justify-content:center; padding:40px 16px; overflow-y:auto; }
   #modal .sheet { width:100%; max-width:760px; background:var(--card-bg); border:1px solid var(--card-border-2);
@@ -253,6 +271,7 @@
 </div>
 
 <div id="modal" class="hidden" onclick="if(event.target===this)closeModal()"><div class="sheet" id="modalSheet"></div></div>
+<div id="printArea"></div>
 
 <main id="app" class="hidden">
   <div class="dashboard">
@@ -628,9 +647,10 @@ function upcomingAlerts(){
 
 
 
-var DOMAIN={overview:['Life','--gold'],bills:['Home','--teal'],family:['Family','--amber'],projects:['Projects','--orange'],
-  flying:['Flying','--sky'],money:['Money','--emerald'],ventures:['Ventures','--indigo'],hobbies:['Hobbies','--violet'],vehicles:['Vehicles','--rose'],
-  health:['Health','--pink'],travel:['Travel','--cyan']};
+var DOMAIN={overview:['Life','--gold','🧭'],bills:['Home','--teal','🏠'],family:['Family','--amber','👨‍👩‍👧'],projects:['Projects','--orange','🛠️'],
+  flying:['Flying','--sky','✈️'],money:['Money','--emerald','💵'],ventures:['Ventures','--indigo','📈'],hobbies:['Hobbies','--violet','🎯'],vehicles:['Vehicles','--rose','🚗'],
+  health:['Health','--pink','💪'],travel:['Travel','--cyan','✈️']};
+function domIcon(tab){ var d=DOMAIN[tab]; return d&&d[2]?d[2]+' ':''; }
 function domChip(tab){ var d=DOMAIN[tab]||DOMAIN.overview; return '<span class="chip" style="background:transparent;border:1px solid var('+d[1]+');color:var('+d[1]+');font-size:10px;padding:1px 7px;margin:0">'+d[0]+'</span>'; }
 function weekWorkouts(){ var now=Date.now(); return arr('Workouts').filter(function(w){var m=String(w.Date||'').match(/(\d{4})-(\d{2})-(\d{2})/); if(!m) return false; var d=new Date(+m[1],+m[2]-1,+m[3]).getTime(); return (now-d)<=7.5*864e5 && d<=now+864e5;}).length; }
 function lastWorkout(){ var ws=arr('Workouts').slice().filter(function(w){return has(w.Date);}); if(!ws.length) return null;
@@ -658,9 +678,60 @@ function smartSteps(){
   out.sort(function(a,b){return a.sort-b.sort;});
   return out;
 }
+
+ 
+function sparkline(vals, color){
+  if(!vals||vals.length<2) return '<div class="foot" style="margin-top:8px">building history…</div>';
+  var w=140,h=30,mn=Math.min.apply(null,vals),mx=Math.max.apply(null,vals),rng=(mx-mn)||1;
+  var pts=vals.map(function(v,i){return (i/(vals.length-1)*w).toFixed(1)+','+(h-3-((v-mn)/rng)*(h-6)).toFixed(1);}).join(' ');
+  return '<svg width="100%" height="'+h+'" viewBox="0 0 '+w+' '+h+'" preserveAspectRatio="none" style="display:block;margin-top:8px">'
+    +'<polyline points="'+pts+'" fill="none" stroke="var('+(color||'--emerald')+')" stroke-width="1.5" vector-effect="non-scaling-stroke" stroke-linejoin="round"/></svg>';
+}
+function nwSeries(){ return arr('NetWorthHistory').filter(function(r){return has(r.Date)&&!isNaN(num(r.NetWorth));})
+  .sort(function(a,b){return String(a.Date).localeCompare(String(b.Date));}).map(function(r){return num(r.NetWorth);}); }
+function weightSeries(){ return arr('HealthLog').filter(function(r){return /weight/i.test(String(r.Metric))&&!isNaN(num(r.Value));})
+  .sort(function(a,b){return String(a.Date).localeCompare(String(b.Date));}).map(function(r){return num(r.Value);}); }
+function workoutWeekSeries(){ var wk={}, now=new Date();
+  arr('Workouts').forEach(function(w){ var m=String(w.Date||'').match(/(\d{4})-(\d{2})-(\d{2})/); if(!m) return;
+    var d=new Date(+m[1],+m[2]-1,+m[3]); var wknum=Math.floor((now-d)/(7*864e5)); if(wknum>=0&&wknum<8) wk[wknum]=(wk[wknum]||0)+1; });
+  var out=[]; for(var i=7;i>=0;i--) out.push(wk[i]||0); return out; }
+function trendCard(label, valTxt, series, color, foot){
+  var delta=''; if(series&&series.length>=2){ var dv=series[series.length-1]-series[0];
+    delta=' <span style="color:var('+(dv>=0?'--green':'--red')+')">'+(dv>=0?'▲':'▼')+Math.abs(Math.round(dv))+'</span>'; }
+  return '<div class="stat" style="border-top:2px solid var('+color+')"><div class="label">'+esc(label)+'</div>'
+    +'<div class="value" style="font-size:22px">'+valTxt+'</div>'+sparkline(series,color)
+    +'<div class="foot">'+esc(foot||'')+delta+'</div></div>'; }
+
+ 
+function goalBar(label, pct, sub, color){ pct=Math.max(0,Math.min(100,Math.round(pct)));
+  return '<div style="margin-bottom:14px"><div style="display:flex;justify-content:space-between;font-size:13.5px"><span>'+esc(label)+'</span>'
+    +'<span class="mono" style="color:var('+color+')">'+pct+'%</span></div>'
+    +'<div class="bar"><span style="width:'+pct+'%;background:var('+color+')"></span></div>'
+    +(sub?'<div class="foot">'+esc(sub)+'</div>':'')+'</div>'; }
+function goalsHtml(){
+  var out='', h=kv('Health'), cur=num(h.weight), goal=num(h.weight_goal), ws=weightSeries();
+  if(!isNaN(cur)&&!isNaN(goal)){ var start=ws.length?Math.max.apply(null,ws):cur; start=Math.max(start,goal+1);
+    out+=goalBar('Weight → '+goal+' lb', (start-cur)/(start-goal)*100, cur+' lb now · '+Math.max(0,Math.round(cur-goal))+' to go', '--pink'); }
+  var fh=num(kv('Flying').total_hours); if(!isNaN(fh)) out+=goalBar('Flying → PPL (~60 hr est.)', fh/60*100, fh+' hrs logged', '--sky');
+  var heloc=arr('Debts').filter(function(d){return /heloc/i.test(String(d.Type)+String(d.Name));})[0];
+  if(heloc){ var bal=num(heloc.Balance)||0; out+=goalBar('Pay off HELOC', (20000-bal)/20000*100, money(bal)+' left of $20k', '--emerald'); }
+  var cash=arr('Accounts').reduce(function(s,a){var t=String(a.Type||'').toLowerCase();return s+(t.indexOf('credit')>=0?0:(num(a.Balance)||0));},0);
+  out+=goalBar('Emergency fund → $35k', cash/35000*100, money(cash)+' liquid', '--gold');
+  return out||'<div class="empty">Set weight & goals to track progress.</div>';
+}
+function agendaHtml(){
+  var ev=arr('Events').filter(function(e){return has(e.Title);})
+    .sort(function(a,b){return (String(a.Date)+String(a.Time)).localeCompare(String(b.Date)+String(b.Time));});
+  if(!ev.length) return '<div class="empty">Calendar syncs here daily. (Nothing loaded yet.)</div>';
+  var days=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  return ev.slice(0,10).map(function(e){ var m=String(e.Date).match(/(\d{4})-(\d{2})-(\d{2})/);
+    var dl=m?(days[new Date(+m[1],+m[2]-1,+m[3]).getDay()]+' '+(+m[3])):esc(e.Date);
+    return '<div class="kv-row"><span class="k"><span class="mono" style="color:var(--text-dim);font-size:12px">'+dl+'</span> · '+esc(e.Title)+(has(e.Location)?' <span style="color:var(--text-dim)">· '+esc(e.Location)+'</span>':'')+'</span><span class="v" style="color:var(--text-muted);font-size:12.5px">'+esc(e.Time||'')+'</span></div>';
+  }).join('');
+}
 function snapCard(tab, rowsHtml){ var d=DOMAIN[tab];
   return '<div class="card" style="border-top:3px solid var('+d[1]+');cursor:pointer" onclick="navGo(\''+tab+'\')">'
-    +'<div style="display:flex;justify-content:space-between;align-items:center"><h2 style="font-size:15px">'+d[0]+'</h2><span class="foot" style="color:var('+d[1]+')">Open →</span></div>'
+    +'<div style="display:flex;justify-content:space-between;align-items:center"><h2 style="font-size:15px">'+(d[2]?d[2]+' ':'')+d[0]+'</h2><span class="foot" style="color:var('+d[1]+')">Open →</span></div>'
     +'<div style="margin-top:8px">'+rowsHtml+'</div></div>'; }
 function srow(k,v){ return '<div class="kv-row" style="padding:7px 0"><span class="k">'+esc(k)+'</span><span class="v">'+v+'</span></div>'; }
 
@@ -714,14 +785,43 @@ function renderOverview(){
       +'<div class="foot" style="margin-top:10px;color:var(--text-muted)">— '+esc(q.Author||'Unknown')+(has(q.Source)?', <span style="font-style:italic">'+esc(q.Source)+'</span>':'')+'</div></div>';
   }
 
+  
+  var trends='<div class="grid cols-3" style="margin-bottom:22px">'
+    + trendCard('Net worth', nw?money2(nw):'—', nwSeries(), '--emerald', 'tracking')
+    + trendCard('Weight', (!isNaN(cur)?cur+' lb':'—'), weightSeries(), '--pink', 'toward '+(isNaN(goal)?'goal':goal+' lb'))
+    + trendCard('Workouts / wk', ''+wk, workoutWeekSeries(), '--sky', 'last 8 wks')
+    + '</div>';
+
   return qHtml
     + '<div class="grid cols-3" style="margin-bottom:22px">'+tiles.join('')+'</div>'
+    + trends
     + '<div class="grid cols-2" style="margin-bottom:22px">'
     + card('Your next steps','Auto-built from your goals, tasks & status — soonest first.', stepsHtml, '--gold')
+    + card('This week','From your calendar.', agendaHtml(), '--cyan')
+    + '</div>'
+    + '<div class="grid cols-2" style="margin-bottom:22px">'
+    + card('Goal progress','Where you stand on the big ones.', goalsHtml(), '--gold')
     + card('Coming up','Due dates & renewals — autopay hidden.', alertHtml, '--gold')
     + '</div>'
-    + '<div class="section-title">Every area at a glance</div>'
+    + '<div class="section-title" style="display:flex;justify-content:space-between"><span>Every area at a glance</span><button class="ebtn" onclick="printReview()" style="text-transform:none;letter-spacing:0;font-weight:600">🖨 Monthly review</button></div>'
     + '<div class="grid cols-3">'+money+flyCard+healthCard+huntCard+projCard+homeCard+'</div>';
+}
+function printReview(){
+  var nw=netWorth(), bills=totalMonthlyBills(), h=kv('Health'), fly=kv('Flying');
+  var rows='';
+  function pr(k,v){ return '<tr><td style="padding:6px 12px 6px 0;color:#555">'+esc(k)+'</td><td style="padding:6px 0;font-weight:600">'+v+'</td></tr>'; }
+  rows+=pr('Net worth', money(nw));
+  rows+=pr('Monthly bills', money(bills));
+  rows+=pr('Weight', (has(h.weight)?h.weight+' lb → '+(h.weight_goal||'')+' lb goal':'—'));
+  rows+=pr('Workouts this week', weekWorkouts());
+  rows+=pr('Flying hours', has(fly.total_hours)?fly.total_hours:'—');
+  var steps=smartSteps().slice(0,10).map(function(s){return '<li style="margin:3px 0">'+esc(s.t)+'</li>';}).join('');
+  var box=document.getElementById('printArea');
+  box.innerHTML='<h1 style="font-size:22px;margin:0 0 4px">Monthly Review</h1>'
+    +'<div style="color:#666;margin-bottom:16px">'+new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})+'</div>'
+    +'<table style="border-collapse:collapse;margin-bottom:18px">'+rows+'</table>'
+    +'<h2 style="font-size:16px;margin:0 0 6px">Next steps</h2><ul style="margin:0;padding-left:18px">'+steps+'</ul>';
+  window.print();
 }
 function money2(v){ var n=num(v); if(isNaN(n)) return '—'; if(Math.abs(n)>=1000) return '$'+Math.round(n/1000)+'k'; return money(v); }
 
