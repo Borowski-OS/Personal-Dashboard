@@ -192,6 +192,20 @@
    
   #modal { position:fixed; inset:0; z-index:2600; background:rgba(10,10,10,.7); backdrop-filter:blur(4px);
     display:flex; align-items:flex-start; justify-content:center; padding:40px 16px; overflow-y:auto; }
+  .pk { font-size:10px; opacity:.6; border:1px solid var(--card-border-2); border-radius:4px; padding:1px 4px; margin-left:2px; }
+  #palette { position:fixed; inset:0; z-index:2700; background:rgba(10,10,10,.7); backdrop-filter:blur(4px);
+    display:flex; align-items:flex-start; justify-content:center; padding:12vh 16px 40px; }
+  #palette .palbox { width:100%; max-width:620px; background:var(--card-bg); border:1px solid var(--card-border-2);
+    border-radius:14px; overflow:hidden; box-shadow:0 20px 60px rgba(0,0,0,.5); }
+  #palInput { width:100%; box-sizing:border-box; padding:18px 20px; border:none; border-bottom:1px solid var(--card-border);
+    background:transparent; color:var(--text); font-family:inherit; font-size:16.5px; outline:none; }
+  #palResults { max-height:52vh; overflow-y:auto; }
+  .palrow { display:flex; align-items:center; gap:12px; padding:11px 20px; cursor:pointer; border-left:2px solid transparent; }
+  .palrow:hover, .palrow.sel { background:#242424; border-left-color:var(--gold); }
+  .palrow .pi { width:22px; text-align:center; }
+  .palrow .pt { flex:1; font-size:14px; }
+  .palrow .ps { font-size:11.5px; color:var(--text-dim); }
+  .palrow .pcat { font-size:10px; text-transform:uppercase; letter-spacing:.5px; color:var(--text-dim); }
   #modal .sheet { width:100%; max-width:760px; background:var(--card-bg); border:1px solid var(--card-border-2);
     border-radius:16px; padding:26px 28px 30px; margin:auto; }
   #modal .mhead { display:flex; justify-content:space-between; align-items:flex-start; gap:16px; margin-bottom:6px; }
@@ -257,11 +271,20 @@
     <button class="nav-tab" data-tab="faith" onclick="navGo('faith')">Faith</button>
   </div>
   <div class="nav-right">
+    <button class="refresh-btn" onclick="openPalette()" title="Search (⌘K)">🔍 <span class="pk">⌘K</span></button>
     <button class="refresh-btn" id="editToggle" onclick="toggleEdit()">✎ Edit</button>
     <button class="refresh-btn" onclick="reload()">↻ Refresh</button>
     <button class="refresh-btn" onclick="signOut()">Lock</button>
   </div>
 </nav>
+
+
+<div id="palette" class="hidden" onclick="if(event.target===this)closePalette()">
+  <div class="palbox">
+    <input id="palInput" type="text" placeholder="Search anything — tabs, bills, contacts, points, hunts…" autocomplete="off" spellcheck="false" oninput="palRender()" onkeydown="palKey(event)">
+    <div id="palResults"></div>
+  </div>
+</div>
 
 
 <div id="gate">
@@ -349,7 +372,25 @@ function dueClass(days){ if(days==null) return ''; if(days<0) return 'neg'; if(d
 
 
 
-var LIVE = { btc:null, btcChg:null, metar:null, metarFlag:null, metars:{}, apFetched:false, kmevNws:null, nwsFetched:false };
+var LIVE = { btc:null, btcChg:null, metar:null, metarFlag:null, metars:{}, apFetched:false, kmevNws:null, nwsFetched:false, kmevFc:null, fcFetched:false };
+function fetchNwsFc(){ if(LIVE.fcFetched) return; var pw=sessionStorage.getItem(SS_PW); if(!pw) return; LIVE.fcFetched=true;
+  jsonp(API_URL+'?pw='+pw+'&action=nwsfc').then(function(r){ if(r&&r.ok&&r.periods){ LIVE.kmevFc=r.periods; if(CURRENT==='flying') render('flying'); } }).catch(function(){}); }
+function fcWindMax(s){ var m=String(s||'').match(/(\d+)(?!.*\d)/); return m?parseInt(m[1],10):0; }  
+function flyingOutlookCard(){
+  var fc=LIVE.kmevFc;
+  if(!fc){ fetchNwsFc(); return card('7-day flying outlook — KMEV','Loading NWS forecast…','<div class="empty">Fetching the Minden outlook…</div>','--sky'); }
+  var days=fc.filter(function(p){return p.day;}).slice(0,7);
+  var rows=days.map(function(p){
+    var wind=fcWindMax(p.wind), wet=p.precip>=40, storm=/rain|snow|thunder|storm/i.test(p.sky);
+    var flyable = wind<18 && !wet && !storm;
+    var badge = flyable? '<span class="tag active">fly</span>' : (wind>=25||storm? '<span class="tag" style="color:var(--rose);border:1px solid var(--rose)">no-go</span>' : '<span class="tag" style="color:var(--amber);border:1px solid var(--amber)">marginal</span>');
+    return '<div class="kv-row"><span class="k">'+badge+' <strong>'+esc(p.name)+'</strong> <span class="foot" style="color:var(--text-dim)">'+esc(p.sky)+'</span></span>'
+      +'<span class="v mono" style="font-size:12.5px">'+p.temp+'°'+p.unit+' · '+esc(p.wind)+(p.precip?' · '+p.precip+'% pcp':'')+'</span></div>';
+  }).join('');
+  var best=days.filter(function(p){return fcWindMax(p.wind)<18 && p.precip<40 && !/rain|snow|thunder|storm/i.test(p.sky);});
+  var bestLine = best.length? '<div class="foot" style="margin-top:8px;color:var(--green)">Best training days: '+best.slice(0,3).map(function(p){return esc(p.name);}).join(', ')+'</div>' : '<div class="foot" style="margin-top:8px;color:var(--amber)">No clearly calm days in the outlook — watch the winds.</div>';
+  return card('7-day flying outlook — KMEV','NWS forecast. "Fly" = winds under ~18 mph, dry, VFR-friendly. Density altitude still applies on hot days.', rows+bestLine, '--sky');
+}
 function fetchNwsNow(){ if(LIVE.nwsFetched) return; var pw=sessionStorage.getItem(SS_PW); if(!pw) return; LIVE.nwsFetched=true;
   jsonp(API_URL+'?pw='+pw+'&action=nwsnow').then(function(r){ if(r&&r.ok&&r.now){ LIVE.kmevNws=r.now; if(CURRENT==='overview'||CURRENT==='flying') render(CURRENT); } }).catch(function(){}); }
 function nwsNowLine(){ var n=LIVE.kmevNws; return n?('NWS model now: '+n.temp+'°'+n.unit+' · wind '+n.wind+' '+n.dir+' · '+n.sky):''; }
@@ -379,7 +420,7 @@ function fetchLive(){
   try{
     fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd&include_24hr_change=true')
       .then(function(r){return r.json();})
-      .then(function(j){ if(j&&j.bitcoin){ LIVE.btc=j.bitcoin.usd; LIVE.btcChg=j.bitcoin.usd_24h_change; applyLive(); if(CURRENT==='overview') render('overview'); } })
+      .then(function(j){ if(j&&j.bitcoin){ LIVE.btc=j.bitcoin.usd; LIVE.btcChg=j.bitcoin.usd_24h_change; applyLive(); if(CURRENT==='overview'||CURRENT==='home'||CURRENT==='ventures') render(CURRENT); } })
       .catch(function(){});
   }catch(e){}
   
@@ -518,7 +559,7 @@ function render(tab){
     vehicles: renderVehicles, health: renderHealth, faith: renderFaith
   }[tab] || function(){return '';})();
   if(tab==='home') drawMoneyCharts();
-  if(tab==='flying') fetchAirports();
+  if(tab==='flying'){ fetchAirports(); fetchNwsFc(); }
   applyLive();
 }
 
@@ -709,7 +750,7 @@ function upcomingAlerts(){
 
 var DOMAIN={overview:['Life','--gold','🧭'],bills:['Home','--teal','🏠'],family:['Family','--amber','👨‍👩‍👧'],projects:['Projects','--orange','🛠️'],
   flying:['Flying','--sky','✈️'],money:['Money','--emerald','💵'],ventures:['Ventures','--indigo','📈'],hobbies:['Hobbies','--violet','🎯'],vehicles:['Vehicles','--rose','🚗'],
-  health:['Health','--pink','💪'],travel:['Travel','--cyan','✈️']};
+  health:['Health','--pink','💪'],travel:['Travel','--cyan','✈️'],home:['Home','--teal','🏠'],faith:['Faith','--gold','✝️']};
 function domIcon(tab){ var d=DOMAIN[tab]; return d&&d[2]?d[2]+' ':''; }
 function domChip(tab){ var d=DOMAIN[tab]||DOMAIN.overview; return '<span class="chip" style="background:transparent;border:1px solid var('+d[1]+');color:var('+d[1]+');font-size:10px;padding:1px 7px;margin:0">'+d[0]+'</span>'; }
 function weekWorkouts(){ var now=Date.now(); return arr('Workouts').filter(function(w){var m=String(w.Date||'').match(/(\d{4})-(\d{2})-(\d{2})/); if(!m) return false; var d=new Date(+m[1],+m[2]-1,+m[3]).getTime(); return (now-d)<=7.5*864e5 && d<=now+864e5;}).length; }
@@ -1135,6 +1176,9 @@ function renderFlying(){
     + card('PPL milestones','Brad\'s path to the certificate.', milestoneHtml, '--sky')
     + card('Aircraft','', tableEl(acCols, ac, {empty:'Add your aircraft (e.g. Maule N51207) in the Aircraft tab.',editTab:'Aircraft'}), '--sky')
     + '</div><div style="height:22px"></div>'
+    + aircraftPerfCard()
+    + '<div style="height:22px"></div>'
+    + flyingOutlookCard()
     + '<div style="height:22px"></div>'
     + '<div class="section-title" style="display:flex;justify-content:space-between"><span>Live airport weather (AWOS / ATIS)</span>'+(EDIT?'<button class="ebtn pri" onclick="openEditor(\'Airports\')" style="text-transform:none;letter-spacing:0">＋ Add airport</button>':'')+'</div>'
     + airportsHtml()
@@ -1160,6 +1204,64 @@ function airportsHtml(){
       +'</div>';
   }).join('');
   return '<div class="grid cols-2">'+cards+'</div>';
+}
+
+
+var KMEV_ELEV=4722;
+function kmevDensityAlt(){
+  var m=LIVE.metars&&LIVE.metars['KMEV'];
+  var tempC=null, altIn=29.92, src='';
+  if(m&&!metarStale(m)&&m.temp!=null){ tempC=m.temp; if(m.altim!=null) altIn=(m.altim>100?m.altim*0.0295300:m.altim); src='live METAR'; }
+  else if(LIVE.kmevNws&&LIVE.kmevNws.temp!=null){ var t=LIVE.kmevNws; tempC=(t.unit==='F')?((t.temp-32)*5/9):t.temp; src='NWS model'; }
+  if(tempC==null) return null;
+  var pa=KMEV_ELEV+(29.92-altIn)*1000;
+  var isa=15-2*(KMEV_ELEV/1000);
+  var da=Math.round(pa+120*(tempC-isa));
+  return {da:da, tempC:Math.round(tempC), src:src};
+}
+function aircraftPerfCard(){
+  var f=kv('Flying');
+  var maxGross=num(f.max_gross_weight)||2300;      
+  var empty=num(f.empty_weight);                    
+  var fuelGal=num(f.usable_fuel_gal)||60;           
+  var fuelWt=fuelGal*6;                              
+  var estimated=isNaN(empty);
+  if(estimated) empty=1500;                          
+  var useful=maxGross-empty;
+  var payloadFullFuel=useful-fuelWt;
+  var rows=''
+    + '<div class="kv-row"><span class="k">Max gross weight</span><span class="v mono">'+maxGross.toLocaleString()+' lb</span></div>'
+    + '<div class="kv-row"><span class="k">Empty weight'+(estimated?' <span class="tag" style="color:var(--amber)">estimate</span>':'')+'</span><span class="v mono">'+empty.toLocaleString()+' lb</span></div>'
+    + '<div class="kv-row" style="border-top:1px solid var(--card-border);padding-top:8px"><span class="k"><strong>Useful load</strong></span><span class="v mono" style="color:var(--green)">'+useful.toLocaleString()+' lb</span></div>'
+    + '<div class="kv-row"><span class="k">Full fuel ('+fuelGal+' gal usable)</span><span class="v mono">−'+fuelWt.toLocaleString()+' lb</span></div>'
+    + '<div class="kv-row"><span class="k"><strong>Payload w/ full fuel</strong> (people + bags)</span><span class="v mono" style="color:'+(payloadFullFuel>0?'var(--green)':'var(--rose)')+'">'+payloadFullFuel.toLocaleString()+' lb</span></div>';
+  var da=kmevDensityAlt();
+  var daHtml = da ? '<div class="kv-row" style="margin-top:6px"><span class="k">Density altitude @ KMEV</span><span class="v mono" style="color:'+(da.da>7000?'var(--rose)':(da.da>5500?'var(--amber)':'var(--sky)'))+'">'+da.da.toLocaleString()+' ft</span></div>'
+      +'<div class="foot" style="margin-top:4px">At '+da.tempC+'°C ('+da.src+'). Field elev '+KMEV_ELEV.toLocaleString()+' ft. High DA = longer takeoff roll & less climb — plan reduced payload on hot days.</div>' : '';
+  var note='<p style="font-size:12.5px;color:var(--text-muted);margin:12px 0 0"><strong>Useful load</strong> is everything you can add to the empty airplane — fuel <em>and</em> people <em>and</em> bags. It does <strong>not</strong> reserve fuel; that\'s why the second line subtracts full tanks to show real cabin payload. '
+    +(estimated?'The empty weight above is a placeholder — enter your airplane\'s actual W&B empty weight with ✎ Edit (key <span class="mono">empty_weight</span>) and this recalculates exactly.':'Based on your entered empty weight.')+'</p>';
+  return card('Performance & loading — Maule M4-220C','Useful load, full-fuel payload, and Minden density altitude.', rows+daHtml+note, '--sky');
+}
+
+ 
+function btcLadderCard(){
+  var cfg=kv('Config');
+  var spot=LIVE.btc;
+  var qty=num(cfg.btc_qty);
+  var rungs=[{p:250000,label:'$250k rung',note:'first derisk — seed acquisition capital'},{p:1000000,label:'$1M rung',note:'major derisk — buy the business'}];
+  var spotHtml = spot? '$'+Math.round(spot).toLocaleString() : '<span data-live="btc">…</span>';
+  var body='<div class="kv-row"><span class="k">Bitcoin spot (live)</span><span class="v mono" '+(spot?'':'data-live="btc"')+'>'+spotHtml+'</span></div>';
+  body+=rungs.map(function(r){
+    var pct = spot? Math.min(100, Math.round(spot/r.p*100)) : 0;
+    var moveTxt = spot? (spot>=r.p? '<span style="color:var(--green)">reached ✓</span>' : '+'+Math.round((r.p/spot-1)*100)+'% to go') : '';
+    var proceeds = (spot && !isNaN(qty)) ? ' · ~'+money(qty*r.p)+' if you hold '+qty+' BTC' : '';
+    return '<div style="margin-top:14px"><div style="display:flex;justify-content:space-between;font-size:13.5px"><span><strong>'+r.label+'</strong> <span class="foot" style="color:var(--text-dim)">'+r.note+'</span></span><span class="mono">'+moveTxt+'</span></div>'
+      +'<div class="bar"><span style="width:'+pct+'%"></span></div>'
+      +'<div class="foot">$'+r.p.toLocaleString()+' target'+proceeds+'</div></div>';
+  }).join('');
+  body+='<p style="font-size:12.5px;color:var(--text-muted);margin:14px 0 0">Your thesis: BTC to $250k in 1–2 yrs, $1M within 10. The plan is to trim at each rung and roll proceeds into a cash-flowing acquisition — not to time the top. '
+    +(isNaN(qty)?'Add your BTC quantity (✎ Edit → Config key <span class="mono">btc_qty</span>) to see exact dollar proceeds at each rung.':'')+'</p>';
+  return card('₿ Derisking ladder','Live progress toward your two exit rungs.', body, '--gold');
 }
 
 
@@ -1290,6 +1392,8 @@ function renderMoney(){
     + card('Savings goals', '', goalsHtml, '--emerald')
     + '</div><div style="height:22px"></div>'
     + '<div class="grid cols-2">' + givingCard + subCard + '</div>'
+    + '<div style="height:22px"></div>'
+    + '<div class="grid cols-2">' + btcLadderCard() + card('Bitcoin thesis','Your stated conviction.', '<div class="kv-row"><span class="k">Near-term</span><span class="v">$250k (1–2 yrs)</span></div><div class="kv-row"><span class="k">Long-term</span><span class="v">$1M+ (within 10 yrs)</span></div><div class="kv-row"><span class="k">Strategy</span><span class="v" style="max-width:60%;text-align:right">Trim at rungs → acquisition capital</span></div>', '--gold') + '</div>'
     + (rentalCard?'<div style="height:22px"></div>'+rentalCard:'');
 }
 function drawMoneyCharts(){
@@ -1433,7 +1537,20 @@ function renderHobbies(){
     hpHtml='<div style="height:22px"></div><div class="section-title">Preference &amp; bonus points</div><div class="grid cols-2">'+blocks+'</div>';
   }
 
-  return cards + msHtml + huntHtml + hpHtml;
+  
+  var deadlineCard='';
+  var dl=arr('Hunts').filter(function(h){return has(h.Deadline);}).map(function(h){return {h:h, d:daysUntilDate(h.Deadline)};})
+    .filter(function(x){return x.d!=null;}).sort(function(a,b){return a.d-b.d;});
+  var dlFuture=dl.filter(function(x){return x.d>=-3;});
+  if(dlFuture.length){
+    deadlineCard='<div style="height:22px"></div>'+card('⏳ Application deadlines','Draw applications, soonest first — apply before these dates.',
+      dlFuture.map(function(x){ var soon=x.d<=30;
+        return '<div class="kv-row"><span class="k">'+(soon?'⚠ ':'')+'<strong>'+esc(x.h.Species)+'</strong> · '+esc(x.h.State)+' <span class="foot" style="color:var(--text-dim)">'+esc(x.h.Method||'')+'</span></span>'
+          +'<span class="v '+dueClass(x.d)+'">'+esc(x.h.Deadline)+(x.d>=0?' · '+fmtDue(x.d):' · closed')+'</span></div>';
+      }).join(''),'--violet');
+  }
+
+  return cards + msHtml + deadlineCard + huntHtml + hpHtml;
 }
 
 
@@ -1516,6 +1633,53 @@ function openVehicle(idx){
   if(!air && has(v.VIN)) decodeVin(v.VIN);
 }
 function closeModal(){ $('modal').classList.add('hidden'); $('modalSheet').innerHTML=''; }
+
+ 
+var PAL_SEL=0, PAL_ITEMS=[];
+function palIndex(){
+  var items=[];
+  Object.keys(TABS).forEach(function(t){ items.push({icon:domIcon(t),cat:'Go to',t:TABS[t].title,s:TABS[t].sub,tab:t}); });
+  function add(tab,cat,rows,label,sub){ rows.forEach(function(r){ var t=label(r); if(!t) return; items.push({icon:domIcon(tab),cat:cat,t:t,s:sub?sub(r):'',tab:tab}); }); }
+  add('home','Bill',arr('Bills'),function(r){return r.Vendor;},function(r){return (r.Category||'')+(has(r.Amount)?' · '+money(r.Amount):'');});
+  add('home','Contact',arr('Contacts'),function(r){return r.Name;},function(r){return r.Company||r.Category||'';});
+  add('home','Account',arr('Accounts'),function(r){return r.Name;},function(r){return r.Institution||'';});
+  add('home','Debt',arr('Debts'),function(r){return r.Name;},function(r){return r.Lender||'';});
+  add('home','Investment',arr('Investments'),function(r){return r.Name;},function(r){return has(r.Value)?money(r.Value):'';});
+  add('home','Points',arr('Points'),function(r){return r.Program;},function(r){return has(r.Balance)?r.Balance+' pts':(r.Number||'');});
+  add('home','Trip',arr('Travel'),function(r){return r.Trip||r.Destination;},function(r){return r.Destination||'';});
+  add('projects','Project',arr('Projects'),function(r){return r.Name;},function(r){return r.Area||r.Status||'';});
+  add('vehicles','Vehicle',arr('Vehicles'),function(r){return r.Name;},function(r){return [r.Year,r.Make,r.Model].filter(has).join(' ');});
+  add('hobbies','Hobby',arr('Hobbies'),function(r){return r.Name;},function(r){return r.Who||'';});
+  add('hobbies','Hunt',arr('Hunts'),function(r){return (r.Species||'')+' — '+(r.State||'');},function(r){return r.Method||'';});
+  add('flying','Airport',arr('Airports'),function(r){return r.Icao;},function(r){return r.Name||'';});
+  add('faith','Practice',arr('Habits'),function(r){return r.Practice;},function(r){return r.Cadence||'';});
+  add('faith','Person',arr('Prayer'),function(r){return r.Name;},function(r){return r.For||'';});
+  add('ventures','Deal',arr('Deals'),function(r){return r.Name;},function(r){return r.Sector||r.Stage||'';});
+  return items;
+}
+function openPalette(){ $('palette').classList.remove('hidden'); var i=$('palInput'); i.value=''; PAL_SEL=0; palRender(); setTimeout(function(){i.focus();},30); }
+function closePalette(){ $('palette').classList.add('hidden'); }
+function palRender(){
+  var q=($('palInput').value||'').trim().toLowerCase();
+  var all=palIndex();
+  var res = q? all.filter(function(x){return (x.t+' '+x.s+' '+x.cat).toLowerCase().indexOf(q)>=0;}) : all.filter(function(x){return x.cat==='Go to';});
+  res=res.slice(0,40); PAL_ITEMS=res; if(PAL_SEL>=res.length) PAL_SEL=0;
+  $('palResults').innerHTML = res.length? res.map(function(x,i){
+    return '<div class="palrow'+(i===PAL_SEL?' sel':'')+'" onclick="palGo('+i+')" onmouseover="PAL_SEL='+i+';palHighlight()"><span class="pi">'+x.icon+'</span><span class="pt">'+esc(x.t)+(x.s?' <span class="ps">'+esc(x.s)+'</span>':'')+'</span><span class="pcat">'+esc(x.cat)+'</span></div>';
+  }).join('') : '<div class="palrow" style="color:var(--text-dim);cursor:default">No matches.</div>';
+}
+function palHighlight(){ var rows=$('palResults').children; for(var i=0;i<rows.length;i++){ rows[i].classList.toggle('sel', i===PAL_SEL); } }
+function palGo(i){ var x=PAL_ITEMS[i]; if(!x) return; closePalette(); navGo(x.tab); }
+function palKey(e){
+  if(e.key==='ArrowDown'){ e.preventDefault(); PAL_SEL=Math.min(PAL_ITEMS.length-1,PAL_SEL+1); palHighlight(); scrollSel(); }
+  else if(e.key==='ArrowUp'){ e.preventDefault(); PAL_SEL=Math.max(0,PAL_SEL-1); palHighlight(); scrollSel(); }
+  else if(e.key==='Enter'){ e.preventDefault(); palGo(PAL_SEL); }
+  else if(e.key==='Escape'){ closePalette(); }
+}
+function scrollSel(){ var r=$('palResults').children[PAL_SEL]; if(r&&r.scrollIntoView) r.scrollIntoView({block:'nearest'}); }
+document.addEventListener('keydown', function(e){
+  if((e.metaKey||e.ctrlKey) && (e.key==='k'||e.key==='K')){ if(!$('app').classList.contains('hidden')){ e.preventDefault(); if($('palette').classList.contains('hidden')) openPalette(); else closePalette(); } }
+});
 window.addEventListener('keydown', function(e){ if(e.key==='Escape') closeModal(); });
 
 function decodeVin(vin){
@@ -1697,7 +1861,22 @@ function renderTravel(){
   var out=addBtn('Travel','trip')+(EDIT?'<div class="editbar" style="margin-top:-4px"><button class="ebtn pri" onclick="openEditor(\'TravelChecklist\')">＋ Add checklist item</button></div>':'');
   out += upcoming.length?'<div class="section-title">Upcoming</div><div class="grid cols-2">'+upcoming.map(tripCard).join('')+'</div>'
     : card('Travel','', '<div class="empty">Add trips with ✎ Edit. I can also pull upcoming travel from your Google Calendar.</div>','--cyan');
-  out+='<div style="height:22px"></div>'+card('Points & miles','', tableEl(pointsCols, points, {editTab:'Points'}), '--cyan');
+  
+  var CPP=[[/capital one/i,1.4],[/chase|ultimate rewards/i,1.5],[/amex|membership rewards/i,1.5],[/southwest|rapid rewards/i,1.35],
+    [/united/i,1.3],[/alaska|atmos|hawaiian/i,1.3],[/delta|skymiles/i,1.1],[/flying blue/i,1.2],[/marriott|bonvoy/i,0.7],[/hilton/i,0.5]];
+  function cpp(prog){ for(var i=0;i<CPP.length;i++){ if(CPP[i][0].test(String(prog||''))) return CPP[i][1]; } return 1.0; }
+  var valued=points.map(function(p){var bal=num(p.Balance); if(isNaN(bal)||bal<=0) return null; var c=cpp(p.Program); return {prog:p.Program, bal:bal, cpp:c, val:bal*c/100};}).filter(Boolean).sort(function(a,b){return b.val-a.val;});
+  var walletTotal=valued.reduce(function(s,x){return s+x.val;},0);
+  var walletCard='';
+  if(valued.length){
+    walletCard=card('Travel wallet — estimated value',
+      'Your points & miles valued at typical redemption rates (cents per point). Real value swings with how you redeem.',
+      '<div class="grid cols-2" style="margin-bottom:16px">'+statTile('Total value', money(walletTotal), valued.length+' programs with a balance')
+        +statTile('Biggest', valued.length?esc(valued[0].prog):'—', valued.length?money(valued[0].val):'')+'</div>'
+      + valued.map(function(v){return '<div class="kv-row"><span class="k">'+esc(v.prog)+' <span class="foot" style="color:var(--text-dim)">'+v.bal.toLocaleString()+' pts @ '+v.cpp+'¢</span></span><span class="v mono">'+money(v.val)+'</span></div>';}).join(''),'--cyan')
+      +'<div style="height:22px"></div>';
+  }
+  out+='<div style="height:22px"></div>'+walletCard+card('Points & miles','', tableEl(pointsCols, points, {editTab:'Points'}), '--cyan');
   if(past.length) out+='<div style="height:22px"></div><div class="section-title">Past trips</div><div class="grid cols-3">'+past.map(tripCard).join('')+'</div>';
   return out;
 }
