@@ -339,7 +339,10 @@ function dueClass(days){ if(days==null) return ''; if(days<0) return 'neg'; if(d
 
 
 
-var LIVE = { btc:null, btcChg:null, metar:null, metarFlag:null, metars:{}, apFetched:false };
+var LIVE = { btc:null, btcChg:null, metar:null, metarFlag:null, metars:{}, apFetched:false, kmevNws:null, nwsFetched:false };
+function fetchNwsNow(){ if(LIVE.nwsFetched) return; var pw=sessionStorage.getItem(SS_PW); if(!pw) return; LIVE.nwsFetched=true;
+  jsonp(API_URL+'?pw='+pw+'&action=nwsnow').then(function(r){ if(r&&r.ok&&r.now){ LIVE.kmevNws=r.now; if(CURRENT==='overview'||CURRENT==='flying') render(CURRENT); } }).catch(function(){}); }
+function nwsNowLine(){ var n=LIVE.kmevNws; return n?('NWS model now: '+n.temp+'°'+n.unit+' · wind '+n.wind+' '+n.dir+' · '+n.sky):''; }
 function metarCeil(m){ var c=null; (m.clouds||[]).forEach(function(x){ if((x.cover==='BKN'||x.cover==='OVC'||x.cover==='OVX')&&x.base!=null&&(c==null||x.base<c)) c=x.base; }); return c; }
 function metarAgeMin(m){ return (m&&m.obsTime)? (Date.now()/1000 - m.obsTime)/60 : null; }
 function metarStale(m){ var a=metarAgeMin(m); return a!=null && a>90; }   
@@ -385,6 +388,7 @@ function wxFetch(ids, cb){
   var pw=sessionStorage.getItem(SS_PW); if(!pw) return;
   jsonp(API_URL+'?pw='+pw+'&action=wx&ids='+encodeURIComponent(ids.join(',')))
     .then(function(res){ if(res&&res.ok) cb(res.metars||[]); }).catch(function(){});
+  fetchNwsNow();
 }
 function applyLive(){
   document.querySelectorAll('[data-live="btc"]').forEach(function(el){
@@ -801,7 +805,7 @@ function radarHtml(){
   }
   
   if(LIVE.metarFlag==='stale'){
-    out.push({sev:'watch',icon:'🛩️',t:'KMEV METAR is stale — call the AWOS',sub:'network feed hasn\'t updated; dial 119.325 / (775) 782-6264 for real-time',tab:'flying'});
+    out.push({sev:'watch',icon:'🛩️',t:'KMEV AWOS feed down — call 119.325 for real-time',sub:(LIVE.kmevNws?nwsNowLine()+' (model est)':'network METAR not updating'),tab:'flying'});
   } else if(LIVE.metarFlag){ var fm={good:['good','KMEV looks flyable'],marginal:['watch','KMEV marginal for VFR'],ifr:['bad','KMEV below VFR']}[LIVE.metarFlag];
     var m=LIVE.metar||{}, det=(m.wind!=null?('wind '+Math.round(m.wind)+(m.gust?'G'+Math.round(m.gust):'')+'kt'):'')+(m.vis!=null?' · vis '+m.vis+'sm':'')+(m.ceil!=null?' · ceil '+m.ceil+'ft':'');
     out.push({sev:fm[0],icon:'🛩️',t:fm[1],sub:det||'live METAR',tab:'flying'}); }
@@ -1109,6 +1113,7 @@ function airportsHtml(){
       +'<div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px"><h2 style="font-size:16px">'+esc(icao)+' <span class="foot" style="font-weight:400">'+esc(a.Name||'')+'</span></h2>'+badge+'</div>'
       +'<div style="margin-top:8px;font-size:13.5px;color:var(--text)">'+esc(wx)+'</div>'
       +((m&&metarStale(m))?'<div class="foot" style="margin-top:6px;color:var(--amber)">⚠ Network feed stale — call AWOS'+(has(a.WxFreq)?' '+esc(a.WxFreq):'')+(has(a.Phone)?' / '+esc(a.Phone):'')+' for real-time</div>':'')
+      +((icao==='KMEV'&&(!m||metarStale(m))&&LIVE.kmevNws)?'<div class="foot" style="margin-top:6px;color:var(--sky)">'+esc(nwsNowLine())+' <span style="color:var(--text-dim)">(model estimate)</span></div>':'')
       +((freq||ph)?'<div class="kv-row" style="margin-top:8px"><span class="k">'+esc(freq)+'</span><span class="v">'+ph+(EDIT?' '+editBtn('Airports',a.__row):'')+'</span></div>':(EDIT?'<div style="margin-top:8px">'+editBtn('Airports',a.__row)+'</div>':''))
       +(m&&m.rawOb?'<div class="mono" style="margin-top:8px;font-size:11px;color:var(--text-dim);white-space:normal;word-break:break-word">'+esc(m.rawOb)+'</div>':'')
       +'</div>';
