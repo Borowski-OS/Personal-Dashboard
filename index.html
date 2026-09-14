@@ -1534,6 +1534,39 @@ function budgetPlanHtml(){
 
 
 
+function rentalReturnHtml(r){
+  var cfg=kv('Config');
+  var key=String(r.Property||'').split(/\s+/)[0];               
+  var re=new RegExp(key,'i');
+  var inv=arr('Investments').filter(function(i){return re.test(String(i.Name));})[0];
+  var value=inv?num(inv.Value):0;
+  var mort=arr('Debts').filter(function(d){return /mortgage/i.test(String(d.Type))&&(re.test(String(d.Property))||re.test(String(d.Name)));})[0];
+  var bal=mort?num(mort.Balance):0, rate=mort?num(mort.Rate):0; if(rate>1) rate=rate/100;
+  var pAndI=num(r.Mortgage)||0;                                  
+  var rent=num(r.Rent)||0, exp=pAndI+(num(r.Taxes)||0)+(num(r.Insurance)||0)+(num(r.Other)||0);
+  var cash=rent-exp;
+  var interest=bal*rate/12, principal=Math.max(0, pAndI-interest);   
+  var appPct=(num(cfg.re_appreciation_pct)||3)/100;
+  var apprec=value*appPct/12;
+  var landPct=(num(cfg.re_land_pct)||20)/100, taxPct=(num(cfg.re_marginal_tax_pct)||24)/100;
+  var deprYr=value*(1-landPct)/27.5, taxSave=deprYr*taxPct/12;
+  var monthly=apprec+cash+principal+taxSave, yearly=monthly*12;
+  var years=2045-(new Date().getFullYear());
+  var projValue=value*Math.pow(1+appPct, years);
+  function row(k,v,note){ return '<div class="kv-row"><span class="k">'+k+(note?' <span class="foot" style="color:var(--text-dim)">'+note+'</span>':'')+'</span><span class="v mono">'+money(Math.round(v))+'/mo</span></div>'; }
+  var body=row('Appreciation', apprec, appPct*100+'% on '+money(value))
+    +row('Cash flow', cash, 'rent − all costs')
+    +row('Debt paydown', principal, 'principal portion; grows monthly')
+    +row('Tax savings', taxSave, 'depreciation × '+(taxPct*100)+'% bracket')
+    +'<div class="kv-row" style="border-top:1px solid var(--card-border);margin-top:4px;padding-top:8px"><span class="k"><strong>Total return</strong></span><span class="v mono" style="color:var(--green)">'+money(Math.round(monthly))+'/mo · '+money(Math.round(yearly))+'/yr</span></div>'
+    +'<div class="kv-row"><span class="k">Est. value if held to 2045</span><span class="v mono">'+money(Math.round(projValue))+'</span></div>'
+    +'<p class="foot" style="margin:10px 0 0;color:var(--text-dim)">Cash flow is real money; the other three build net worth on paper. Assumptions ('+(appPct*100)+'% appreciation, '+(taxPct*100)+'% tax bracket, '+(landPct*100)+'% land) are editable in Config (re_appreciation_pct, re_marginal_tax_pct, re_land_pct).</p>';
+  return '<div class="card" style="border-top:3px solid var(--emerald);margin-bottom:0"><div style="display:flex;justify-content:space-between"><h2 style="font-size:15px">'+esc(r.Property)+' — total return</h2>'
+    +'<span class="tag active">'+money(Math.round(monthly))+'/mo</span></div>'+body+'</div>';
+}
+
+
+
 function renderMoney(){
   var bt=budgetTotals(), nw=netWorth();
   var accounts=arr('Accounts'), debts=arr('Debts'), inv=arr('Investments'), goals=arr('SavingsGoals');
@@ -1594,10 +1627,19 @@ function renderMoney(){
   var gCols=[{label:'Date',key:'Date'},{label:'Recipient',render:function(r){return '<strong>'+esc(r.Recipient)+'</strong>';}},
     {label:'Type',render:function(r){return has(r.Type)?'<span class="chip">'+esc(r.Type)+'</span>':'';}},
     {label:'Amount',num:true,render:function(r){return money(r.Amount,2);}},{label:'Notes',key:'Notes'}];
+  
+  var giveGoal=num(kv('Config').giving_annual_goal)||20000;
+  var now=new Date(), yearFrac=(now-new Date(now.getFullYear(),0,0))/(new Date(now.getFullYear()+1,0,0)-new Date(now.getFullYear(),0,0));
+  var givingLogged=givingYtd>0;
+  var giveShown=givingLogged?givingYtd:Math.round(giveGoal*yearFrac);
+  var givePct=Math.min(100,Math.round(giveShown/giveGoal*100));
+  var giveBar='<div style="margin-bottom:6px"><div style="display:flex;justify-content:space-between;font-size:13.5px"><span>Toward '+money(giveGoal)+' / year</span><span class="mono">'+money(giveShown)+' · '+givePct+'%</span></div>'
+    +'<div class="bar"><span style="width:'+givePct+'%;background:var(--gold)"></span></div>'
+    +'<div class="foot" style="margin-top:4px">'+(givingLogged?(giving.length+' gifts logged this year'):('on pace through '+now.toLocaleDateString('en-US',{month:'short',day:'numeric'})+' — log gifts to track actual'))+'</div></div>';
   var givingCard=card('Giving & tithe — '+thisYr,'Generosity is a first-line value, not a leftover.',
-    '<div class="grid cols-2" style="margin-bottom:16px">'+statTile('Given this year', money(givingYtd), giving.length+' gifts logged')
-      +'<div class="stat"><div class="label">By type</div>'+(gTypeHtml||'<div class="foot">Log gifts to see the breakdown.</div>')+'</div></div>'
-    + tableEl(gCols, giving.slice().reverse(), {empty:'Log tithes, offerings, and charitable gifts here.',editTab:'Giving'}), '--gold');
+    giveBar
+    + (gTypeHtml?'<div style="margin-top:8px">'+gTypeHtml+'</div>':'')
+    + tableEl(gCols, giving.slice().reverse(), {empty:'',editTab:'Giving'}), '--gold');
 
   
   var subRe=/subscription|stream|software|saas|media|music|membership|\bapp\b|cloud|news|premium|plus/i;
@@ -1629,8 +1671,9 @@ function renderMoney(){
         +'<div class="kv-row" style="border-top:1px solid var(--card-border);margin-top:4px;padding-top:8px"><span class="k"><strong>Net cash flow</strong></span><span class="v mono" style="color:'+(pos?'var(--green)':'var(--rose)')+'">'+(pos?'+':'')+money(net)+'/mo · '+(pos?'+':'')+money(net*12)+'/yr</span></div>'
         +(EDIT?'<div style="margin-top:8px">'+editBtn('Rentals',r.__row)+'</div>':'')+'</div>';
     }).join('');
+    var rReturn=rentals.map(function(r){return rentalReturnHtml(r);}).join('');
     rentalCard=(EDIT?'<div class="editbar">'+addBtn('Rentals','property')+'</div>':'')
-      +'<div class="section-title" style="margin-top:0">Rental P&amp;L</div><div class="grid cols-2">'+rBody+'</div>';
+      +'<div class="section-title" style="margin-top:0">Rental P&amp;L & total return</div><div class="grid cols-2">'+rBody+rReturn+'</div>';
   } else if(EDIT){
     rentalCard='<div class="editbar">'+addBtn('Rentals','property')+'</div><div class="empty">Add the Lahontan rental (rent, mortgage, taxes, insurance) to track monthly cash flow.</div>';
   }
