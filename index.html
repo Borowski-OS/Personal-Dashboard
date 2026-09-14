@@ -910,6 +910,124 @@ function radarHtml(){
   }).join('');
 }
 
+ 
+async function quickAdd(){
+  var t=window.prompt('Quick add — what\'s the next step?'); if(t==null) return; t=String(t).trim(); if(!t) return;
+  var res=await apiWrite({action:'upsert',tab:'NextActions',row:JSON.stringify({Action:t,Tab:'overview',Due:'',Done:''})});
+  if(res&&res.ok){ await afterWrite(); } else { alert('Could not save — try again.'); }
+}
+function quickCaptureHtml(){
+  return '<div class="editbar" style="justify-content:flex-start;margin-bottom:16px"><button class="ebtn pri" onclick="quickAdd()">＋ Quick add to-do</button>'
+    +'<span class="foot" style="margin-left:10px;color:var(--text-dim)">saves to Your next steps</span></div>';
+}
+
+ 
+function solarEvent(date, lat, lng, zenith, rising){
+  var D=Math.PI/180, R=180/Math.PI;
+  var N=Math.floor((Date.UTC(date.getUTCFullYear(),date.getUTCMonth(),date.getUTCDate())-Date.UTC(date.getUTCFullYear(),0,0))/864e5);
+  var lngHour=lng/15;
+  var t=rising ? N+((6-lngHour)/24) : N+((18-lngHour)/24);
+  var M=(0.9856*t)-3.289;
+  var L=M+(1.916*Math.sin(M*D))+(0.020*Math.sin(2*M*D))+282.634; L=(L%360+360)%360;
+  var RA=R*Math.atan(0.91764*Math.tan(L*D)); RA=(RA%360+360)%360;
+  RA += (Math.floor(L/90)*90)-(Math.floor(RA/90)*90); RA/=15;
+  var sinDec=0.39782*Math.sin(L*D), cosDec=Math.cos(Math.asin(sinDec));
+  var cosH=(Math.cos(zenith*D)-(sinDec*Math.sin(lat*D)))/(cosDec*Math.cos(lat*D));
+  if(cosH>1||cosH< -1) return null;
+  var H=rising ? 360-R*Math.acos(cosH) : R*Math.acos(cosH); H/=15;
+  var T=H+RA-(0.06571*t)-6.622;
+  var UT=(T-lngHour); UT=((UT%24)+24)%24;
+  var d=new Date(Date.UTC(date.getUTCFullYear(),date.getUTCMonth(),date.getUTCDate()));
+  d.setUTCMinutes(d.getUTCMinutes()+Math.round(UT*60));
+  return d;
+}
+function fmtT(d){ return d?d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',timeZone:'America/Los_Angeles'}):'—'; }
+function vfrWindowCard(){
+  var LAT=38.9964, LNG=-119.7514, now=new Date();
+  var sr=solarEvent(now,LAT,LNG,90.833,true), ss=solarEvent(now,LAT,LNG,90.833,false);
+  var dawn=solarEvent(now,LAT,LNG,96,true), dusk=solarEvent(now,LAT,LNG,96,false);
+  var rows='<div class="kv-row"><span class="k">Morning civil twilight</span><span class="v mono">'+fmtT(dawn)+'</span></div>'
+    +'<div class="kv-row"><span class="k">Sunrise</span><span class="v mono">'+fmtT(sr)+'</span></div>'
+    +'<div class="kv-row"><span class="k">Sunset</span><span class="v mono">'+fmtT(ss)+'</span></div>'
+    +'<div class="kv-row"><span class="k">Evening civil twilight (night begins)</span><span class="v mono">'+fmtT(dusk)+'</span></div>';
+  var daylen = (sr&&ss)? Math.round((ss-sr)/6e4) : null;
+  var foot = daylen!=null ? Math.floor(daylen/60)+'h '+(daylen%60)+'m of daylight · Day VFR runs sunrise→sunset; night currency & lighting apply after evening twilight.' : '';
+  return card('VFR day window — KMEV','Local Pacific time. Plan your flying hours.', rows+(foot?'<p class="foot" style="margin:12px 0 0;color:var(--text-dim)">'+foot+'</p>':''), '--sky');
+}
+ 
+function goNoGoCard(){
+  var da=kmevDensityAlt();
+  var f=kv('Flying'); var maxGross=num(f.max_gross_weight)||2300; var empty=num(f.empty_weight); if(isNaN(empty)) empty=1500;
+  if(!da) return card('Go / no-go — takeoff','Live density-altitude performance check.','<div class="empty">Waiting on live weather. Once Minden-area conditions load, this estimates takeoff roll & climb.</div>','--sky');
+  
+  var baseRoll=600; var roll=Math.round(baseRoll*Math.pow(1.10, da.da/1000));
+  var level, lcol, advice;
+  if(da.da<5000){ level='GO'; lcol='--green'; advice='Good performance. Normal short-field technique.'; }
+  else if(da.da<7500){ level='CAUTION'; lcol='--amber'; advice='Reduced climb — lean the mixture for peak power on takeoff, expect a longer roll, and plan a shallow climb gradient off the departure end.'; }
+  else { level='HIGH DA'; lcol='--rose'; advice='Marginal climb performance. Consider early-morning departure, reduce weight/fuel, and lean aggressively. Know your obstacle clearance.'; }
+  var rows='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><span class="foot">Verdict</span><span class="tag" style="color:var('+lcol+');border:1px solid var('+lcol+');background:transparent;font-weight:700">'+level+'</span></div>'
+    +'<div class="kv-row"><span class="k">Density altitude</span><span class="v mono" style="color:var('+lcol+')">'+da.da.toLocaleString()+' ft</span></div>'
+    +'<div class="kv-row"><span class="k">Est. ground roll</span><span class="v mono">~'+roll.toLocaleString()+' ft</span></div>'
+    +'<div class="kv-row"><span class="k">Runway 16/34 available</span><span class="v mono">7,400 ft</span></div>';
+  return card('Go / no-go — takeoff @ KMEV','Live density-altitude performance ('+da.src+', '+da.tempC+'°C).',
+    rows+'<p style="font-size:12.5px;color:var(--text-muted);margin:12px 0 0">'+advice+'</p>'
+    +'<p class="foot" style="margin:8px 0 0;color:var(--text-dim)">Rough estimate for planning only — not a substitute for the POH performance charts and your own weight & balance.</p>','--sky');
+}
+ 
+function acquisitionReadinessCard(){
+  var cash=arr('Accounts').reduce(function(s,a){var n=num(a.Balance);var t=String(a.Type||'').toLowerCase();return s+(isNaN(n)||t.indexOf('credit')>=0?0:n);},0);
+  var heloc=arr('Debts').filter(function(d){return /heloc/i.test(String(d.Type)+String(d.Name));})[0];
+  var helocBal=heloc?(num(heloc.Balance)||0):0;
+  var crypto=arr('Investments').filter(function(i){return /crypto|btc|bitcoin/i.test(String(i.Type)+' '+String(i.Name));}).reduce(function(s,i){return s+(num(i.Value)||0);},0);
+  var out=goalBar('Cash buffer → $40k', cash/40000*100, money(cash)+' liquid of $40k', '--emerald');
+  out+=goalBar('Kill the HELOC', helocBal>0?((20000-helocBal)/20000*100):100, helocBal>0?money(helocBal)+' left':'clear ✓', '--rose');
+  out+=goalBar('Acquisition fund → $150k', crypto/150000*100, money(crypto)+' (crypto, trim on ladder)', '--gold');
+  return card('Acquisition readiness','Your buy-box says: build ~$40k cash, kill the HELOC, keep dry powder. Live progress:', out, '--indigo');
+}
+ 
+function btcScenarioCard(){
+  var crypto=arr('Investments').filter(function(i){return /crypto|btc|bitcoin/i.test(String(i.Type)+' '+String(i.Name));}).reduce(function(s,i){return s+(num(i.Value)||0);},0);
+  if(!crypto) return '';
+  var spot=LIVE.btc;
+  var rungs=[250000,1000000];
+  var rowsBody=rungs.map(function(p){
+    var proj = spot? Math.round(crypto*(p/spot)) : null;
+    var trim = proj? Math.round(proj*0.5) : null;   
+    return '<div class="kv-row"><span class="k">At $'+ (p/1000>=1000?(p/1e6)+'M':(p/1000)+'k') +'/BTC</span><span class="v mono">'+(proj!=null?money(proj)+' <span class="foot" style="color:var(--text-dim)">· trim ~'+money(trim)+'</span>':'—')+'</span></div>';
+  }).join('');
+  var head='<div class="kv-row"><span class="k">Crypto position now</span><span class="v mono">'+money(crypto)+'</span></div>'
+    +'<div class="kv-row"><span class="k">BTC spot (live)</span><span class="v mono" '+(spot?'':'data-live="btc"')+'>'+(spot?'$'+Math.round(spot).toLocaleString():'…')+'</span></div>';
+  return card('BTC → acquisition capital','If your position tracks BTC, what each rung could free (trim ≈ half, illustrative).', head+rowsBody
+    +'<p class="foot" style="margin:12px 0 0;color:var(--text-dim)">Assumes the whole crypto position moves with BTC. Add a <span class="mono">btc_qty</span> in Config for exact math.</p>','--gold');
+}
+ 
+function sideIncomeFunnelCard(){
+  var v=kv('Ventures');
+  var webNow=num(v['Funnel|Church web clients now'])||0, webRate=num(v['Funnel|Church web $/mo each'])||125, webGoal=num(v['Funnel|Church web goal'])||20;
+  var coachNow=num(v['Funnel|Coaching clients now'])||0, coachRate=num(v['Funnel|Coaching $/mo each'])||400, coachGoal=num(v['Funnel|Coaching goal'])||6;
+  var webMrr=webNow*webRate, webTgt=webGoal*webRate, coachMrr=coachNow*coachRate, coachTgt=coachGoal*coachRate;
+  var out=goalBar('Church web — '+webNow+'/'+webGoal+' churches', webTgt?webMrr/webTgt*100:0, money(webMrr)+'/mo of '+money(webTgt)+'/mo goal', '--indigo');
+  out+=goalBar('Coaching — '+coachNow+'/'+coachGoal+' clients', coachTgt?coachMrr/coachTgt*100:0, money(coachMrr)+'/mo of '+money(coachTgt)+'/mo goal', '--indigo');
+  var total=webMrr+coachMrr;
+  out+='<div class="kv-row" style="border-top:1px solid var(--card-border);margin-top:6px;padding-top:8px"><span class="k"><strong>Recurring now</strong></span><span class="v mono" style="color:var(--green)">'+money(total)+'/mo</span></div>';
+  return card('Side-income funnel','Anchor Soul recurring revenue toward your targets. Update counts with ✎ Edit → Ventures.', out, '--indigo');
+}
+ 
+function biggestMoversCard(){
+  var movers=arr('BudgetCategories').filter(function(c){return has(c.SpendHist);}).map(function(c){
+    var s=String(c.SpendHist).split('|').map(function(x){return num(x)||0;}); if(s.length<4) return null;
+    var early=(s[0]+s[1])/2, late=(s[s.length-1]+s[s.length-2])/2;
+    return {cat:c.Category, delta:late-early, early:early, late:late};
+  }).filter(Boolean).sort(function(a,b){return b.delta-a.delta;});
+  if(!movers.length) return '';
+  var up=movers.filter(function(m){return m.delta>50;}).slice(0,4);
+  var down=movers.filter(function(m){return m.delta< -50;}).slice(-3).reverse();
+  function row(m,dir){ var c=dir>0?'--rose':'--green'; return '<div class="kv-row"><span class="k">'+(dir>0?'▲ ':'▼ ')+esc(m.cat)+'</span><span class="v mono" style="color:var('+c+')">'+(dir>0?'+':'')+money(Math.round(m.delta))+'/mo</span></div>'; }
+  var body=(up.length?'<div class="foot" style="margin-bottom:4px">Trending up (last 2 mo vs first 2)</div>'+up.map(function(m){return row(m,1);}).join(''):'')
+    +(down.length?'<div class="foot" style="margin:10px 0 4px">Trending down</div>'+down.map(function(m){return row(m,-1);}).join(''):'');
+  return card('Spending movers','Where your monthly spend is drifting, from your transaction history.', body, '--emerald');
+}
+
 function renderOverview(){
   var bills=totalMonthlyBills(), nw=netWorth();
   var fly=kv('Flying'), h=kv('Health'), cur=num(h.weight), goal=num(h.weight_goal);
@@ -969,6 +1087,7 @@ function renderOverview(){
     + '</div>';
 
   return qHtml
+    + quickCaptureHtml()
     + '<div class="grid cols-3" style="margin-bottom:22px">'+tiles.join('')+'</div>'
     + card('📡 Radar','What changed out there that affects your plans, money, and flying.', radarHtml(), '--gold')
     + '<div style="height:22px"></div>'
@@ -1234,6 +1353,8 @@ function renderFlying(){
     + '</div><div style="height:22px"></div>'
     + aircraftPerfCard()
     + '<div style="height:22px"></div>'
+    + '<div class="grid cols-2">' + goNoGoCard() + vfrWindowCard() + '</div>'
+    + '<div style="height:22px"></div>'
     + flyingOutlookCard()
     + '<div style="height:22px"></div>'
     + '<div class="section-title" style="display:flex;justify-content:space-between"><span>Live airport weather (AWOS / ATIS)</span>'+(EDIT?'<button class="ebtn pri" onclick="openEditor(\'Airports\')" style="text-transform:none;letter-spacing:0">＋ Add airport</button>':'')+'</div>'
@@ -1482,6 +1603,7 @@ function renderMoney(){
     + '</div><div style="height:22px"></div>'
     + card('Monthly plan','Your budget by line, with spend history where transactions are uploaded.', budgetHtml, '--emerald')
     + '<div style="height:22px"></div>'
+    + (biggestMoversCard()?biggestMoversCard()+'<div style="height:22px"></div>':'')
     + '<div class="grid cols-2">'
     + card('Accounts', '', tableEl(acctCols, accounts, {empty:'Add accounts in the Accounts tab.',editTab:'Accounts'}), '--emerald')
     + card('Debts & mortgages', '', tableEl(debtCols, debts, {empty:'Add debts/mortgages in the Debts tab.',editTab:'Debts'}), '--emerald')
@@ -1592,6 +1714,8 @@ function renderVentures(){
 
   return tiles
     + (EDIT?'<div class="editbar">'+kvEditBtn('Ventures')+'</div>':'')
+    + '<div class="grid cols-2" style="margin-bottom:22px">' + acquisitionReadinessCard() + sideIncomeFunnelCard() + '</div>'
+    + '<div class="grid cols-2" style="margin-bottom:22px">' + btcScenarioCard() + btcLadderCard() + '</div>'
     + boxCard
     + card('Deal pipeline','Screening estimates — underwrite before trusting SDE. Turn on ✎ Edit to add or update deals.',
         tableEl(dcols, deals, {empty:'No deals yet. Add candidates with ✎ Edit — price, SDE, cash needed, stage.',editTab:'Deals'}), '--indigo');
