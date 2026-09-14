@@ -343,12 +343,12 @@
   <div class="box">
     <div class="logo" id="gateLogo">L</div>
     <h2>Life OS</h2>
-    <p>Enter your password to load your dashboard. Data is fetched privately at load time — nothing personal is stored on this page.</p>
+    <p>Enter your password to load your dashboard. Your data is cached on this device for speed and refreshes each time you open it.</p>
     <div id="apiWrap"><label>Dashboard data URL (one-time)</label>
       <input id="apiInput" type="text" placeholder="Paste your Apps Script /exec URL" autocomplete="off" /></div>
     <label>Password</label>
     <input id="pwInput" type="password" placeholder="••••••••" autocomplete="current-password" />
-    <button onclick="submitGate()">Unlock</button>
+    <button id="unlockBtn" onclick="submitGate()">Unlock</button>
     <div class="err" id="gateErr"></div>
     <div class="tiny">Enter the family password to view the dashboard. It's remembered on this device.</div>
   </div>
@@ -544,45 +544,68 @@ function jsonp(url, timeoutMs){
 
 
 
+var LS_DATA = 'lifeos_data_cache';
 window.addEventListener('DOMContentLoaded', function(){
   localStorage.setItem(LS_API, API_URL);
   var aw = $('apiWrap'); if(aw) aw.classList.add('hidden');
+  warmUp();                                   
   var pw = sessionStorage.getItem(SS_PW);
   if(pw){ boot(API_URL, pw); }
   $('pwInput').addEventListener('keydown', function(e){ if(e.key==='Enter') submitGate(); });
 });
-
+ 
+function warmUp(){ try{ jsonp(API_URL+'?warm=1', 20000).catch(function(){}); }catch(e){} }
+ 
+async function readData(url){
+  var timeouts=[20000,30000,40000], lastErr;
+  for(var i=0;i<timeouts.length;i++){
+    try{ var r=await jsonp(url, timeouts[i]); if(r) return r; }
+    catch(e){ lastErr=e; if(i<timeouts.length-1) await new Promise(function(z){setTimeout(z,600*(i+1));}); }
+  }
+  throw lastErr||new Error('failed');
+}
+function showApp(res){
+  DATA = res.data || {};
+  try{ localStorage.setItem(LS_DATA, JSON.stringify({data:DATA, updated:res.updated})); }catch(e){}
+  $('gate').classList.add('hidden');
+  $('topNav').classList.remove('hidden');
+  $('aiFab').classList.remove('hidden');
+  $('app').classList.remove('hidden');
+  applyBranding();
+  $('stamp').textContent = fmtStamp(res.updated);
+  $('loading').classList.add('hidden');
+  if(!CURRENT || CURRENT==='overview'){ var hashTab=(location.hash||'').replace('#',''); navGo(TABS[hashTab]?hashTab:'overview'); }
+  else render(CURRENT);
+  fetchLive();
+}
 async function submitGate(){
   $('gateErr').textContent='';
   var pw = $('pwInput').value;
   if(!pw){ $('gateErr').textContent='Enter your password.'; return; }
+  var btn=$('unlockBtn'); btn.disabled=true; btn.dataset.label=btn.textContent; btn.textContent='Unlocking…';
   var hash = await sha256(pw);
-  boot(API_URL, hash);
+  await boot(API_URL, hash, btn);
 }
-
-async function boot(api, hash){
+async function boot(api, hash, btn){
+  
+  var cached=null; try{ cached=JSON.parse(localStorage.getItem(LS_DATA)||'null'); }catch(e){}
+  if(btn===undefined && cached && cached.data){ showApp(cached); }   
   try{
-    var res = await jsonp(api + '?pw=' + hash);
+    var res = await readData(api + '?pw=' + hash);
     if(!res || res.ok===false){
-      $('gateErr').textContent = (res && res.error==='unauthorized') ? 'Wrong password.' : 'Could not load data. Check the URL.';
-      sessionStorage.removeItem(SS_PW);
+      if(res && res.error==='unauthorized'){ $('gateErr').textContent='Wrong password.'; sessionStorage.removeItem(SS_PW); }
+      else { $('gateErr').textContent='Could not load data. Try again.'; }
+      if(btn){ btn.disabled=false; btn.textContent=btn.dataset.label||'Unlock'; }
       return;
     }
     localStorage.setItem(LS_API, api);
     sessionStorage.setItem(SS_PW, hash);
-    DATA = res.data || {};
-    $('gate').classList.add('hidden');
-    $('topNav').classList.remove('hidden');
-    $('aiFab').classList.remove('hidden');
-    $('app').classList.remove('hidden');
-    applyBranding();
-    $('stamp').textContent = fmtStamp(res.updated);
-    $('loading').classList.add('hidden');
-    var hashTab = (location.hash||'').replace('#','');
-    navGo(TABS[hashTab] ? hashTab : 'overview');
-    fetchLive();
+    showApp(res);
+    if(btn){ btn.disabled=false; btn.textContent=btn.dataset.label||'Unlock'; }
   }catch(e){
-    $('gateErr').textContent = 'Connection problem loading your data. Try again.';
+    if(btn){ btn.disabled=false; btn.textContent=btn.dataset.label||'Unlock'; }
+    
+    if(!(cached && cached.data)) $('gateErr').textContent='Connection problem — tap Unlock to retry.';
   }
 }
 
@@ -599,7 +622,9 @@ function fmtStamp(iso){ try{ var d=new Date(iso); return d.toLocaleString('en-US
 async function reload(){
   var api = localStorage.getItem(LS_API), pw = sessionStorage.getItem(SS_PW);
   if(!api||!pw) return signOut();
-  try{ var res=await jsonp(api+'?pw='+pw); if(res&&res.ok){ DATA=res.data||{}; $('stamp').textContent=fmtStamp(res.updated); render(CURRENT);} }catch(e){}
+  try{ var res=await readData(api+'?pw='+pw); if(res&&res.ok){ DATA=res.data||{};
+    try{ localStorage.setItem(LS_DATA, JSON.stringify({data:DATA, updated:res.updated})); }catch(e){}
+    $('stamp').textContent=fmtStamp(res.updated); render(CURRENT);} }catch(e){}
 }
 function signOut(){ sessionStorage.removeItem(SS_PW); location.reload(); }
 
