@@ -1978,6 +1978,7 @@ function openVehicle(idx){
   }
 
   var html='<button class="mclose" onclick="closeModal()">×</button>'
+    + '<button class="ebtn pri" style="position:absolute;top:16px;right:56px;z-index:2" onclick="openEditor(\'Vehicles\','+v.__row+')">✎ Edit</button>'
     + '<div class="mhead"><div><h2>'+esc(vehName(v))+'</h2><div class="sub">'+esc(air?'Aircraft':(has(v.Owner)?v.Owner+'’s vehicle':'Vehicle'))+'</div></div>'
     + '<div class="mval"><div class="big">'+(has(v.Value)?money(v.Value):'—')+'</div><div class="sm">'+(has(v.ValueAsOf)?'KBB est. · '+esc(v.ValueAsOf):'estimated value')+'</div></div></div>'
     + '<div class="msec"><div class="h">Identity</div><div class="mgrid">'+identity+'</div></div>'
