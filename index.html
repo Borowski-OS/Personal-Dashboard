@@ -836,6 +836,7 @@ var ESCHEMA={
   HuntPoints:{cols:['State','Species','Points','Category','Notes']},
   Workouts:{cols:['Date','Type','Name','Distance','Duration','AvgHR','Elevation','Calories','StravaID','Notes']},
   Deals:{cols:['Name','Sector','Location','Price','SDE','CashNeeded','MonthlyNet','OwnerHrs','Stage','Notes']},
+  Properties:{cols:['Address','Area','Units','Price','GrossRentMo','NOI','CapRate','CashNeeded','CashFlowMo','CashOnCash','DSCR','Appreciation5yr','Stage','URL','Notes']},
   Signals:{cols:['Date','Kind','Headline','Detail','Tab','Severity']},
   Ventures:{kv:true},
   Milestones:{cols:['Area','Milestone','Who','Status','Date','Notes']},
@@ -2587,13 +2588,31 @@ function renderVentures(){
     {label:'Notes',key:'Notes'}
   ];
 
+  var pcols=[
+    {label:'Property',render:function(r){return '<strong>'+(has(r.URL)?'<a href="'+esc(r.URL)+'" target="_blank" rel="noopener">'+esc(r.Address)+'</a>':esc(r.Address))+'</strong>'+(has(r.Area)?'<div class="foot" style="color:var(--text-dim)">'+esc(r.Area)+'</div>':'');}},
+    {label:'Units',num:true,key:'Units'},
+    {label:'Price',num:true,render:function(r){return money(r.Price);}},
+    {label:'Rent/mo',num:true,render:function(r){return money(r.GrossRentMo);}},
+    {label:'NOI',num:true,render:function(r){return money(r.NOI);}},
+    {label:'Cap',num:true,key:'CapRate'},
+    {label:'Cash in',num:true,render:function(r){return money(r.CashNeeded);}},
+    {label:'Cash flow/mo',num:true,render:function(r){return has(r.CashFlowMo)?money(r.CashFlowMo):'';}},
+    {label:'CoC',num:true,key:'CashOnCash'},
+    {label:'DSCR',num:true,key:'DSCR'},
+    {label:'5-yr apprec.',key:'Appreciation5yr'},
+    {label:'Stage',render:function(r){return has(r.Stage)?'<span class="tag '+(/(pass|dead)/i.test(r.Stage)?'blocked':(/(offer|dilig|loi|close)/i.test(r.Stage)?'active':'planning'))+'">'+esc(r.Stage)+'</span>':'';}},
+    {label:'Notes',key:'Notes'}
+  ];
   return tiles
     + (EDIT?'<div class="editbar">'+kvEditBtn('Ventures')+'</div>':'')
     + '<div class="grid cols-2" style="margin-bottom:22px">' + acquisitionReadinessCard() + sideIncomeFunnelCard() + '</div>'
     + '<div class="grid cols-2" style="margin-bottom:22px">' + btcScenarioCard() + btcLadderCard() + '</div>'
     + boxCard
     + card('Deal pipeline','Screening estimates — underwrite before trusting SDE. Turn on ✎ Edit to add or update deals.',
-        tableEl(dcols, deals, {empty:'No deals yet. Add candidates with ✎ Edit — price, SDE, cash needed, stage.',editTab:'Deals'}), '--indigo');
+        tableEl(dcols, deals, {empty:'No deals yet. Add candidates with ✎ Edit — price, SDE, cash needed, stage.',editTab:'Deals'}), '--indigo')
+    + '<div style="height:22px"></div>'
+    + card('Multifamily pipeline','Reno / Tahoe / Carson rentals that fit the real-estate buy-box. Rents and expenses are screening estimates — verify with a rent roll and T-12.',
+        tableEl(pcols, arr('Properties'), {empty:'No properties yet. Add candidates with ✎ Edit.',editTab:'Properties'}), '--teal');
 }
 
 /* ============================================================
@@ -2780,6 +2799,7 @@ function palIndex(){
   add('faith','Practice',arr('Habits'),function(r){return r.Practice;},function(r){return r.Cadence||'';});
   add('faith','Person',arr('Prayer'),function(r){return r.Name;},function(r){return r.For||'';});
   add('ventures','Deal',arr('Deals'),function(r){return r.Name;},function(r){return r.Sector||r.Stage||'';});
+  add('ventures','Property',arr('Properties'),function(r){return r.Address;},function(r){return r.Area||r.Stage||'';});
   return items;
 }
 function openPalette(){ $('palette').classList.remove('hidden'); var i=$('palInput'); i.value=''; PAL_SEL=0; palRender(); setTimeout(function(){i.focus();},30); }
