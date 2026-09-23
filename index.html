@@ -10,10 +10,10 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Life OS">
 <link rel="apple-touch-icon" href="icon.svg">
-<link rel="icon" href="icon.svg" type="image/svg&#43;xml">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&amp;family=JetBrains&#43;Mono:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
   :root {
@@ -33,7 +33,7 @@
   .mono { font-family:'JetBrains Mono',ui-monospace,monospace; font-weight:500; font-variant-numeric:tabular-nums; letter-spacing:-0.01em; }
   .foot { font-size:12.5px; line-height:1.45; }
 
-   
+  /* ---- top nav ---- */
   #topNav { position:fixed; top:0; left:0; right:0; height:var(--nav-h); z-index:2050;
     display:flex; align-items:center; gap:10px; padding:0 24px;
     background:rgba(22,22,22,0.94); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
@@ -96,7 +96,7 @@
   .card .sub { color:var(--text-muted); font-size:13.5px; margin-bottom:16px; font-weight:500; line-height:1.45; }
   .card.accent-t { border-top:3px solid var(--card-border); }
 
-   
+  /* stat tiles */
   .stat { background:var(--card-bg); border:1px solid var(--card-border); border-radius:12px; padding:18px 20px; }
   .stat .label { color:var(--text-muted); font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:.06em; }
   .stat .value { font-size:26px; font-weight:700; margin-top:8px; letter-spacing:-.5px; }
@@ -134,7 +134,7 @@
   .kv-row .v { font-weight:600; text-align:right; min-width:0; overflow-wrap:anywhere; }
   .section-title { font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--text-dim); margin:6px 0 12px; }
 
-   
+  /* gate */
   #gate { position:fixed; inset:0; z-index:3000; background:radial-gradient(1200px 600px at 50% -10%, #262626, #151515);
     display:flex; align-items:center; justify-content:center; padding:20px; }
   #gate .box { width:100%; max-width:400px; background:var(--card-bg); border:1px solid var(--card-border);
@@ -153,7 +153,7 @@
   #gate .tiny { color:var(--text-dim); font-size:11px; margin-top:16px; line-height:1.5; }
   .hidden { display:none !important; }
 
-   
+  /* --- visual polish --- */
   html { scroll-behavior:smooth; }
   .stat { transition:border-color .15s, transform .12s, box-shadow .15s; }
   .stat:hover { border-color:#4a4a4a; }
@@ -164,7 +164,7 @@
   .num, .mono { font-variant-numeric:tabular-nums; }
   .section-title { display:flex; align-items:center; gap:9px; }
   .section-title::before { content:''; width:3px; height:13px; border-radius:2px; background:var(--gold); display:inline-block; flex-shrink:0; }
-   
+  /* sticky in-page sub-nav for the long Home & Money page */
   .subnav { position:sticky; top:var(--nav-h); z-index:1500; display:flex; gap:8px; flex-wrap:wrap;
     padding:12px 0 14px; margin:-6px 0 8px; background:linear-gradient(var(--bg) 78%, transparent); }
   .subpill { text-decoration:none; font-size:12.5px; font-weight:600; color:var(--text-muted);
@@ -172,7 +172,7 @@
   .subpill:hover { color:var(--text); border-color:#666; background:#2a2a2a; }
   [id^="sec-"] { scroll-margin-top:calc(var(--nav-h) + 62px); }
 
-   
+  /* monthly review print */
   #printArea { display:none; }
   @media print {
     body { background:#fff; color:#000; padding:0; }
@@ -180,12 +180,12 @@
     #printArea { display:block !important; padding:32px; color:#000; }
   }
 
-   
+  /* never let media or long strings force the page wider than the phone */
   img, svg, canvas, video { max-width:100%; }
   .stat .value, .stat .value.mono { overflow-wrap:anywhere; }
   .chart-wrap { max-width:100%; overflow:hidden; }
 
-   
+  /* mobile polish */
   @media (max-width:640px){
     html, body { max-width:100%; overflow-x:hidden; }
     .header { flex-wrap:wrap; }
@@ -198,7 +198,7 @@
     #modal .sheet { padding:20px 18px 24px; }
   }
 
-   
+  /* detail modal */
   #modal { position:fixed; inset:0; z-index:2600; background:rgba(10,10,10,.7); backdrop-filter:blur(4px);
     display:flex; align-items:flex-start; justify-content:center; padding:40px 16px; overflow-y:auto; }
   .pk { font-size:10px; opacity:.6; border:1px solid var(--card-border-2); border-radius:4px; padding:1px 4px; margin-left:2px; }
@@ -215,7 +215,7 @@
   .palrow .pt { flex:1; font-size:14px; }
   .palrow .ps { font-size:11.5px; color:var(--text-dim); }
   .palrow .pcat { font-size:10px; text-transform:uppercase; letter-spacing:.5px; color:var(--text-dim); }
-   
+  /* AI assistant */
   #aiFab { position:fixed; right:22px; bottom:22px; z-index:2400; width:58px; height:58px; border-radius:50%;
     border:none; cursor:pointer; color:#1a1a1a; font-size:26px; line-height:1;
     background:linear-gradient(135deg,var(--gold),var(--orange)); box-shadow:0 6px 24px rgba(234,179,8,.45);
@@ -258,7 +258,7 @@
   @media (max-width:560px){ .mgrid{grid-template-columns:1fr;} }
   .vinspin { color:var(--text-dim); font-size:13px; font-style:italic; }
 
-   
+  /* edit controls */
   .ebtn { appearance:none; background:none; border:1px solid var(--card-border-2); color:var(--text-muted);
     border-radius:7px; padding:3px 9px; font-size:12px; cursor:pointer; font-family:inherit; white-space:nowrap; }
   .ebtn:hover { color:var(--text); border-color:#666; }
@@ -289,6 +289,147 @@
     a.tel { color:#000; }
   }
   @media (prefers-reduced-motion: reduce) { * { animation:none !important; transition:none !important; } }
+  /* ---- cross-country planner ---- */
+  .xc-card { position:relative; overflow:hidden; background:linear-gradient(165deg,#1b2630 0%,var(--card-bg) 42%); border:1px solid var(--card-border);
+    border-top:3px solid var(--sky); border-radius:12px; padding:22px; box-shadow:0 1px 3px rgba(0,0,0,.18); }
+  .xc-glow { position:absolute; top:-120px; right:-80px; width:340px; height:340px; border-radius:50%; pointer-events:none;
+    background:radial-gradient(circle,rgba(56,189,248,.16),transparent 65%); }
+  .xc-head { position:relative; display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap; }
+  .xc-kicker { font-size:11px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; color:var(--sky); }
+  .xc-title { font-size:22px; font-weight:800; letter-spacing:-.4px; margin-top:4px; }
+  .xc-title span { background:linear-gradient(90deg,var(--sky),var(--cyan)); -webkit-background-clip:text; background-clip:text; color:transparent; }
+  .xc-sub { color:var(--text-muted); font-size:13px; margin-top:4px; font-weight:500; }
+  .xc-route { position:relative; display:grid; grid-template-columns:minmax(0,1fr) auto minmax(0,1fr) minmax(0,2fr); gap:12px; align-items:end; margin-top:18px; }
+  .xc-route .xc-f input { font-size:20px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; padding:11px 12px; }
+  .xc-route .xc-wide input { font-size:15px; }
+  .xc-swap { appearance:none; border:1px solid var(--card-border-2); background:#1b1b1b; color:var(--sky); border-radius:50%; width:40px; height:40px;
+    cursor:pointer; font-size:17px; margin-bottom:4px; transition:transform .2s, border-color .15s; }
+  .xc-swap:hover { transform:rotate(180deg); border-color:var(--sky); }
+  .xc-form { position:relative; display:grid; grid-template-columns:repeat(auto-fill,minmax(170px,1fr)); gap:12px; margin-top:14px; }
+  .xc-f label { display:block; font-size:10.5px; font-weight:700; color:var(--text-dim); text-transform:uppercase; letter-spacing:.07em; margin-bottom:5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .xc-f input, .xc-f select, .xc-pf input { width:100%; background:#171717; border:1px solid var(--card-border-2); color:var(--text); border-radius:8px;
+    padding:9px 10px; font:600 14px 'JetBrains Mono',ui-monospace,monospace; color-scheme:dark; min-width:0; }
+  .xc-f select { font-family:'Montserrat',sans-serif; font-size:13px; }
+  .xc-f input:focus, .xc-f select:focus, .xc-pf input:focus { outline:none; border-color:var(--sky); box-shadow:0 0 0 3px rgba(56,189,248,.16); }
+  .xc-actions { position:relative; display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-top:16px; }
+  .xc-btn { appearance:none; border:none; cursor:pointer; border-radius:9px; padding:11px 18px; font:700 13.5px 'Montserrat',sans-serif; text-decoration:none;
+    display:inline-flex; align-items:center; gap:6px; transition:transform .1s, box-shadow .15s, border-color .15s, color .15s; }
+  .xc-btn:active { transform:translateY(1px); }
+  .xc-go { background:linear-gradient(135deg,var(--sky),var(--cyan)); color:#062330; box-shadow:0 4px 18px rgba(34,211,238,.22); }
+  .xc-go:hover { box-shadow:0 6px 24px rgba(34,211,238,.35); }
+  .xc-go:disabled { opacity:.6; cursor:wait; }
+  .xc-ghost { background:transparent; border:1px solid var(--card-border-2); color:var(--text-muted); }
+  .xc-ghost:hover { color:var(--text); border-color:#555; }
+  .xc-ff { background:#fff; color:#0b3a6b; }
+  .xc-status { font-size:13px; color:var(--text-muted); font-weight:500; }
+  .xc-status.err { color:var(--rose); } .xc-status.ok { color:var(--green); }
+  .xc-spin { display:inline-block; width:12px; height:12px; border:2px solid rgba(56,189,248,.3); border-top-color:var(--sky); border-radius:50%;
+    animation:xcspin .8s linear infinite; margin-right:8px; vertical-align:-1px; }
+  @keyframes xcspin { to { transform:rotate(360deg); } }
+  .xc-prof { position:relative; margin-top:16px; background:#1a1a1a; border:1px solid var(--card-border); border-radius:10px; padding:16px; }
+  .xc-prof-note { font-size:12.5px; color:var(--text-muted); line-height:1.5; }
+  .xc-prof-h { font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--sky); margin:14px 0 8px; }
+  .xc-prof-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(190px,1fr)); gap:10px; }
+  .xc-pf { display:block; font-size:12px; color:var(--text-muted); }
+  .xc-pf > span:first-child { display:block; margin-bottom:4px; }
+  .xc-pf-in { display:flex; align-items:center; gap:6px; }
+  .xc-pf-in em { font-style:normal; color:var(--text-dim); font-size:11.5px; min-width:26px; }
+  .xc-src { display:inline-block; font-size:9.5px; font-weight:700; letter-spacing:.04em; padding:1px 6px; border-radius:10px; vertical-align:1px; text-transform:uppercase; }
+  .xc-src.poh { color:var(--green); border:1px solid rgba(34,197,94,.5); }
+  .xc-src.you { color:var(--sky); border:1px solid rgba(56,189,248,.5); }
+  .xc-src.est { color:var(--amber); border:1px solid rgba(245,158,11,.5); }
+  #xcOut:not(:empty) { margin-top:22px; border-top:1px solid var(--card-border); padding-top:20px; }
+  .xc-stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; }
+  .xc-stat { background:#1a1a1a; border:1px solid var(--card-border); border-radius:10px; padding:14px 15px; animation:xcin .35s ease both; }
+  .xc-stat:nth-child(2){animation-delay:.04s} .xc-stat:nth-child(3){animation-delay:.08s} .xc-stat:nth-child(4){animation-delay:.12s} .xc-stat:nth-child(5){animation-delay:.16s} .xc-stat:nth-child(6){animation-delay:.2s}
+  @keyframes xcin { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:none; } }
+  .xc-stat .l { font-size:10.5px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.07em; font-weight:700; }
+  .xc-stat .v { font:700 24px 'JetBrains Mono',ui-monospace,monospace; margin-top:6px; letter-spacing:-.5px; font-variant-numeric:tabular-nums; }
+  .xc-stat .v small { font-size:13px; color:var(--text-muted); font-weight:600; }
+  .xc-stat .s { font-size:12px; color:var(--text-muted); margin-top:4px; line-height:1.4; }
+  .xc-tl { display:flex; gap:3px; margin-top:18px; height:46px; }
+  .xc-tl-leg { min-width:0; border-radius:8px; padding:6px 10px; background:linear-gradient(135deg,rgba(56,189,248,.28),rgba(34,211,238,.14));
+    border:1px solid rgba(56,189,248,.45); display:flex; flex-direction:column; justify-content:center; overflow:hidden; white-space:nowrap; }
+  .xc-tl-leg.bad { background:rgba(251,113,133,.18); border-color:rgba(251,113,133,.6); }
+  .xc-tl-leg b { font:700 12.5px 'JetBrains Mono',monospace; overflow:hidden; text-overflow:ellipsis; }
+  .xc-tl-leg span { font-size:11px; color:var(--text-muted); overflow:hidden; text-overflow:ellipsis; }
+  .xc-tl-stop { min-width:26px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:15px;
+    background:repeating-linear-gradient(135deg,#262626 0 6px,#1f1f1f 6px 12px); border:1px dashed #4a4a4a; }
+  .xc-tl-t { display:flex; justify-content:space-between; gap:10px; margin-top:6px; font:600 12px 'JetBrains Mono',monospace; }
+  .xc-tl-t em { display:block; font:500 11px 'Montserrat',sans-serif; color:var(--text-dim); font-style:normal; }
+  .xc-mapwrap { position:relative; margin-top:18px; }
+  .xc-map { position:relative; isolation:isolate; z-index:0; height:420px; border-radius:10px; border:1px solid var(--card-border); overflow:hidden; background:#0f0f0f; }
+  .xc-map.leaflet-container { background:#0f0f0f; }
+  .xc-maptog { position:absolute; top:10px; right:10px; z-index:5; display:flex; background:rgba(15,15,15,.88); border:1px solid #3a3a3a; border-radius:8px; overflow:hidden; }
+  .xc-maptog button { appearance:none; border:none; background:transparent; color:var(--text-muted); font:700 11.5px 'Montserrat',sans-serif; padding:7px 11px; cursor:pointer; }
+  .xc-maptog button.on { background:var(--sky); color:#062330; }
+  .xc-maphint { position:absolute; bottom:12px; left:50%; transform:translateX(-50%); z-index:5; background:rgba(15,15,15,.9); border:1px solid #3a3a3a;
+    color:var(--text); font:600 12px 'Montserrat',sans-serif; padding:6px 12px; border-radius:20px; pointer-events:none; }
+  .xc-legend { display:flex; gap:14px; flex-wrap:wrap; margin-top:8px; font-size:11.5px; color:var(--text-muted); }
+  .xc-legend i, .xc-env-k i { display:inline-block; width:14px; height:4px; border-radius:2px; margin-right:6px; vertical-align:2px; }
+  .xc-map .leaflet-tooltip.xc-tip { background:rgba(10,10,10,.9); border:1px solid #555; color:#fff; font:700 11px 'JetBrains Mono',monospace; padding:2px 7px; border-radius:6px; box-shadow:none; }
+  .xc-map .leaflet-tooltip.xc-tip.dim { color:#ccc; font-weight:600; }
+  .xc-map .leaflet-tooltip.xc-tip:before { display:none; }
+  .xc-map .leaflet-control-attribution { background:rgba(10,10,10,.7); color:#999; font-size:10px; }
+  .xc-map .leaflet-control-attribution a { color:#bbb; }
+  .xc-map .leaflet-bar a { background:#1c1c1c; color:#ddd; border-bottom-color:#333; }
+  .xc-sec { margin:24px 0 10px; font-size:12px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--text); }
+  .xc-sec span { display:block; font-size:12px; font-weight:500; letter-spacing:0; text-transform:none; color:var(--text-dim); margin-top:3px; }
+  .xc-chart { background:#171717; border:1px solid var(--card-border); border-radius:10px; padding:10px 12px 6px; }
+  .xc-chart svg { display:block; width:100%; height:130px; }
+  .xc-chart-x { display:flex; justify-content:space-between; font:600 11px 'JetBrains Mono',monospace; color:var(--text-dim); margin-top:4px; }
+  .xc-tbl { overflow-x:auto; -webkit-overflow-scrolling:touch; }
+  .xc-tbl table { width:100%; border-collapse:collapse; font-size:13px; }
+  .xc-tbl th { text-align:left; font-size:10.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--text-dim); padding:8px 10px; border-bottom:1px solid var(--card-border); white-space:nowrap; }
+  .xc-tbl td { padding:10px; border-bottom:1px solid #2a2a2a; vertical-align:top; white-space:nowrap; }
+  .xc-tbl tr.bad td { background:rgba(251,113,133,.07); }
+  .xc-dim { color:var(--text-dim); font-size:11.5px; font-weight:500; white-space:normal; }
+  .xc-wx { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:12px; }
+  .xc-ap { background:#1a1a1a; border:1px solid var(--card-border); border-top:3px solid #555; border-radius:10px; padding:14px; min-width:0; }
+  .xc-ap-h { display:flex; justify-content:space-between; align-items:flex-start; gap:10px; }
+  .xc-ap-h b { font:700 16px 'JetBrains Mono',monospace; }
+  .xc-role { font-size:10.5px; font-weight:700; letter-spacing:.07em; text-transform:uppercase; color:var(--text-dim); margin-bottom:3px; }
+  .xc-ap-wx { font-size:13px; margin:8px 0 4px; line-height:1.45; }
+  .xc-ap .kv-row { font-size:12.5px; padding:6px 0; }
+  .xc-raw { font:500 10.5px 'JetBrains Mono',monospace; color:var(--text-dim); margin-top:8px; word-break:break-word; white-space:normal; }
+  .xc-two { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; margin-top:22px; align-items:start; }
+  @media (max-width:900px){ .xc-two { grid-template-columns:1fr; } }
+  .xc-panel { background:#1a1a1a; border:1px solid var(--card-border); border-radius:10px; padding:16px; min-width:0; }
+  .xc-panel h3 { margin:0 0 12px; font-size:15px; font-weight:700; }
+  .xc-wbar { position:relative; height:16px; border-radius:8px; background:#262626; overflow:visible; }
+  .xc-wbar i { position:absolute; top:0; bottom:0; }
+  .xc-wbar i:first-child { border-radius:8px 0 0 8px; }
+  .xc-wbar b { position:absolute; top:-5px; bottom:-5px; width:2px; background:var(--rose); margin-left:-1px; }
+  .xc-wbar-x { display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap; font-size:12.5px; color:var(--text-muted); margin:8px 0 10px; }
+  .xc-wbt td, .xc-wbt th { padding:7px 8px; }
+  .xc-sw { display:inline-block; width:9px; height:9px; border-radius:2px; margin-right:7px; }
+  .xc-env { margin-top:12px; } .xc-env svg { display:block; width:100%; height:auto; }
+  .xc-env-k { display:flex; gap:14px; flex-wrap:wrap; font-size:11.5px; color:var(--text-muted); margin-top:2px; }
+  .xc-env-k i { width:9px; height:9px; border-radius:50%; }
+  .xc-cg-x { display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap; font:600 12px 'JetBrains Mono',monospace; margin-top:8px; }
+  .xc-note { font-size:12.5px; line-height:1.45; border-radius:8px; padding:9px 11px; margin-top:10px; }
+  .xc-note.est { color:var(--amber); background:rgba(245,158,11,.08); border:1px solid rgba(245,158,11,.3); }
+  .xc-note.warn { color:#fcd34d; background:rgba(245,158,11,.08); border:1px solid rgba(245,158,11,.3); }
+  .xc-note.bad { color:var(--rose); background:rgba(251,113,133,.08); border:1px solid rgba(251,113,133,.35); }
+  .xc-checks { list-style:none; margin:0; padding:0; }
+  .xc-checks li { display:flex; gap:10px; padding:8px 0; border-bottom:1px solid #262626; font-size:13px; line-height:1.45; }
+  .xc-checks li:last-child { border-bottom:none; }
+  .xc-checks li > b { flex:0 0 20px; height:20px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:11px; }
+  .xc-checks li.ok > b { background:rgba(34,197,94,.16); color:var(--green); }
+  .xc-checks li.warn > b { background:rgba(245,158,11,.16); color:var(--amber); }
+  .xc-checks li.bad > b { background:rgba(251,113,133,.16); color:var(--rose); }
+  .xc-checks li.info > b { background:rgba(56,189,248,.14); color:var(--sky); font-style:italic; }
+  .xc-links { display:flex; gap:10px; flex-wrap:wrap; margin-top:22px; }
+  .xc-foot { font-size:12px; color:var(--text-dim); margin-top:12px; line-height:1.5; }
+  @media (max-width:640px){
+    .xc-card { padding:16px; }
+    .xc-route { grid-template-columns:minmax(0,1fr) auto minmax(0,1fr); }
+    .xc-route .xc-wide { grid-column:1 / -1; }
+    .xc-form { grid-template-columns:repeat(2,minmax(0,1fr)); }
+    .xc-map { height:320px; }
+    .xc-stat .v { font-size:20px; }
+    .xc-tl-leg span { display:none; }
+  }
 </style>
 </head>
 <body>
@@ -314,7 +455,7 @@
   </div>
 </nav>
 
-
+<!-- Command palette (⌘K / Ctrl-K) -->
 <div id="palette" class="hidden" onclick="if(event.target===this)closePalette()">
   <div class="palbox">
     <input id="palInput" type="text" placeholder="Search anything — tabs, bills, contacts, points, hunts…" autocomplete="off" spellcheck="false" oninput="palRender()" onkeydown="palKey(event)">
@@ -322,7 +463,7 @@
   </div>
 </div>
 
-
+<!-- Floating AI assistant -->
 <button id="aiFab" class="hidden" onclick="openAI()" title="Ask AI about your data" aria-label="Ask AI">
   <span class="aiFabIcon">✦</span>
 </button>
@@ -338,7 +479,7 @@
   </div>
 </div>
 
-
+<!-- Password / setup gate -->
 <div id="gate">
   <div class="box">
     <div class="logo" id="gateLogo">L</div>
@@ -372,12 +513,13 @@
 </main>
 
 <script>
-
-
+/* ============================================================
+   Config + tiny helpers
+   ============================================================ */
 var API_URL = 'https://script.google.com/macros/s/AKfycbwdO_d4gj2Rj_cLM7JFvehuRUHuwFFocaxJz0MwJxKYhECksIHVe3p3VdhbgjKioWd-/exec';
 var LS_API = 'lifeos_api_url';
 var SS_PW  = 'lifeos_pw_hash';
-var DATA = null;        
+var DATA = null;        // full dataset from the web app
 var CURRENT = 'overview';
 
 var TABS = {
@@ -391,7 +533,7 @@ var TABS = {
   health:{title:'Health & Fitness', sub:'Training rhythm and health admin.'},
   faith:{title:'Faith & Rhythm', sub:'Rule of life, people to pray for, and decisions made in prayer.'}
 };
- 
+/* old tabs now fold into Home & Money — route any lingering links there */
 var TAB_ALIAS = { bills:'home', family:'home', money:'home', travel:'home' };
 
 function $(id){ return document.getElementById(id); }
@@ -405,15 +547,15 @@ function arr(name){ return (DATA&&DATA[name])||[]; }
 function kv(name){ return (DATA&&DATA[name])||{}; }
 function has(v){ return v!=null && String(v).trim()!==''; }
 
- 
+/* ---- dates ---- */
 var MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 function parseDate(v){ if(v==null||v==='') return null; var d=new Date(v); return isNaN(d.getTime())?null:d; }
- 
+/* days until next occurrence of a monthly due-day (1-31) */
 function daysUntilDueDay(day){ day=parseInt(day,10); if(isNaN(day)||day<1||day>31) return null;
   var now=new Date(); var t=new Date(now.getFullYear(),now.getMonth(),day);
   if(t< new Date(now.getFullYear(),now.getMonth(),now.getDate())) t=new Date(now.getFullYear(),now.getMonth()+1,day);
   return Math.round((t-new Date(now.getFullYear(),now.getMonth(),now.getDate()))/864e5); }
- 
+/* days until a full date (renewals, trips) — handles "Mar 2027", "2027-03-01", "03/2027" */
 function daysUntilDate(v){ var d=parseDate(v); if(!d){ var m=String(v).match(/([A-Za-z]{3,})\s+(\d{4})/);
     if(m){ var mi=MONTHS.findIndex(function(x){return m[1].toLowerCase().slice(0,3)===x.toLowerCase();}); if(mi>=0) d=new Date(+m[2],mi,1); } }
   if(!d) return null; var now=new Date(); return Math.round((d-new Date(now.getFullYear(),now.getMonth(),now.getDate()))/864e5); }
@@ -422,12 +564,13 @@ function fmtDue(days){ if(days==null) return '';
   if(days<=31) return 'in '+days+'d'; if(days<=120) return 'in '+Math.round(days/30)+'mo'; return 'in '+Math.round(days/30)+'mo'; }
 function dueClass(days){ if(days==null) return ''; if(days<0) return 'neg'; if(days<=7) return 'neg'; if(days<=21) return ''; return ''; }
 
-
-
+/* ============================================================
+   Live market feeds (BTC spot; mortgage-rate reference from Config)
+   ============================================================ */
 var LIVE = { btc:null, btcChg:null, metar:null, metarFlag:null, metarProxy:null, metars:{}, apFetched:false, kmevNws:null, nwsFetched:false, kmevFc:null, fcFetched:false };
 function fetchNwsFc(){ if(LIVE.fcFetched) return; var pw=sessionStorage.getItem(SS_PW); if(!pw) return; LIVE.fcFetched=true;
   jsonp(API_URL+'?pw='+pw+'&action=nwsfc').then(function(r){ if(r&&r.ok&&r.periods){ LIVE.kmevFc=r.periods; if(CURRENT==='flying') render('flying'); } }).catch(function(){}); }
-function fcWindMax(s){ var m=String(s||'').match(/(\d+)(?!.*\d)/); return m?parseInt(m[1],10):0; }  
+function fcWindMax(s){ var m=String(s||'').match(/(\d+)(?!.*\d)/); return m?parseInt(m[1],10):0; }  // max mph in "10 to 15 mph"
 function flyingOutlookCard(){
   var fc=LIVE.kmevFc;
   if(!fc){ fetchNwsFc(); return card('7-day flying outlook — KMEV','Loading NWS forecast…','<div class="empty">Fetching the Minden outlook…</div>','--sky'); }
@@ -448,7 +591,7 @@ function fetchNwsNow(){ if(LIVE.nwsFetched) return; var pw=sessionStorage.getIte
 function nwsNowLine(){ var n=LIVE.kmevNws; return n?('NWS model now: '+n.temp+'°'+n.unit+' · wind '+n.wind+' '+n.dir+' · '+n.sky):''; }
 function metarCeil(m){ var c=null; (m.clouds||[]).forEach(function(x){ if((x.cover==='BKN'||x.cover==='OVC'||x.cover==='OVX')&&x.base!=null&&(c==null||x.base<c)) c=x.base; }); return c; }
 function metarAgeMin(m){ return (m&&m.obsTime)? (Date.now()/1000 - m.obsTime)/60 : null; }
-function metarStale(m){ var a=metarAgeMin(m); return a!=null && a>90; }   
+function metarStale(m){ var a=metarAgeMin(m); return a!=null && a>90; }   // >90 min = don't trust it
 function ageLabel(min){ if(min==null) return ''; if(min<90) return Math.round(min)+'m ago';
   if(min<1440) return Math.round(min/60)+'h old'; return Math.round(min/1440)+'d old'; }
 function metarCat(m){ if(metarStale(m)) return ['STALE','--amber'];
@@ -462,15 +605,15 @@ function metarDecode(m){ var p=[];
   if(m.temp!=null) p.push(Math.round(m.temp)+'°/'+(m.dewp!=null?Math.round(m.dewp):'?')+'°C');
   var a=metarAgeMin(m); if(a!=null) p.push('obs '+ageLabel(a));
   return p.join(' · '); }
-
-
+/* Nearest reliably-reporting stations, used as a live proxy when a field's own AWOS/ATIS
+   isn't on the aviationweather.gov feed (KMEV/Minden broadcasts on freq & phone only). */
 var NEAR = {
   KMEV:[['KCXP','Carson City','9 nm N'],['KTVL','S. Lake Tahoe','16 nm SW'],['KTRK','Truckee','30 nm W'],['KRNO','Reno','40 nm N']],
   KCXP:[['KRNO','Reno','30 nm N'],['KTVL','S. Lake Tahoe','20 nm SW']],
   KTVL:[['KTRK','Truckee','12 nm N'],['KCXP','Carson City','16 nm NE']],
   KTRK:[['KTVL','S. Lake Tahoe','12 nm S'],['KRNO','Reno','22 nm NE']]
 };
- 
+/* Best available observation for a field: its own fresh METAR, else the nearest fresh neighbor. */
 function bestMetar(icao){ icao=String(icao||'').toUpperCase();
   var own=LIVE.metars[icao];
   if(own && !metarStale(own)) return {m:own, station:icao, proxied:false};
@@ -491,7 +634,7 @@ function fetchLive(){
       .then(function(j){ if(j&&j.bitcoin){ LIVE.btc=j.bitcoin.usd; LIVE.btcChg=j.bitcoin.usd_24h_change; applyLive(); if(CURRENT==='overview'||CURRENT==='home'||CURRENT==='ventures') render(CURRENT); } })
       .catch(function(){});
   }catch(e){}
-  
+  // aviation weather for Minden — fetch KMEV + nearby stations (via server proxy; no CORS on aviationweather.gov)
   var wxIds=['KMEV'].concat((NEAR['KMEV']||[]).map(function(x){return x[0];}));
   wxFetch(wxIds, function(list){ (list||[]).forEach(function(m){ if(m&&m.icaoId) LIVE.metars[m.icaoId]=m; });
     var b=bestMetar('KMEV'), m=b.m;
@@ -505,7 +648,7 @@ function fetchLive(){
     if(CURRENT==='overview') render('overview');
   });
 }
- 
+/* pull METARs through the Apps Script proxy (JSONP), pw-gated */
 function wxFetch(ids, cb){
   var pw=sessionStorage.getItem(SS_PW); if(!pw) return;
   jsonp(API_URL+'?pw='+pw+'&action=wx&ids='+encodeURIComponent(ids.join(',')))
@@ -520,15 +663,17 @@ function applyLive(){
   });
 }
 
-
-
+/* ============================================================
+   SHA-256 (Web Crypto) for the password gate
+   ============================================================ */
 async function sha256(str){
   var buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
   return Array.from(new Uint8Array(buf)).map(function(b){return b.toString(16).padStart(2,'0');}).join('');
 }
 
-
-
+/* ============================================================
+   JSONP loader (works cross-origin from GitHub Pages)
+   ============================================================ */
 function jsonp(url, timeoutMs){
   return new Promise(function(resolve,reject){
     var cb = 'lifeos_cb_' + Math.random().toString(36).slice(2);
@@ -542,20 +687,21 @@ function jsonp(url, timeoutMs){
   });
 }
 
-
-
+/* ============================================================
+   Gate
+   ============================================================ */
 var LS_DATA = 'lifeos_data_cache';
 window.addEventListener('DOMContentLoaded', function(){
   localStorage.setItem(LS_API, API_URL);
   var aw = $('apiWrap'); if(aw) aw.classList.add('hidden');
-  warmUp();                                   
+  warmUp();                                   // spin up Apps Script now, before the user clicks
   var pw = sessionStorage.getItem(SS_PW);
   if(pw){ boot(API_URL, pw); }
   $('pwInput').addEventListener('keydown', function(e){ if(e.key==='Enter') submitGate(); });
 });
- 
+/* Fire a lightweight request so the Apps Script container is warm by unlock time (cuts cold-start lag). */
 function warmUp(){ try{ jsonp(API_URL+'?warm=1', 20000).catch(function(){}); }catch(e){} }
- 
+/* Read with retries — handles cold-start 404s and slow first responses gracefully. */
 async function readData(url){
   var timeouts=[20000,30000,40000], lastErr;
   for(var i=0;i<timeouts.length;i++){
@@ -587,9 +733,9 @@ async function submitGate(){
   await boot(API_URL, hash, btn);
 }
 async function boot(api, hash, btn){
-  
+  // If we have this session's password and a cached copy, show it instantly, then refresh in the background.
   var cached=null; try{ cached=JSON.parse(localStorage.getItem(LS_DATA)||'null'); }catch(e){}
-  if(btn===undefined && cached && cached.data){ showApp(cached); }   
+  if(btn===undefined && cached && cached.data){ showApp(cached); }   // auto-boot (already authed) → instant from cache
   try{
     var res = await readData(api + '?pw=' + hash);
     if(!res || res.ok===false){
@@ -604,7 +750,7 @@ async function boot(api, hash, btn){
     if(btn){ btn.disabled=false; btn.textContent=btn.dataset.label||'Unlock'; }
   }catch(e){
     if(btn){ btn.disabled=false; btn.textContent=btn.dataset.label||'Unlock'; }
-    
+    // if we already rendered from cache on auto-boot, stay silent; otherwise surface a retry
     if(!(cached && cached.data)) $('gateErr').textContent='Connection problem — tap Unlock to retry.';
   }
 }
@@ -628,10 +774,11 @@ async function reload(){
 }
 function signOut(){ sessionStorage.removeItem(SS_PW); location.reload(); }
 
-
-
+/* ============================================================
+   Tab routing
+   ============================================================ */
 function navGo(tab){
-  tab = TAB_ALIAS[tab] || tab;               
+  tab = TAB_ALIAS[tab] || tab;               // fold old tabs into their new home
   if(!TABS[tab]) tab='overview';
   CURRENT = tab;
   document.querySelectorAll('#topNav .nav-tab').forEach(function(b){ b.classList.toggle('active', b.dataset.tab===tab); });
@@ -643,8 +790,9 @@ function navGo(tab){
 }
 window.addEventListener('hashchange', function(){ var t=(location.hash||'').replace('#',''); t=TAB_ALIAS[t]||t; if(TABS[t]&&t!==CURRENT) navGo(t); });
 
-
-
+/* ============================================================
+   Render dispatch
+   ============================================================ */
 var charts = [];
 function clearCharts(){ charts.forEach(function(c){ try{c.destroy();}catch(e){} }); charts=[]; }
 function render(tab){
@@ -656,12 +804,13 @@ function render(tab){
     vehicles: renderVehicles, health: renderHealth, faith: renderFaith
   }[tab] || function(){return '';})();
   if(tab==='home') drawMoneyCharts();
-  if(tab==='flying'){ fetchAirports(); fetchNwsFc(); }
+  if(tab==='flying'){ fetchAirports(); fetchNwsFc(); xcMount(); }
   applyLive();
 }
 
-
-
+/* ============================================================
+   EDIT MODE — write back to the sheet via the Apps Script API
+   ============================================================ */
 var EDIT=false;
 var ESCHEMA={
   Bills:{cols:['Vendor','Category','Amount','Frequency','Autopay','DueDay','Phone','URL','Account','Personal','Notes']},
@@ -806,7 +955,7 @@ function statTile(label,value,foot,tab,accentVar){
     +(foot?'<div class="foot">'+esc(foot)+'</div>':'')+'</div>';
 }
 
- 
+/* ---------- money math shared by Overview + Money ---------- */
 function billMonthly(b){ var n=num(b.Amount); if(isNaN(n)) return 0; var f=String(b.Frequency||'monthly').toLowerCase();
   if(f.indexOf('year')>=0||f.indexOf('ann')>=0) return n/12; if(f.indexOf('quart')>=0) return n/3;
   if(f.indexOf('week')>=0) return n*4.33; return n; }
@@ -823,7 +972,7 @@ function budgetTotals(){
     if(!isNaN(bb)) b+=bb; if(!isNaN(aa)) a+=aa; }); return {budget:b, actual:a};
 }
 
- 
+/* ---- upcoming due dates & renewals, gathered from every tab ---- */
 function upcomingAlerts(){
   var out=[];
   arr('Bills').forEach(function(b){ if(!has(b.DueDay)) return; if(truthy(b.Autopay)) return;
@@ -843,8 +992,9 @@ function upcomingAlerts(){
   return out;
 }
 
-
-
+/* ============================================================
+   OVERVIEW
+   ============================================================ */
 var DOMAIN={overview:['Life','--gold','🧭'],bills:['Home','--teal','🏠'],family:['Family','--amber','👨‍👩‍👧'],projects:['Projects','--orange','🛠️'],
   flying:['Flying','--sky','✈️'],money:['Money','--emerald','💵'],ventures:['Ventures','--indigo','📈'],hobbies:['Hobbies','--violet','🎯'],vehicles:['Vehicles','--rose','🚗'],
   health:['Health','--pink','💪'],travel:['Travel','--cyan','✈️'],home:['Home','--teal','🏠'],faith:['Faith','--gold','✝️']};
@@ -859,32 +1009,32 @@ function flyingNextStep(){ var f=kv('Flying');
   if(num(f.xc_hours)<=0) return 'Knock out your solo cross-country';
   return 'Prep for the PPL checkride'; }
 
- 
+/* auto-generated, prioritized next steps across every domain */
 function smartSteps(){
   var out=[];
   arr('NextActions').filter(function(a){return !truthy(a.Done)&&has(a.Action);}).forEach(function(a){
     var d=has(a.Due)?daysUntilDate(a.Due):null; out.push({t:a.Action, tab:a.Tab||'overview', d:d, sort:(d==null?300:d)}); });
-  
+  // health-driven
   var h=kv('Health'), cur=num(h.weight), goal=num(h.weight_goal);
   var wk=weekWorkouts();
   if(wk<5) out.push({t:'Train — '+wk+' workout'+(wk===1?'':'s')+' logged this week (aim 5–6)', tab:'health', d:0, sort:8});
   if(!isNaN(cur)&&!isNaN(goal)&&cur>goal) out.push({t:'Log today’s weight ('+Math.round(cur-goal)+' lb to your '+goal+' goal)', tab:'health', d:null, sort:40});
-  
+  // flying-driven (only if not already present)
   var fn=flyingNextStep(); if(!out.some(function(s){return /written|solo|checkride/i.test(s.t)&&s.tab==='flying';})) out.push({t:fn, tab:'flying', d:null, sort:45});
-  
+  // hunt application deadlines within ~45 days
   arr('Hunts').filter(function(hn){return has(hn.Deadline);}).forEach(function(hn){ var d=daysUntilDate(hn.Deadline);
     if(d!=null && d>=-2 && d<=45) out.push({t:'Apply: '+hn.Species+' ('+hn.State+') draw closes '+hn.Deadline, tab:'hobbies', d:d, sort:(d<=14?4:20)}); });
-  
+  // rule-of-life streaks not kept today
   var today=(function(){var n=new Date();return n.getFullYear()+'-'+('0'+(n.getMonth()+1)).slice(-2)+'-'+('0'+n.getDate()).slice(-2);})();
   arr('Habits').filter(function(hb){return /daily/i.test(String(hb.Cadence||''))&&String(hb.LastDone||'').slice(0,10)!==today;}).slice(0,3).forEach(function(hb){
     var st=parseInt(hb.Streak,10)||0; out.push({t:'Keep your '+hb.Practice+(st>1?' streak ('+st+'d)':''), tab:'faith', d:0, sort:12}); });
-  
+  // de-dupe by first 24 chars
   var seen={}; out=out.filter(function(s){var k=s.t.toLowerCase().slice(0,24); if(seen[k])return false; seen[k]=1; return true;});
   out.sort(function(a,b){return a.sort-b.sort;});
   return out;
 }
 
- 
+/* ---- sparklines & trend series ---- */
 function sparkline(vals, color){
   if(!vals||vals.length<2) return '<div class="foot" style="margin-top:8px">building history…</div>';
   var w=140,h=30,mn=Math.min.apply(null,vals),mx=Math.max.apply(null,vals),rng=(mx-mn)||1;
@@ -907,7 +1057,7 @@ function trendCard(label, valTxt, series, color, foot){
     +'<div class="value" style="font-size:22px">'+valTxt+'</div>'+sparkline(series,color)
     +'<div class="foot">'+esc(foot||'')+delta+'</div></div>'; }
 
- 
+/* ---- goal progress bars ---- */
 function goalBar(label, pct, sub, color){ pct=Math.max(0,Math.min(100,Math.round(pct)));
   return '<div style="margin-bottom:14px"><div style="display:flex;justify-content:space-between;font-size:13.5px"><span>'+esc(label)+'</span>'
     +'<span class="mono" style="color:var('+color+')">'+pct+'%</span></div>'
@@ -950,27 +1100,27 @@ function kindIcon(k){ k=String(k||'').toLowerCase();
   return '📰'; }
 function radarHtml(){
   var out=[], sevColor={good:'--green',watch:'--amber',bad:'--red'};
-  
+  // refi trigger — market rate vs your mortgages
   var mkt=num(kv('Config').market_mortgage_30yr);
   if(!isNaN(mkt)) arr('Debts').filter(function(d){return /mortgage/i.test(String(d.Type))&&has(d.Rate);}).forEach(function(d){
     var r=num(d.Rate); if(isNaN(r)) return; if(r<1) r=r*100;
     if(mkt<=r-0.5){ var bal=num(d.Balance)||0, save=Math.round(bal*(r-mkt)/100);
       out.push({sev:'good',icon:'🏦',t:'Refi '+esc(String(d.Name).replace(/ Mortgage$/,'')),sub:'market '+mkt+'% vs your '+r.toFixed(2)+'% · ~$'+save.toLocaleString('en-US')+'/yr saved — get a quote',tab:'home'}); }
   });
-  
+  // BTC ladder triggers
   if(LIVE.btc!=null){
     if(LIVE.btc>=1000000) out.push({sev:'good',icon:'₿',t:'Bitcoin crossed $1M',sub:'your 10-yr target — trim & diversify per plan',tab:'ventures'});
     else if(LIVE.btc>=250000) out.push({sev:'good',icon:'₿',t:'Bitcoin crossed $250k',sub:'ladder trigger — trim toward ~15% for acquisition capital',tab:'ventures'});
     else if(LIVE.btc>=212500) out.push({sev:'watch',icon:'₿',t:'Bitcoin nearing $250k ($'+Math.round(LIVE.btc).toLocaleString('en-US')+')',sub:'within 15% of your trim target',tab:'ventures'});
   }
-  
+  // flyable — Minden conditions from KMEV or the nearest reporting field
   if(LIVE.metarFlag==='unknown'){
     out.push({sev:'watch',icon:'🛩️',t:'Minden weather unavailable — call AWOS 119.325',sub:(LIVE.kmevNws?nwsNowLine()+' (model est)':'no nearby station reporting'),tab:'flying'});
   } else if(LIVE.metarFlag){ var loc=LIVE.metarProxy?('Minden area ('+LIVE.metarProxy.split(' · ')[0]+')'):'KMEV';
     var fm={good:['good',loc+' looks flyable'],marginal:['watch',loc+' marginal for VFR'],ifr:['bad',loc+' below VFR']}[LIVE.metarFlag];
     var m=LIVE.metar||{}, det=(m.wind!=null?('wind '+Math.round(m.wind)+(m.gust?'G'+Math.round(m.gust):'')+'kt'):'')+(m.vis!=null?' · vis '+m.vis+'sm':'')+(m.ceil!=null?' · ceil '+m.ceil+'ft':'')+(LIVE.metarProxy?' · via '+LIVE.metarProxy:'');
     out.push({sev:fm[0],icon:'🛩️',t:fm[1],sub:det||'live METAR',tab:'flying'}); }
-  
+  // curated signals (from the Signals tab)
   arr('Signals').filter(function(s){return has(s.Headline);})
     .sort(function(a,b){return String(b.Date).localeCompare(String(a.Date));})
     .forEach(function(s){ out.push({sev:String(s.Severity||'watch').toLowerCase(),icon:kindIcon(s.Kind),t:s.Headline,sub:s.Detail||'',tab:s.Tab||'overview'}); });
@@ -980,7 +1130,7 @@ function radarHtml(){
   }).join('');
 }
 
- 
+/* ---------- Quick capture: jot a next-step straight to NextActions ---------- */
 async function quickAdd(){
   var t=window.prompt('Quick add — what\'s the next step?'); if(t==null) return; t=String(t).trim(); if(!t) return;
   var res=await apiWrite({action:'upsert',tab:'NextActions',row:JSON.stringify({Action:t,Tab:'overview',Due:'',Done:''})});
@@ -991,7 +1141,7 @@ function quickCaptureHtml(){
     +'<span class="foot" style="margin-left:10px;color:var(--text-dim)">saves to Your next steps</span></div>';
 }
 
- 
+/* ---------- Solar times for KMEV (no API — astronomical calc) ---------- */
 function solarEvent(date, lat, lng, zenith, rising){
   var D=Math.PI/180, R=180/Math.PI;
   var N=Math.floor((Date.UTC(date.getUTCFullYear(),date.getUTCMonth(),date.getUTCDate())-Date.UTC(date.getUTCFullYear(),0,0))/864e5);
@@ -1024,12 +1174,12 @@ function vfrWindowCard(){
   var foot = daylen!=null ? Math.floor(daylen/60)+'h '+(daylen%60)+'m of daylight · Day VFR runs sunrise→sunset; night currency & lighting apply after evening twilight.' : '';
   return card('VFR day window — KMEV','Local Pacific time. Plan your flying hours.', rows+(foot?'<p class="foot" style="margin:12px 0 0;color:var(--text-dim)">'+foot+'</p>':''), '--sky');
 }
- 
+/* ---------- Go / no-go takeoff performance at current density altitude ---------- */
 function goNoGoCard(){
   var da=kmevDensityAlt();
   var f=kv('Flying'); var maxGross=num(f.max_gross_weight)||2300; var empty=num(f.empty_weight); if(isNaN(empty)) empty=1500;
   if(!da) return card('Go / no-go — takeoff','Live density-altitude performance check.','<div class="empty">Waiting on live weather. Once Minden-area conditions load, this estimates takeoff roll & climb.</div>','--sky');
-  
+  // rough ground-roll factor: ~10% longer per 1000 ft DA over a ~600ft sea-level roll (Maule M4, solo/mid weight)
   var baseRoll=600; var roll=Math.round(baseRoll*Math.pow(1.10, da.da/1000));
   var level, lcol, advice;
   if(da.da<5000){ level='GO'; lcol='--green'; advice='Good performance. Normal short-field technique.'; }
@@ -1043,7 +1193,7 @@ function goNoGoCard(){
     rows+'<p style="font-size:12.5px;color:var(--text-muted);margin:12px 0 0">'+advice+'</p>'
     +'<p class="foot" style="margin:8px 0 0;color:var(--text-dim)">Rough estimate for planning only — not a substitute for the POH performance charts and your own weight & balance.</p>','--sky');
 }
- 
+/* ---------- Acquisition readiness: buy-box capital plan as live progress ---------- */
 function acquisitionReadinessCard(){
   var cash=arr('Accounts').reduce(function(s,a){var n=num(a.Balance);var t=String(a.Type||'').toLowerCase();return s+(isNaN(n)||t.indexOf('credit')>=0?0:n);},0);
   var heloc=arr('Debts').filter(function(d){return /heloc/i.test(String(d.Type)+String(d.Name));})[0];
@@ -1054,7 +1204,7 @@ function acquisitionReadinessCard(){
   out+=goalBar('Acquisition fund → $150k', crypto/150000*100, money(crypto)+' (crypto, trim on ladder)', '--gold');
   return card('Acquisition readiness','Your buy-box says: build ~$40k cash, kill the HELOC, keep dry powder. Live progress:', out, '--indigo');
 }
- 
+/* ---------- BTC scenario → capital freed at each rung ---------- */
 function btcScenarioCard(){
   var crypto=arr('Investments').filter(function(i){return /crypto|btc|bitcoin/i.test(String(i.Type)+' '+String(i.Name));}).reduce(function(s,i){return s+(num(i.Value)||0);},0);
   if(!crypto) return '';
@@ -1062,7 +1212,7 @@ function btcScenarioCard(){
   var rungs=[250000,1000000];
   var rowsBody=rungs.map(function(p){
     var proj = spot? Math.round(crypto*(p/spot)) : null;
-    var trim = proj? Math.round(proj*0.5) : null;   
+    var trim = proj? Math.round(proj*0.5) : null;   // illustrative: trim ~half at the rung
     return '<div class="kv-row"><span class="k">At $'+ (p/1000>=1000?(p/1e6)+'M':(p/1000)+'k') +'/BTC</span><span class="v mono">'+(proj!=null?money(proj)+' <span class="foot" style="color:var(--text-dim)">· trim ~'+money(trim)+'</span>':'—')+'</span></div>';
   }).join('');
   var head='<div class="kv-row"><span class="k">Crypto position now</span><span class="v mono">'+money(crypto)+'</span></div>'
@@ -1070,7 +1220,7 @@ function btcScenarioCard(){
   return card('BTC → acquisition capital','If your position tracks BTC, what each rung could free (trim ≈ half, illustrative).', head+rowsBody
     +'<p class="foot" style="margin:12px 0 0;color:var(--text-dim)">Assumes the whole crypto position moves with BTC. Add a <span class="mono">btc_qty</span> in Config for exact math.</p>','--gold');
 }
- 
+/* ---------- Side-income funnel: church web + coaching toward MRR goals ---------- */
 function sideIncomeFunnelCard(){
   var v=kv('Ventures');
   var webNow=num(v['Funnel|Church web clients now'])||0, webRate=num(v['Funnel|Church web $/mo each'])||125, webGoal=num(v['Funnel|Church web goal'])||20;
@@ -1082,7 +1232,7 @@ function sideIncomeFunnelCard(){
   out+='<div class="kv-row" style="border-top:1px solid var(--card-border);margin-top:6px;padding-top:8px"><span class="k"><strong>Recurring now</strong></span><span class="v mono" style="color:var(--green)">'+money(total)+'/mo</span></div>';
   return card('Side-income funnel','Anchor Soul recurring revenue toward your targets. Update counts with ✎ Edit → Ventures.', out, '--indigo');
 }
- 
+/* ---------- Biggest movers: which budget lines are trending up ---------- */
 function biggestMoversCard(){
   var movers=arr('BudgetCategories').filter(function(c){return has(c.SpendHist);}).map(function(c){
     var s=String(c.SpendHist).split('|').map(function(x){return num(x)||0;}); if(s.length<4) return null;
@@ -1104,14 +1254,14 @@ function renderOverview(){
   var actProj=arr('Projects').filter(function(p){return String(p.Status||'').toLowerCase()!=='done';}).length;
   var wk=weekWorkouts();
 
-  
+  // KPI tiles — Net worth, Weight & Workouts live in the trend cards below (with sparklines), so keep them out of here
   var tiles=[
     statTile('Flying', has(fly.total_hours)?fly.total_hours+' hrs':'—', fly.stage||'set in Flying', 'flying', '--sky'),
     statTile('Active projects', actProj||'—', 'in progress', 'projects', '--orange'),
     '<div class="stat link" onclick="navGo(\'money\')" style="border-top:2px solid var(--gold)"><div class="label">Bitcoin (live)</div><div class="value mono" data-live="btc">…</div><div class="foot">market spot</div></div>'
   ];
 
-  
+  // next steps + coming up
   var steps=smartSteps();
   var stepsHtml = steps.length
     ? steps.slice(0,14).map(function(s){return '<div class="kv-row" style="cursor:pointer" onclick="navGo(\''+s.tab+'\')"><span class="k">'+domChip(s.tab)+' '+esc(s.t)+'</span><span class="v '+(s.d!=null?dueClass(s.d):'')+'">'+(s.d!=null?fmtDue(s.d):'')+'</span></div>';}).join('')
@@ -1121,7 +1271,7 @@ function renderOverview(){
     ? al.slice(0,8).map(function(a){return '<div class="kv-row" style="cursor:pointer" onclick="navGo(\''+a.tab+'\')"><span class="k">'+a.label+(a.sub?' <span style="color:var(--text-dim)">· '+a.sub+'</span>':'')+'</span><span class="v '+dueClass(a.d)+'">'+fmtDue(a.d)+'</span></div>';}).join('')
     : '<div class="empty">Nothing due in the next couple weeks. 🎉</div>';
 
-  
+  // domain snapshots
   var debts=arr('Debts').slice().sort(function(a,b){return num(b.Balance)-num(a.Balance);});
   var bd=debts[0]; var bdRate=bd?num(bd.Rate):NaN; if(bdRate<1) bdRate=bdRate*100;
   var moneyCard=snapCard('money', srow('Net worth', money2(nw))+srow('Bills / mo', money2(bills))+(bd?srow('Top debt', esc(String(bd.Name).replace(/ Mortgage$/,''))+' '+money2(bd.Balance)+(isNaN(bdRate)?'':' @'+bdRate.toFixed(2)+'%')):''));
@@ -1149,7 +1299,7 @@ function renderOverview(){
       +'<div class="foot" style="margin-top:10px;color:var(--text-muted)">— '+esc(q.Author||'Unknown')+(has(q.Source)?', <span style="font-style:italic">'+esc(q.Source)+'</span>':'')+'</div></div>';
   }
 
-  
+  // trends
   var trends='<div class="grid cols-3" style="margin-bottom:22px">'
     + trendCard('Net worth', nw?money2(nw):'—', nwSeries(), '--emerald', 'tracking')
     + trendCard('Weight', (!isNaN(cur)?cur+' lb':'—'), weightSeries(), '--pink', 'toward '+(isNaN(goal)?'goal':goal+' lb'))
@@ -1196,7 +1346,7 @@ function printBinder(){
   function sec(title, pairs){ var rows=pairs.filter(function(p){return has(p[1]);})
     .map(function(p){return '<tr><td style="padding:5px 14px 5px 0;color:#555;vertical-align:top;white-space:nowrap">'+esc(p[0])+'</td><td style="padding:5px 0;font-weight:600">'+esc(p[1])+'</td></tr>';}).join('');
     return rows?'<h2 style="font-size:15px;margin:16px 0 4px;border-bottom:1px solid #ccc;padding-bottom:3px">'+esc(title)+'</h2><table style="border-collapse:collapse;width:100%">'+rows+'</table>':''; }
-  
+  // Group Family keys by their "|" prefix; keep everything so nothing is lost
   var groups={}, order=[];
   Object.keys(f).forEach(function(k){ if(!has(f[k])) return; var parts=String(k).split('|'); var g=parts.length>1?parts[0].trim():'General'; var label=parts.length>1?parts.slice(1).join('|').trim():k;
     if(!groups[g]){groups[g]=[];order.push(g);} groups[g].push([label,f[k]]); });
@@ -1212,8 +1362,9 @@ function printBinder(){
   window.print();
 }
 
-
-
+/* ============================================================
+   HOME & MONEY — consolidated: bills, money, family, memberships
+   ============================================================ */
 function renderHome(){
   function divider(t,id){ return '<div id="'+id+'" style="height:30px"></div><div class="section-title" style="font-size:15px;color:var(--text-muted);border-top:1px solid var(--card-border);padding-top:18px">'+t+'</div>'; }
   var subnav='<div class="subnav">'
@@ -1226,8 +1377,9 @@ function renderHome(){
     + divider('Travel & memberships','sec-travel') + renderTravel();
 }
 
-
-
+/* ============================================================
+   HOME & BILLS
+   ============================================================ */
 function renderBills(){
   var bills = arr('Bills').slice().sort(function(a,b){return billMonthly(b)-billMonthly(a);});
   var monthly=totalMonthlyBills();
@@ -1266,11 +1418,12 @@ function renderBills(){
     + card('Vendor & service contacts','People and companies to reach when something breaks.', tableEl(cc, contacts, {empty:'No saved contacts yet.',editTab:'Contacts'}), '--teal');
 }
 
-
-
+/* ============================================================
+   FAMILY & HOUSEHOLD
+   ============================================================ */
 function emergencyBinderCard(){
   var f=kv('Family');
-  
+  // Curated "if something happens to me" essentials — pull from Family keys by meaning
   var want=[
     ['Life insurance', /life insurance|life policy|term life/i],
     ['Beneficiaries', /beneficiar/i],
@@ -1298,11 +1451,11 @@ function renderFamily(){
   var f=kv('Family');
   var keys=Object.keys(f).filter(function(k){return has(f[k]);});
   if(!keys.length) return (EDIT?'<div class="editbar">'+kvEditBtn('Family')+'</div>':'')+emergencyBinderCard()+'<div style="height:22px"></div>'+card('Family & Household','', '<div class="empty">Add household reference info — door codes, account numbers, insurance claims. Use keys like <span class="mono">Home|Front door codes</span> to group them.</div>','--amber');
-  
+  // group by text before "|"; ungrouped keys go to "General"
   var groups={}, order=[];
   keys.forEach(function(k){ var parts=String(k).split('|'); var g=parts.length>1?parts[0].trim():'General'; var label=parts.length>1?parts.slice(1).join('|').trim():k;
     if(!groups[g]){ groups[g]=[]; order.push(g); } groups[g].push({label:label, val:f[k]}); });
-  
+  // preferred ordering
   var pref=['People','Home','Utilities & accounts','Insurance & claims','Codes & IDs','Medical','General'];
   order.sort(function(a,b){ var ia=pref.indexOf(a), ib=pref.indexOf(b); return (ia<0?99:ia)-(ib<0?99:ib); });
   var codeRe=/(code|acct|account|number|pin|combo|vin|claim|#)/i;
@@ -1318,15 +1471,16 @@ function renderFamily(){
   return (EDIT?'<div class="editbar">'+kvEditBtn('Family')+'</div>':'')+emergencyBinderCard()+'<div style="height:22px"></div><div class="grid cols-2">'+cards+'</div>';
 }
 
-
-
+/* ============================================================
+   PROJECTS
+   ============================================================ */
 function renderProjects(){
   var ps = arr('Projects'), tasks=arr('ProjectTasks');
   if(!ps.length) return card('Projects','House & family projects', '<div class="empty">No projects yet. Add them in the Projects tab — name, area, status, budget, target date.</div>','--orange');
   var order={active:0,planning:1,blocked:2,idea:3,done:9};
   ps=ps.slice().sort(function(a,b){return (order[String(a.Status||'').toLowerCase()]||5)-(order[String(b.Status||'').toLowerCase()]||5);});
 
-  
+  // planner summary
   function cnt(s){ return ps.filter(function(p){return String(p.Status||'').toLowerCase()===s;}).length; }
   var totBudget=ps.reduce(function(s,p){var n=num(p.Budget);return s+(isNaN(n)?0:n);},0);
   var totSpent=ps.reduce(function(s,p){var n=num(p.Spent);return s+(isNaN(n)?0:n);},0);
@@ -1338,7 +1492,7 @@ function renderProjects(){
     + statTile('Remaining', totBudget?money(totBudget-totSpent):'—', 'across projects')
     + '</div>';
 
-  
+  // consolidated planner: next open tasks sorted by due date
   var planned=openTasks.map(function(t){return {t:t, d:daysUntilDate(t.Due)};})
     .sort(function(a,b){ if(a.d==null&&b.d==null) return 0; if(a.d==null) return 1; if(b.d==null) return -1; return a.d-b.d; });
   var plannerHtml = planned.length
@@ -1371,12 +1525,614 @@ function renderProjects(){
     + '<div class="grid cols-2">'+cards+'</div>';
 }
 
+/* ============================================================
+   FLYING
+   ============================================================ */
+/* ============================================================
+   CROSS-COUNTRY PLANNER — Maule M-4-220C · N51207
+   Route legs, winds at cruise altitude (Open-Meteo pressure-level
+   forecast), time, fuel, fuel stops, weight & balance, and live METARs
+   at every landing. Airport/station lookups go through the Apps Script
+   proxy (aviationweather.gov has no CORS); Open-Meteo is called directly.
+   ============================================================ */
+var XC_LS='lifeos_xc_inputs_v1', XC_PROF_LS='lifeos_xc_profile_v1';
+/* Aircraft profile. Sources: 'wb' = N51207's weight & balance record (Maule Aerospace
+   Form 37, S/N 2186C, certified 9/20/25); 'poh' = M-4-220 series AFM limitations; 'est' =
+   placeholder until the AFM loading-arm and cruise pages are entered. Anything can be
+   overridden in the planner's Aircraft panel (saved on this device) or in the Flying sheet. */
+var XC_POH={ grossWt:2300, emptyWt:1467, emptyArm:11.77, usableGal:60, taxiGal:1,
+  tasKt:130, gph:12.5, climbKt:80, climbFpm:900, climbGph:14, ceilingFt:18000,
+  frontArm:null, rearArm:null, bagArm:null, maxBag:null, fuelArm:null };
+var XC_POH_SRC={ grossWt:'poh', emptyWt:'wb', emptyArm:'wb' };
+/* CG envelope, M-4-220C (AFM §I.J / Form 37): inches aft of the wing leading edge,
+   straight-line variation between the points. */
+var XC_ENV={ fwd:[[1500,11.1],[2100,14.5],[2300,15.6]], aft:[[1500,20.5],[2100,20.5],[2300,19.0]] };
+function xcEnvAt(tbl, w){ if(w<=tbl[0][0]) return tbl[0][1];
+  for(var i=0;i<tbl.length-1;i++){ var a=tbl[i], b=tbl[i+1]; if(w<=b[0]) return a[1]+(b[1]-a[1])*(w-a[0])/(b[0]-a[0]); }
+  return tbl[tbl.length-1][1]; }
+var XC_PROF_FIELDS=[
+  ['Weights',[['grossWt','Max gross weight','lb'],['emptyWt','Empty weight','lb'],['usableGal','Usable fuel','gal'],['taxiGal','Taxi & run-up fuel','gal']]],
+  ['Performance',[['tasKt','Cruise true airspeed','kt'],['gph','Cruise fuel flow','gph'],['climbKt','Climb speed','kt'],['climbFpm','Climb rate (sea level)','fpm'],['climbGph','Climb fuel flow','gph'],['ceilingFt','Service ceiling','ft']]],
+  ['Balance — arms in inches aft of the wing leading edge',[['emptyArm','Empty-weight CG','in'],['frontArm','Front seats','in'],['rearArm','Rear seat','in'],['bagArm','Baggage','in'],['maxBag','Max baggage','lb'],['fuelArm','Fuel','in']]]
+];
+var XC_SHEET_KEYS={ grossWt:'max_gross_weight', emptyWt:'empty_weight', emptyArm:'empty_arm', usableGal:'usable_fuel_gal',
+  tasKt:'cruise_tas_kt', gph:'cruise_gph', climbFpm:'climb_fpm', frontArm:'front_arm', rearArm:'rear_arm',
+  bagArm:'baggage_arm', maxBag:'max_baggage', fuelArm:'fuel_arm' };
+var XC={ el:null, map:null, res:null, busy:false, layer:null, wcache:{} };
 
+function xcProfile(){
+  var p={}, src={};
+  Object.keys(XC_POH).forEach(function(k){ p[k]=XC_POH[k]; src[k]=XC_POH_SRC[k]||'est'; });
+  var f=kv('Flying');
+  Object.keys(XC_SHEET_KEYS).forEach(function(k){ var v=num(f[XC_SHEET_KEYS[k]]); if(!isNaN(v)){ p[k]=v; src[k]='sheet'; } });
+  var ls={}; try{ ls=JSON.parse(localStorage.getItem(XC_PROF_LS)||'{}')||{}; }catch(e){}
+  Object.keys(ls).forEach(function(k){ var v=num(ls[k]); if((k in p) && !isNaN(v)){ p[k]=v; src[k]='you'; } });
+  p._src=src; return p;
+}
+function xcDefaults(){
+  var d=new Date(Date.now()+3600e3); d.setMinutes(0,0,0);
+  var pad=function(n){return String(n).padStart(2,'0');};
+  return { from:'KMEV', to:'', via:'', dep:d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+'T'+pad(d.getHours())+':00',
+    alt:'8500', wind:'aloft', reserve:'45', pilot:'200', front:'0', rear:'0', bag:'20', fuel:'full', stopMin:'30', minRwy:'2500' };
+}
+function xcInputs(){ var d=xcDefaults(), s={}; try{ s=JSON.parse(localStorage.getItem(XC_LS)||'{}')||{}; }catch(e){}
+  Object.keys(s).forEach(function(k){ if((k in d) && k!=='dep') d[k]=s[k]; });
+  if(s.dep && new Date(s.dep).getTime()>Date.now()-6*3600e3) d.dep=s.dep;   // keep a saved departure unless it's stale
+  return d; }
+function xcRead(){ var o={}; XC.el.querySelectorAll('[data-k]').forEach(function(n){ o[n.getAttribute('data-k')]=n.value; }); return o; }
+function xcSave(){ try{ localStorage.setItem(XC_LS, JSON.stringify(xcRead())); }catch(e){} }
+
+/* ---------- geometry (great circle, nautical miles) ---------- */
+var XC_R=3440.065;
+function xcRad(d){return d*Math.PI/180;} function xcDeg(r){return r*180/Math.PI;}
+function xcNorm(a){ return ((a%360)+360)%360; }
+function xcDist(a,b){ var p1=xcRad(a.lat),p2=xcRad(b.lat),dp=p2-p1,dl=xcRad(b.lon-a.lon);
+  var h=Math.pow(Math.sin(dp/2),2)+Math.cos(p1)*Math.cos(p2)*Math.pow(Math.sin(dl/2),2);
+  return 2*XC_R*Math.asin(Math.min(1,Math.sqrt(h))); }
+function xcBrg(a,b){ var p1=xcRad(a.lat),p2=xcRad(b.lat),dl=xcRad(b.lon-a.lon);
+  return xcNorm(xcDeg(Math.atan2(Math.sin(dl)*Math.cos(p2), Math.cos(p1)*Math.sin(p2)-Math.sin(p1)*Math.cos(p2)*Math.cos(dl)))); }
+function xcInterp(a,b,f){ var d=xcDist(a,b)/XC_R; if(d<1e-9) return {lat:a.lat,lon:a.lon};
+  var A=Math.sin((1-f)*d)/Math.sin(d), B=Math.sin(f*d)/Math.sin(d);
+  var p1=xcRad(a.lat),l1=xcRad(a.lon),p2=xcRad(b.lat),l2=xcRad(b.lon);
+  var x=A*Math.cos(p1)*Math.cos(l1)+B*Math.cos(p2)*Math.cos(l2), y=A*Math.cos(p1)*Math.sin(l1)+B*Math.cos(p2)*Math.sin(l2), z=A*Math.sin(p1)+B*Math.sin(p2);
+  return {lat:xcDeg(Math.atan2(z,Math.sqrt(x*x+y*y))), lon:xcDeg(Math.atan2(y,x))}; }
+/* split a polyline into short great-circle pieces (for winds that change along the way) */
+function xcFine(pts, maxNm){ var out=[];
+  for(var i=0;i<pts.length-1;i++){ var a=pts[i], b=pts[i+1], d=xcDist(a,b), n=Math.max(1,Math.ceil(d/maxNm)), prev=a;
+    for(var j=1;j<=n;j++){ var q=(j===n)?{lat:b.lat,lon:b.lon}:xcInterp(a,b,j/n);
+      out.push({a:prev, b:q, d:xcDist(prev,q), tc:xcBrg(prev,q), mid:xcInterp(prev,q,0.5)}); prev=q; } }
+  return out; }
+/* where a point sits relative to a route: distance along it and distance off it */
+function xcProject(pts, p){ var best=null, cum=0;
+  for(var i=0;i<pts.length-1;i++){ var a=pts[i], b=pts[i+1], L=xcDist(a,b);
+    var d13=xcDist(a,p)/XC_R, dt=xcRad(xcBrg(a,p)-xcBrg(a,b));
+    var xt=Math.asin(Math.max(-1,Math.min(1,Math.sin(d13)*Math.sin(dt))));
+    var at=Math.acos(Math.max(-1,Math.min(1,Math.cos(d13)/Math.cos(xt))))*XC_R; if(Math.cos(dt)<0) at=-at;
+    var along, off;
+    if(at<0){ along=cum; off=xcDist(a,p); } else if(at>L){ along=cum+L; off=xcDist(b,p); } else { along=cum+at; off=Math.abs(xt)*XC_R; }
+    if(!best||off<best.xt) best={at:along, xt:off};
+    cum+=L; }
+  return best; }
+/* wind triangle: tc true course, wind FROM wd (true) at ws kt */
+function xcTri(tc, tas, wd, ws){ var wa=xcRad(wd-tc), s=ws*Math.sin(wa)/tas;
+  if(Math.abs(s)>0.95) s=s>0?0.95:-0.95;
+  var wca=Math.asin(s); return { wca:xcDeg(wca), th:xcNorm(tc+xcDeg(wca)), gs:Math.max(20, tas*Math.cos(wca)-ws*Math.cos(wa)), head:ws*Math.cos(wa), cross:ws*Math.sin(wa) }; }
+function xcMagVar(ap){ var m=String(ap&&ap.magdec||'').match(/(\d+(?:\.\d+)?)\s*([EW])/i); return m?(parseFloat(m[1])*(m[2].toUpperCase()==='E'?1:-1)):0; }
+function xcHm(h){ if(!(h>=0)) return '—'; var m=Math.round(h*60); return Math.floor(m/60)+'h '+String(m%60).padStart(2,'0')+'m'; }
+function xcClock(d){ return d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}); }
+function xcDay(d){ return d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'}); }
+
+/* ---------- winds ---------- */
+var XC_LEVELS=[850,750,700,650,600,500];   // ~5,000–18,000 ft
+/* Open-Meteo pressure-level forecast at sample points along the route; returns windAt(lat,lon,date,altFt) */
+function xcAloft(samples, t0, hours){
+  var key=samples.map(function(p){return p.lat.toFixed(1)+','+p.lon.toFixed(1);}).join('|')+'@'+Math.round(t0/3600e3)+'+'+hours;
+  var hit=XC.wcache[key]; if(hit && Date.now()-hit.at<20*60e3) return Promise.resolve(hit.fn);   // reuse for 20 min (weights/altitude changes)
+  return xcAloftFetch(samples, t0, hours).then(function(fn){ XC.wcache={}; XC.wcache[key]={fn:fn, at:Date.now()}; return fn; });
+}
+function xcAloftFetch(samples, t0, hours){
+  var vars=[]; XC_LEVELS.forEach(function(l){ vars.push('wind_speed_'+l+'hPa','wind_direction_'+l+'hPa','temperature_'+l+'hPa','geopotential_height_'+l+'hPa'); });
+  var now=Date.now(), s=new Date(Math.max(t0-3600e3, now-6*3600e3)), e=new Date(Math.max(t0,now)+(hours+2)*3600e3);
+  var iso=function(d){ return d.toISOString().slice(0,13)+':00'; };
+  var url='https://api.open-meteo.com/v1/forecast?latitude='+samples.map(function(p){return p.lat.toFixed(3);}).join(',')
+    +'&longitude='+samples.map(function(p){return p.lon.toFixed(3);}).join(',')
+    +'&hourly='+vars.join(',')+'&wind_speed_unit=kn&timezone=GMT&start_hour='+iso(s)+'&end_hour='+iso(e);
+  return fetch(url).then(function(r){ return r.json(); }).then(function(j){
+    if(!Array.isArray(j)) j=[j];
+    if(j[0]&&j[0].error) throw new Error(j[0].reason||'winds aloft unavailable');
+    var pts=j.map(function(x,i){ return {lat:samples[i].lat, lon:samples[i].lon, h:x.hourly}; });
+    return function(lat,lon,date,altFt){
+      var best=null, bd=1e9; pts.forEach(function(p){ var d=xcDist({lat:lat,lon:lon},p); if(d<bd){bd=d;best=p;} });
+      if(!best||!best.h) return null;
+      var key=new Date(Math.round(date.getTime()/3600e3)*3600e3).toISOString().slice(0,13)+':00';
+      var ti=best.h.time.indexOf(key); if(ti<0) ti=(date.getTime()<new Date(best.h.time[0]+'Z').getTime())?0:best.h.time.length-1;
+      var altM=altFt*0.3048, lv=[];
+      XC_LEVELS.forEach(function(l){ var z=best.h['geopotential_height_'+l+'hPa'][ti], ws=best.h['wind_speed_'+l+'hPa'][ti], wd=best.h['wind_direction_'+l+'hPa'][ti], t=best.h['temperature_'+l+'hPa'][ti];
+        if(z==null||ws==null||wd==null) return; lv.push({z:z, u:-ws*Math.sin(xcRad(wd)), v:-ws*Math.cos(xcRad(wd)), t:t}); });
+      if(!lv.length) return null; lv.sort(function(a,b){return a.z-b.z;});
+      var lo=lv[0], hi=lv[lv.length-1];
+      for(var i=0;i<lv.length-1;i++){ if(altM>=lv[i].z && altM<=lv[i+1].z){ lo=lv[i]; hi=lv[i+1]; break; } }
+      if(altM>hi.z) lo=hi; if(altM<lv[0].z) hi=lo;
+      var f=(hi.z===lo.z)?0:(altM-lo.z)/(hi.z-lo.z), u=lo.u+(hi.u-lo.u)*f, v=lo.v+(hi.v-lo.v)*f, t=(lo.t!=null&&hi.t!=null)?lo.t+(hi.t-lo.t)*f:null;
+      return { spd:Math.sqrt(u*u+v*v), dir:xcNorm(xcDeg(Math.atan2(-u,-v))), tempC:t };
+    };
+  });
+}
+/* METAR surface-wind average (vector) of the given observations */
+function xcMetarWind(ms){ var u=0,v=0,n=0;
+  ms.forEach(function(m){ if(!m||m.wspd==null) return; n++; if(m.wdir==='VRB'||m.wdir==null||!m.wspd) return;
+    u+=-m.wspd*Math.sin(xcRad(m.wdir)); v+=-m.wspd*Math.cos(xcRad(m.wdir)); });
+  if(!n) return {spd:0,dir:0}; u/=n; v/=n; return {spd:Math.sqrt(u*u+v*v), dir:xcNorm(xcDeg(Math.atan2(-u,-v)))}; }
+
+/* ---------- one leg: taxi, climb, cruise; stops early at reserve if fuel runs short ---------- */
+function xcLeg(pts, t0, fuel0, depElev, prof, inp, windAt){
+  var alt=Math.max(0, +inp.alt||0), reserveGal=prof.gph*(+inp.reserve||30)/60;
+  var fuel=fuel0-prof.taxiGal, burned=prof.taxiGal, hrs=0, dist=0, reach=null, segs=[];
+  var w0=windAt(pts[0].lat,pts[0].lon,new Date(t0),alt);
+  var isaDev=(w0&&w0.tempC!=null)?w0.tempC-(15-2*alt/1000):0;
+  var daMid=((depElev||0)+alt)/2+120*isaDev;
+  var roc=prof.climbFpm*Math.max(0.2, 1-daMid/prof.ceilingFt);
+  var climbLeft=Math.max(0, alt-(depElev||0))/roc/60, climbHrs=climbLeft;
+  if(fuel<=reserveGal) reach=0;
+  xcFine(pts, 12).forEach(function(s){
+    var w=windAt(s.mid.lat,s.mid.lon,new Date(t0+hrs*3600e3),alt)||{spd:0,dir:0};
+    var left=s.d;
+    while(left>0.01){
+      var climbing=climbLeft>1e-6, tas=climbing?prof.climbKt:prof.tasKt, gph=climbing?prof.climbGph:prof.gph;
+      var tri=xcTri(s.tc, tas, w.dir, w.spd);
+      var d=left; if(climbing) d=Math.min(left, tri.gs*climbLeft);
+      var dt=d/tri.gs, df=dt*gph;
+      if(reach==null && fuel-df<reserveGal) reach=dist+d*Math.max(0,(fuel-reserveGal)/df);
+      fuel-=df; burned+=df; hrs+=dt; dist+=d; left-=d; if(climbing) climbLeft-=dt;
+      segs.push({a:s.a, b:s.b, d:d, tc:s.tc, th:tri.th, gs:tri.gs, head:tri.head, cross:tri.cross, wdir:w.dir, wspd:w.spd, tempC:w.tempC, dt:dt, climb:climbing, at:dist});
+    }
+  });
+  return { segs:segs, dist:dist, hrs:hrs, burned:burned, fuelLand:fuel, reserveGal:reserveGal, ok:reach==null, reach:reach==null?dist:reach, climbHrs:climbHrs, roc:roc };
+}
+
+/* ---------- whole trip: greedy furthest-reachable fuel stops ---------- */
+function xcTrip(route, cands, t0, prof, inp, windAt, fuelDep, fuelStop){
+  var dest=route[route.length-1], cur=route[0], via=route.slice(1,-1), legs=[], used={}, t=t0, fuel=fuelDep, warn=[];
+  used[cur.icao]=1;
+  for(var iter=0; iter<10; iter++){
+    var pts=[cur].concat(via).concat([dest]);
+    var L=xcLeg(pts, t, fuel, cur.elevFt, prof, inp, windAt);
+    if(L.ok){ legs.push(xcLegOut(cur, dest, via, L, t, fuel)); return {legs:legs, warn:warn}; }
+    var reach=L.reach*0.95;
+    var opts=cands.filter(function(c){ return !used[c.icao] && c.icao!==dest.icao; }).map(function(c){
+      var pr=xcProject(pts, c); return {c:c, at:pr.at, xt:pr.xt}; })
+      .filter(function(o){ return o.xt<=45 && o.at>=20 && o.at+o.xt<=reach; })
+      .map(function(o){ o.score=o.at-0.6*o.xt+(/S/.test(o.c.services||'')?20:0); return o; })
+      .sort(function(a,b){ return b.score-a.score; });
+    var done=false;
+    for(var k=0;k<opts.length && !done;k++){
+      var o=opts[k], viaBefore=[], viaAfter=[], cum=0;
+      via.forEach(function(v){ var pr=xcProject(pts, v); (pr.at<o.at?viaBefore:viaAfter).push(v); });
+      var L2=xcLeg([cur].concat(viaBefore).concat([o.c]), t, fuel, cur.elevFt, prof, inp, windAt);
+      if(!L2.ok) continue;
+      legs.push(xcLegOut(cur, o.c, viaBefore, L2, t, fuel));
+      used[o.c.icao]=1; t+=L2.hrs*3600e3+(+inp.stopMin||30)*60e3; cur=o.c; via=viaAfter; fuel=fuelStop; done=true;
+    }
+    if(!done){ legs.push(xcLegOut(cur, dest, via, L, t, fuel)); legs[legs.length-1].short=true;
+      warn.push('No reporting airport with a '+(+inp.minRwy).toLocaleString()+' ft+ runway within range of '+cur.icao+' along this route — plan this fuel stop by hand.');
+      return {legs:legs, warn:warn}; }
+  }
+  warn.push('Route needs more than 10 stops — check the airports.'); return {legs:legs, warn:warn};
+}
+function xcLegOut(from, to, via, L, t, fuel){
+  var cruise=L.segs.filter(function(s){return !s.climb;}); if(!cruise.length) cruise=L.segs;
+  var wsum=cruise.reduce(function(a,s){return a+s.dt;},0)||1;
+  var head=cruise.reduce(function(a,s){return a+s.head*s.dt;},0)/wsum;
+  var first=L.segs[0]||{tc:0,th:0}, mv=xcMagVar(from);
+  return { from:from, to:to, via:via, segs:L.segs, dist:L.dist, hrs:L.hrs, burned:L.burned, fuelStart:fuel, fuelLand:L.fuelLand,
+    reserveGal:L.reserveGal, dep:new Date(t), arr:new Date(t+L.hrs*3600e3), tc:first.tc, mc:xcNorm(first.tc-mv), mh:xcNorm(first.th-mv),
+    head:head, gs:L.dist/L.hrs, climbHrs:L.climbHrs, roc:L.roc, reach:L.reach, ok:L.ok };
+}
+
+/* ---------- crosswind / runway pick from a METAR ---------- */
+function xcRunway(ap, m){
+  if(!ap||!m||m.wspd==null) return null;
+  var spd=m.wspd||0, gst=m.wgst||0, dir=(m.wdir==='VRB'||m.wdir==null)?null:+m.wdir, best=null;
+  (ap.runways||[]).forEach(function(r){ if(!r.len||/^H/i.test(r.id)||r.align==null) return;
+    String(r.id).split('/').forEach(function(end,i){ var hdg=xcNorm(+r.align+(i?180:0));
+      var head=dir==null?0:spd*Math.cos(xcRad(dir-hdg)), cross=dir==null?spd:Math.abs(spd*Math.sin(xcRad(dir-hdg)));
+      var crossG=dir==null?Math.max(spd,gst):Math.abs(Math.max(spd,gst)*Math.sin(xcRad(dir-hdg)));
+      if(!best||head>best.head+0.5||(Math.abs(head-best.head)<=0.5&&r.len>best.len)) best={end:end, len:r.len, surf:r.surf, head:head, cross:cross, crossG:crossG, vrb:dir==null}; }); });
+  return best;
+}
+function xcDensityAlt(ap, m){ if(!ap||!m||m.temp==null||ap.elevFt==null) return null;
+  var alt=m.altim!=null?(m.altim>100?m.altim*0.02953:m.altim):29.92, pa=ap.elevFt+(29.92-alt)*1000;
+  return Math.round(pa+120*(m.temp-(15-2*ap.elevFt/1000))); }
+
+/* ---------- data fetches through the Apps Script proxy ---------- */
+function xcApi(qs){ var pw=sessionStorage.getItem(SS_PW); if(!pw) return Promise.reject(new Error('Unlock the dashboard first.'));
+  return jsonp(API_URL+'?pw='+pw+'&'+qs, 45000).then(function(r){ if(!r||r.ok===false) throw new Error((r&&r.error)||'lookup failed'); return r; }); }
+function xcAirports(ids){
+  var ask=[]; ids.forEach(function(id){ ask.push(id); if(/^[A-Z]{3}$/.test(id)) ask.push('K'+id); });
+  return xcApi('action=apt&ids='+encodeURIComponent(ask.join(','))).then(function(r){ var map={};
+    (r.airports||[]).forEach(function(a){ if(a&&a.lat!=null){ map[a.icao]=a; if(a.faa) map[a.faa]=a; } }); return map; }); }
+function xcMetars(ids){ return xcApi('action=wx&ids='+encodeURIComponent(ids.join(','))).then(function(r){ var map={};
+  (r.metars||[]).forEach(function(m){ if(m&&m.icaoId) map[m.icaoId]=m; }); return map; }).catch(function(){ return {}; }); }
+function xcSplit(s){ return String(s||'').toUpperCase().split(/[\s,>\-]+/).map(function(x){return x.trim();}).filter(Boolean); }
+
+/* ---------- plan ---------- */
+function xcStatus(msg, cls){ var s=XC.el&&XC.el.querySelector('#xcStatus'); if(s){ s.className='xc-status'+(cls?' '+cls:''); s.innerHTML=msg||''; } }
+async function xcPlan(){
+  if(XC.busy) return; XC.busy=true; xcSave();
+  var btn=XC.el.querySelector('#xcGo'); if(btn){ btn.disabled=true; btn.textContent='Planning…'; }
+  XC.res=null; if(XC.map){ try{ XC.map.remove(); }catch(e){} XC.map=null; } XC.el.querySelector('#xcOut').innerHTML='';
+  try{
+    var inp=xcRead(), prof=xcProfile();
+    var ids=[inp.from].concat(xcSplit(inp.via)).concat([inp.to]).map(function(x){return String(x||'').trim().toUpperCase();});
+    if(!ids[0]||!ids[ids.length-1]) throw new Error('Enter a departure and a destination airport.');
+    var t0=new Date(inp.dep).getTime(); if(isNaN(t0)) t0=Date.now();
+    xcStatus('<span class="xc-spin"></span>Looking up airports…');
+    var apMap=await xcAirports(ids);
+    var route=ids.map(function(id){ var a=apMap[id]||apMap['K'+id]; if(!a) throw new Error('Couldn\'t find '+id+' — try its ICAO code (e.g. KRNO).'); return a; });
+
+    // fuel load: 'full' is limited by max gross if the cabin is heavy
+    var people=(+inp.pilot||0)+(+inp.front||0)+(+inp.rear||0), bag=+inp.bag||0;
+    var maxFuelByWt=Math.floor((prof.grossWt-prof.emptyWt-people-bag)/6);
+    var fuelFull=Math.max(0, Math.min(prof.usableGal, maxFuelByWt));
+    var fuelDep=inp.fuel==='full'?fuelFull:Math.min(prof.usableGal, +inp.fuel||0);
+
+    // winds
+    var direct=0; for(var i=0;i<route.length-1;i++) direct+=xcDist(route[i],route[i+1]);
+    var samples=[]; var fine=xcFine(route, Math.max(35, direct/11));
+    samples.push({lat:route[0].lat,lon:route[0].lon}); fine.forEach(function(s){ samples.push({lat:s.b.lat,lon:s.b.lon}); });
+    var windAt, windNote;
+    if(inp.wind==='calm'){ windAt=function(){return {spd:0,dir:0,tempC:null};}; windNote='No wind (still air)'; }
+    else if(inp.wind==='metar'){
+      xcStatus('<span class="xc-spin"></span>Reading METARs…');
+      var mm=await xcMetars([route[0].icao, route[route.length-1].icao]);
+      var mw=xcMetarWind([mm[route[0].icao], mm[route[route.length-1].icao]]);
+      windAt=function(){ return {spd:mw.spd, dir:mw.dir, tempC:null}; };
+      windNote='METAR surface wind '+(mw.spd<1?'calm':(Math.round(mw.dir)+'° @ '+Math.round(mw.spd)+' kt'))+' (departure/destination average)';
+    } else {
+      xcStatus('<span class="xc-spin"></span>Pulling winds aloft at '+(+inp.alt).toLocaleString()+' ft…');
+      var hrsSpan=Math.min(40, Math.ceil(direct/(prof.tasKt*0.6))+4);
+      try{ windAt=await xcAloft(samples, t0, hrsSpan); }
+      catch(e1){ try{ windAt=await xcAloft(samples, t0, hrsSpan); }catch(e2){ windAt=null; } }
+      if(windAt) windNote='Forecast winds at '+(+inp.alt).toLocaleString()+' ft (Open-Meteo model, timed to your ETA along the route)';
+      else {
+        var mm2=await xcMetars([route[0].icao, route[route.length-1].icao]), mw2=xcMetarWind([mm2[route[0].icao], mm2[route[route.length-1].icao]]);
+        windAt=function(){ return {spd:mw2.spd, dir:mw2.dir, tempC:null}; }; inp.windFallback=true;
+        windNote='Winds aloft forecast was unreachable, so METAR surface winds were used instead ('+(mw2.spd<1?'calm':Math.round(mw2.dir)+'° @ '+Math.round(mw2.spd)+' kt')+')';
+      }
+    }
+
+    // direct first; only search for fuel stops if needed
+    var probe=xcLeg(route, t0, fuelDep, route[0].elevFt, prof, inp, windAt), cands=[];
+    if(!probe.ok){
+      xcStatus('<span class="xc-spin"></span>Finding fuel stops…');
+      var lats=route.map(function(a){return a.lat;}), lons=route.map(function(a){return a.lon;});
+      var bb=[Math.min.apply(null,lats)-0.8, Math.min.apply(null,lons)-0.9, Math.max.apply(null,lats)+0.8, Math.max.apply(null,lons)+0.9];
+      var st=await xcApi('action=stations&bbox='+bb.map(function(x){return x.toFixed(1);}).join(','));
+      var near=(st.stations||[]).filter(function(s){ return xcProject(route, s).xt<=45 && route.every(function(r){return r.icao!==s.icao;}); });
+      near.sort(function(a,b){ return xcProject(route,a).xt-xcProject(route,b).xt; }); near=near.slice(0,110);
+      if(near.length){ var det=await xcAirports(near.map(function(s){return s.icao;}));
+        cands=near.map(function(s){ return det[s.icao]; }).filter(function(a){
+          return a && a.lat!=null && (a.runways||[]).some(function(r){ return r.len>=(+inp.minRwy||0) && !/^H/i.test(r.id); }); }); }
+    }
+    var trip=xcTrip(route, cands, t0, prof, inp, windAt, fuelDep, fuelFull);
+
+    // live weather at every landing
+    xcStatus('<span class="xc-spin"></span>Checking weather at each airport…');
+    var lands=[route[0]].concat(trip.legs.map(function(l){return l.to;}));
+    var wxIds=[]; lands.forEach(function(a){ wxIds.push(a.icao); (NEAR[a.icao]||[]).forEach(function(n){ wxIds.push(n[0]); }); });
+    var metars=await xcMetars(wxIds.filter(function(v,i,arr){ return arr.indexOf(v)===i; })), metarVia={};
+    lands.forEach(function(a){ var own=metars[a.icao]; if(own && !metarStale(own)) return;
+      var nb=(NEAR[a.icao]||[]).filter(function(n){ var m=metars[n[0]]; return m && !metarStale(m); })[0];
+      if(nb){ metars[a.icao]=metars[nb[0]]; metarVia[a.icao]=nb; } });
+
+    XC.res={ inp:inp, prof:prof, route:route, legs:trip.legs, warn:trip.warn, metars:metars, metarVia:metarVia, windNote:windNote,
+      fuelDep:fuelDep, fuelFull:fuelFull, maxFuelByWt:maxFuelByWt, people:people, bag:bag, t0:t0, made:Date.now() };
+    xcStatus('');
+    xcShow();
+  }catch(e){ xcStatus('⚠︎ '+esc(e.message||String(e)), 'err'); }
+  finally{ XC.busy=false; if(btn){ btn.disabled=false; btn.textContent='Plan flight ✈'; } }
+}
+
+/* ---------- UI: persistent panel (survives the Flying tab re-rendering on each weather fetch) ---------- */
+function xcMount(){ var host=document.getElementById('xcHost'); if(!host) return;
+  if(!XC.el) XC.el=xcBuild(); host.appendChild(XC.el);
+  if(XC.map) setTimeout(function(){ try{ XC.map.invalidateSize(); }catch(e){} }, 30); }
+function xcBuild(){
+  var i=xcInputs(), el=document.createElement('div'); el.className='xc';
+  var f=function(k,label,type,attrs,cls){ return '<div class="xc-f'+(cls?' '+cls:'')+'"><label>'+label+'</label><input data-k="'+k+'" type="'+(type||'text')+'" value="'+esc(i[k])+'" '+(attrs||'')+'></div>'; };
+  var sel=function(k,label,opts){ return '<div class="xc-f"><label>'+label+'</label><select data-k="'+k+'">'+opts.map(function(o){ return '<option value="'+o[0]+'"'+(String(i[k])===String(o[0])?' selected':'')+'>'+o[1]+'</option>'; }).join('')+'</select></div>'; };
+  var ap='maxlength="5" autocapitalize="characters" autocomplete="off" spellcheck="false"';
+  el.innerHTML='<div class="xc-card"><div class="xc-glow"></div>'
+    +'<div class="xc-head"><div><div class="xc-kicker">Cross-country planner</div>'
+    +'<div class="xc-title">Plan a trip in <span>N51207</span></div>'
+    +'<div class="xc-sub">Maule M-4-220C · winds at your cruise altitude · time, fuel &amp; fuel stops · weight &amp; balance</div></div>'
+    +'<button class="xc-btn xc-ghost" type="button" onclick="xcToggleProf()">⚙ Aircraft (POH)</button></div>'
+    +'<div class="xc-prof" id="xcProf" hidden></div>'
+    +'<div class="xc-route">'+f('from','From','text',ap)+'<button class="xc-swap" type="button" title="Swap" onclick="xcSwap()">⇄</button>'
+    +f('to','To','text',ap+' placeholder="KBOI"')
+    +f('via','Via — fly over (optional)','text','autocapitalize="characters" autocomplete="off" spellcheck="false" placeholder="e.g. KLOL KWMC"','xc-wide')+'</div>'
+    +'<div class="xc-form">'
+    +f('dep','Departure','datetime-local')
+    +f('alt','Cruise alt (ft MSL)','number','step="500" min="1500" max="17500"')
+    +sel('wind','Wind for time & fuel',[['aloft','Winds aloft (forecast)'],['metar','METAR surface'],['calm','No wind']])
+    +sel('reserve','Landing reserve',[['30','30 min (day min)'],['45','45 min (night min)'],['60','60 min (conservative)']])
+    +f('pilot','Pilot (lb)','number','min="0" step="5"')+f('front','Front passenger (lb)','number','min="0" step="5"')
+    +f('rear','Rear seat (lb)','number','min="0" step="5"')+f('bag','Baggage (lb)','number','min="0" step="5"')
+    +sel('fuel','Fuel at departure',[['full','Full (weight-limited)'],['50','50 gal'],['40','40 gal'],['30','30 gal'],['20','20 gal']])
+    +f('stopMin','Minutes per fuel stop','number','min="0" step="5"')
+    +f('minRwy','Stop min runway (ft)','number','min="0" step="100"')
+    +'</div>'
+    +'<div class="xc-actions"><button id="xcGo" class="xc-btn xc-go" type="button" onclick="xcPlan()">Plan flight ✈</button><span id="xcStatus" class="xc-status"></span></div>'
+    +'<div id="xcOut"></div></div>';
+  el.addEventListener('change', xcSave); el.addEventListener('input', xcSave);
+  el.addEventListener('keydown', function(e){ if(e.key==='Enter' && e.target.getAttribute && e.target.getAttribute('data-k')){ e.preventDefault(); xcPlan(); } });
+  return el;
+}
+function xcSwap(){ var a=XC.el.querySelector('[data-k=from]'), b=XC.el.querySelector('[data-k=to]'), t=a.value; a.value=b.value; b.value=t; xcSave(); }
+function xcToggleProf(){ var p=XC.el.querySelector('#xcProf'); if(p.hidden){ p.innerHTML=xcProfHtml(); p.hidden=false; } else p.hidden=true; }
+function xcProfHtml(){ var pr=xcProfile(), src=pr._src;
+  var chip=function(s){ return {poh:'<span class="xc-src poh">AFM</span>', wb:'<span class="xc-src poh">W&amp;B 9/20/25</span>', sheet:'<span class="xc-src you">sheet</span>', you:'<span class="xc-src you">yours</span>', est:'<span class="xc-src est">placeholder</span>'}[s]||''; };
+  return '<div class="xc-prof-note">These numbers drive every calculation. Anything marked <span class="xc-src est">placeholder</span> is a stand-in until the AFM weight &amp; balance and cruise pages are entered — replace with your airplane\'s real figures. Saved on this device.</div>'
+    + XC_PROF_FIELDS.map(function(g){ return '<div class="xc-prof-h">'+g[0]+'</div><div class="xc-prof-grid">'+g[1].map(function(fd){ var v=pr[fd[0]];
+        return '<label class="xc-pf"><span>'+fd[1]+' '+chip(src[fd[0]])+'</span><span class="xc-pf-in"><input data-p="'+fd[0]+'" type="number" step="any" value="'+(v==null?'':v)+'" placeholder="from POH"><em>'+fd[2]+'</em></span></label>'; }).join('')+'</div>'; }).join('')
+    + '<div class="xc-actions"><button class="xc-btn xc-go" type="button" onclick="xcSaveProf()">Save aircraft</button><button class="xc-btn xc-ghost" type="button" onclick="xcResetProf()">Reset to defaults</button></div>';
+}
+function xcSaveProf(){ var o={};
+  XC.el.querySelectorAll('[data-p]').forEach(function(n){ var k=n.getAttribute('data-p'), v=String(n.value).trim(); if(v==='') return; if(XC_POH[k]==null || +v!==XC_POH[k]) o[k]=+v; });
+  try{ localStorage.setItem(XC_PROF_LS, JSON.stringify(o)); }catch(e){}
+  XC.el.querySelector('#xcProf').innerHTML=xcProfHtml(); xcStatus('Aircraft saved ✓','ok'); if(XC.res) xcPlan(); }
+function xcResetProf(){ try{ localStorage.removeItem(XC_PROF_LS); }catch(e){} XC.el.querySelector('#xcProf').innerHTML=xcProfHtml(); if(XC.res) xcPlan(); }
+
+/* ---------- results ---------- */
+function xcTz(d){ return d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',timeZoneName:'short'}); }
+function xcWindColor(head){ return head<=-5?'#22c55e':(head<5?'#38bdf8':(head<15?'#f59e0b':'#fb7185')); }
+function xcCatHex(v){ return {'--green':'#22c55e','--sky':'#38bdf8','--rose':'#fb7185','--violet':'#a78bfa','--amber':'#f59e0b'}[v]||'#9a9a9a'; }
+function xcLegWind(l){ var u=0,v=0,t=0; l.segs.forEach(function(s){ if(s.climb&&l.segs.some(function(x){return !x.climb;})) return;
+    u+=-s.wspd*Math.sin(xcRad(s.wdir))*s.dt; v+=-s.wspd*Math.cos(xcRad(s.wdir))*s.dt; t+=s.dt; });
+  if(!t) return {spd:0,dir:0}; u/=t; v/=t; return {spd:Math.sqrt(u*u+v*v), dir:xcNorm(xcDeg(Math.atan2(-u,-v)))}; }
+/* night = before morning civil twilight or after evening civil twilight (14 CFR 1.1), local to the airport */
+function xcNight(date, lat, lon){ var sh=new Date(date.getTime()+lon/15*3600e3);
+  var noon=Date.UTC(sh.getUTCFullYear(),sh.getUTCMonth(),sh.getUTCDate())+(12-lon/15)*3600e3, dawn=null, dusk=null;
+  for(var k=-1;k<=1;k++){ var d=new Date(noon+k*864e5);
+    var a=solarEvent(d, lat, lon, 96, true); if(a && a.getTime()<noon && a.getTime()>noon-14*3600e3) dawn=a;
+    var b=solarEvent(d, lat, lon, 96, false); if(b && b.getTime()>noon && b.getTime()<noon+14*3600e3) dusk=b; }
+  return { night:(dawn&&date<dawn)||(dusk&&date>dusk), dawn:dawn, dusk:dusk }; }
+function xcSetAlt(v){ var a=XC.el.querySelector('[data-k=alt]'); if(a){ a.value=v; xcSave(); xcPlan(); } return false; }
+function xcVfrAlt(mc, alt){ var east=mc<180, th=Math.floor(alt/1000), ok=(alt%1000===500)&&(east?th%2===1:th%2===0), best=null;
+  for(var t=3;t<=17;t++){ if((east&&t%2===1)||(!east&&t%2===0)){ var c=t*1000+500; if(best==null||Math.abs(c-alt)<Math.abs(best-alt)||(Math.abs(c-alt)===Math.abs(best-alt)&&c>best)) best=c; } }
+  return {ok:ok, east:east, sug:best}; }
+function xcTotals(r){ var L=r.legs, last=L[L.length-1];
+  var fly=L.reduce(function(a,l){return a+l.hrs;},0), dist=L.reduce(function(a,l){return a+l.dist;},0), burn=L.reduce(function(a,l){return a+l.burned;},0);
+  var head=L.reduce(function(a,l){return a+l.head*l.hrs;},0)/(fly||1);
+  var direct=0; for(var i=0;i<r.route.length-1;i++) direct+=xcDist(r.route[i],r.route[i+1]);
+  var minLand=L.reduce(function(m,l){ return (m==null||l.fuelLand<m.fuelLand)?l:m; },null);
+  return {fly:fly, dist:dist, burn:burn, head:head, gs:dist/(fly||1), trip:(last.arr-L[0].dep)/3600e3, arr:last.arr, stops:L.length-1, direct:direct, minLand:minLand}; }
+function xcShow(){ var r=XC.res, out=XC.el.querySelector('#xcOut'); if(!r){ out.innerHTML=''; return; }
+  var T=xcTotals(r);
+  out.innerHTML = xcStatsHtml(r,T) + xcTimelineHtml(r,T)
+    + '<div class="xc-mapwrap"><div id="xcMap" class="xc-map"></div><div class="xc-maptog"><button type="button" data-l="sect" onclick="xcLayer(\'sect\')">Sectional</button><button type="button" data-l="dark" onclick="xcLayer(\'dark\')">Dark</button><button type="button" data-l="sat" onclick="xcLayer(\'sat\')">Satellite</button></div><div class="xc-maphint" hidden>Zoom in to see the sectional</div>'
+    + '<div class="xc-legend"><span><i style="background:#22c55e"></i>tailwind</span><span><i style="background:#38bdf8"></i>light</span><span><i style="background:#f59e0b"></i>headwind 5–15</span><span><i style="background:#fb7185"></i>headwind 15+</span></div></div>'
+    + xcWindChartHtml(r,T) + xcLegsHtml(r)
+    + '<div class="xc-sec">Weather at each landing <span>current METARs — check the TAF for your arrival time</span></div>' + xcWxHtml(r)
+    + '<div class="xc-two">' + xcWbHtml(r) + xcChecksHtml(r,T) + '</div>'
+    + xcLinksHtml(r);
+  xcDrawMap(r);
+}
+function xcStatsHtml(r,T){
+  var tile=function(l,v,s,c){ return '<div class="xc-stat"><div class="l">'+l+'</div><div class="v"'+(c?' style="color:'+c+'"':'')+'>'+v+'</div><div class="s">'+s+'</div></div>'; };
+  var stopNames=r.legs.slice(0,-1).map(function(l){return l.to.icao;}).join(' · ');
+  var windWord=Math.abs(T.head)<2?'Light':(Math.round(Math.abs(T.head))+'<small> kt '+(T.head>0?'head':'tail')+'</small>');
+  var ml=T.minLand, mlMin=ml.fuelLand/r.prof.gph*60;
+  return '<div class="xc-stats">'
+    + tile('Distance', Math.round(T.dist)+'<small> nm</small>', T.stops?('direct '+Math.round(T.direct)+' nm'):'great-circle route')
+    + tile('Flight time', xcHm(T.fly), 'avg groundspeed '+Math.round(T.gs)+' kt')
+    + tile('Arrive', xcClock(T.arr), (T.stops?('trip '+xcHm(T.trip)+' · '):'')+xcDay(T.arr))
+    + tile('Fuel burn', T.burn.toFixed(1)+'<small> gal</small>', 'lowest landing fuel '+ml.fuelLand.toFixed(1)+' gal ('+Math.round(mlMin)+' min)', ml.fuelLand<ml.reserveGal-0.05?'var(--rose)':null)
+    + tile('Fuel stops', T.stops?String(T.stops):'0', T.stops?('⛽ '+stopNames):'nonstop ✓', T.stops?'var(--amber)':'var(--green)')
+    + tile('Wind', windWord, (r.inp.wind==='aloft'?'at '+(+r.inp.alt).toLocaleString()+' ft':(r.inp.wind==='metar'?'METAR surface':'still air')), T.head>10?'var(--amber)':(T.head<-2?'var(--green)':null))
+    + '</div>';
+}
+function xcTimelineHtml(r,T){ var total=(T.arr-r.legs[0].dep)||1, parts=[];
+  r.legs.forEach(function(l,i){
+    parts.push('<div class="xc-tl-leg'+(l.short?' bad':'')+'" style="flex:'+((l.arr-l.dep)/total*1000).toFixed(0)+'" title="'+esc(l.from.icao+' → '+l.to.icao+' · '+xcHm(l.hrs))+'"><b>'+esc(l.from.icao)+' → '+esc(l.to.icao)+'</b><span>'+xcHm(l.hrs)+' · '+Math.round(l.dist)+' nm</span></div>');
+    if(i<r.legs.length-1){ var g=(r.legs[i+1].dep-l.arr); parts.push('<div class="xc-tl-stop" style="flex:'+Math.max(18,(g/total*1000)).toFixed(0)+'" title="Fuel stop">⛽</div>'); } });
+  var times='<div class="xc-tl-t"><span>'+xcTz(r.legs[0].dep)+'<em>'+esc(r.legs[0].from.icao)+' departs</em></span><span style="text-align:right">'+xcTz(T.arr)+'<em>'+esc(r.legs[r.legs.length-1].to.icao)+' arrives</em></span></div>';
+  return '<div class="xc-tl">'+parts.join('')+'</div>'+times;
+}
+function xcWindChartHtml(r,T){ var segs=[], off=0, marks=[];
+  r.legs.forEach(function(l,i){ l.segs.forEach(function(s){ segs.push({x:off+s.at-s.d, d:s.d, h:s.head}); }); off+=l.dist; if(i<r.legs.length-1) marks.push({x:off, id:l.to.icao}); });
+  if(!segs.length||!off) return '';
+  var W=1000, H=130, mid=H/2, mx=Math.max(10, Math.max.apply(null, segs.map(function(s){return Math.abs(s.h);})));
+  var bars=segs.map(function(s){ var x=s.x/off*W, w=Math.max(1.2, s.d/off*W-0.6), hgt=Math.abs(s.h)/mx*(mid-14);
+    return '<rect x="'+x.toFixed(1)+'" y="'+(s.h>0?mid:mid-hgt).toFixed(1)+'" width="'+w.toFixed(1)+'" height="'+Math.max(0.8,hgt).toFixed(1)+'" fill="'+xcWindColor(s.h)+'" rx="1"/>'; }).join('');
+  var mk=marks.map(function(m){ var x=(m.x/off*W).toFixed(1); return '<line x1="'+x+'" x2="'+x+'" y1="6" y2="'+(H-6)+'" stroke="#bbb" stroke-dasharray="3 4" stroke-width="1"/><text x="'+x+'" y="14" fill="#ddd" font-size="11" text-anchor="middle" font-family="JetBrains Mono">⛽'+esc(m.id)+'</text>'; }).join('');
+  return '<div class="xc-sec">Wind along the route <span>above the line helps you, below it slows you down (±'+Math.round(mx)+' kt scale)</span></div>'
+    + '<div class="xc-chart"><svg viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none" role="img" aria-label="Headwind and tailwind along the route">'
+    + '<text x="4" y="14" fill="#22c55e" font-size="11" font-family="Montserrat" font-weight="700">TAILWIND</text><text x="4" y="'+(H-5)+'" fill="#fb7185" font-size="11" font-family="Montserrat" font-weight="700">HEADWIND</text>'
+    + bars + '<line x1="0" x2="'+W+'" y1="'+mid+'" y2="'+mid+'" stroke="#555" stroke-width="1"/>' + mk + '</svg>'
+    + '<div class="xc-chart-x"><span>'+esc(r.route[0].icao)+'</span><span>'+Math.round(off)+' nm</span><span>'+esc(r.route[r.route.length-1].icao)+'</span></div></div>';
+}
+function xcLegsHtml(r){
+  var rows=r.legs.map(function(l,i){ var w=xcLegWind(l), mv=xcMagVar(l.from);
+    var land=l.fuelLand, landMin=land/r.prof.gph*60, low=land<l.reserveGal-0.05;
+    return '<tr'+(l.short?' class="bad"':'')+'><td class="mono">'+(i+1)+'</td><td><b>'+esc(l.from.icao)+'</b> → <b>'+esc(l.to.icao)+'</b>'+(l.via&&l.via.length?'<div class="xc-dim">via '+l.via.map(function(v){return esc(v.icao);}).join(' ')+'</div>':'')+'<div class="xc-dim">'+esc(l.to.name||'')+'</div></td>'
+      +'<td class="mono">'+Math.round(l.dist)+'</td><td class="mono">'+String(Math.round(l.tc)).padStart(3,'0')+'° / '+String(Math.round(l.mc)).padStart(3,'0')+'°</td>'
+      +'<td class="mono">'+String(Math.round(l.mh)).padStart(3,'0')+'°</td>'
+      +'<td class="mono">'+(w.spd<1?'calm':String(Math.round(w.dir)).padStart(3,'0')+'°/'+Math.round(w.spd))+'</td>'
+      +'<td class="mono" style="color:'+xcWindColor(l.head)+'">'+Math.round(l.gs)+'</td>'
+      +'<td class="mono">'+xcHm(l.hrs)+'<div class="xc-dim">'+xcClock(l.dep)+'–'+xcClock(l.arr)+'</div></td>'
+      +'<td class="mono">'+l.burned.toFixed(1)+'</td>'
+      +'<td class="mono" style="color:'+(low?'var(--rose)':(landMin<60?'var(--amber)':'var(--green)'))+'">'+land.toFixed(1)+' gal<div class="xc-dim">'+Math.round(landMin)+' min</div></td></tr>'; }).join('');
+  return '<div class="xc-sec">Legs <span>TC/MC true &amp; magnetic course · MH magnetic heading · wind true °/kt at cruise</span></div>'
+    + '<div class="xc-tbl"><table><thead><tr><th>#</th><th>Leg</th><th>NM</th><th>TC / MC</th><th>MH</th><th>Wind</th><th>GS</th><th>Time</th><th>Burn</th><th>Land with</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+}
+function xcWxHtml(r){
+  var lands=[{ap:r.route[0], role:'Departure', t:r.legs[0].dep}];
+  r.legs.forEach(function(l,i){ lands.push({ap:l.to, role:i<r.legs.length-1?'Fuel stop':'Destination', t:l.arr}); });
+  return '<div class="xc-wx">'+lands.map(function(x){ var ap=x.ap, m=r.metars[ap.icao], cat=m?metarCat(m):null, rw=xcRunway(ap,m), da=xcDensityAlt(ap,m);
+    var longest=(ap.runways||[]).filter(function(w){return !/^H/i.test(w.id);}).sort(function(a,b){return b.len-a.len;})[0];
+    var xw=rw?(rw.vrb?('variable '+Math.round(rw.crossG)+' kt'):(Math.round(rw.crossG)+' kt x-wind'+(rw.head<-0.5?' · '+Math.round(-rw.head)+' kt tail':(' · '+Math.round(rw.head)+' kt head')))):'';
+    return '<div class="xc-ap" style="border-top-color:'+(cat?xcCatHex(cat[1]):'#555')+'">'
+      +'<div class="xc-ap-h"><div><div class="xc-role">'+x.role+' · '+(x.role==='Departure'?'departs ':'arrives ')+xcClock(x.t)+'</div><b>'+esc(ap.icao)+'</b> <span class="xc-dim">'+esc(ap.name||'')+'</span></div>'
+      +(cat?'<span class="tag" style="background:transparent;border:1px solid '+xcCatHex(cat[1])+';color:'+xcCatHex(cat[1])+'">'+cat[0]+'</span>':'<span class="tag">no METAR</span>')+'</div>'
+      +'<div class="xc-ap-wx">'+(m?esc(metarDecode(m)):'No current observation — call the field\'s AWOS/ATIS.')+'</div>'
+      +(r.metarVia&&r.metarVia[ap.icao]?'<div class="xc-dim" style="color:var(--sky);margin-bottom:4px">From nearest reporting station <b>'+esc(r.metarVia[ap.icao][0])+'</b> ('+esc(r.metarVia[ap.icao][2])+') — '+esc(ap.icao)+' isn\'t on the network feed; call its AWOS for on-field wx.</div>':'')
+      +(rw?'<div class="kv-row"><span class="k">Best runway</span><span class="v mono" style="color:'+(rw.crossG>=12?'var(--amber)':'inherit')+'">'+esc(rw.end)+' · '+xw+'</span></div>':'')
+      +'<div class="kv-row"><span class="k">Field elev · longest rwy</span><span class="v mono">'+(ap.elevFt!=null?ap.elevFt.toLocaleString()+' ft':'—')+(longest?' · '+longest.len.toLocaleString()+' ft':'')+'</span></div>'
+      +(da!=null?'<div class="kv-row"><span class="k">Density altitude now</span><span class="v mono" style="color:'+(da>7000?'var(--rose)':(da>5500?'var(--amber)':'inherit'))+'">'+da.toLocaleString()+' ft</span></div>':'')
+      +(m&&m.rawOb?'<div class="xc-raw">'+esc(m.rawOb)+'</div>':'')
+      +'</div>'; }).join('')+'</div>';
+}
+function xcWbHtml(r){ var p=r.prof, inp=r.inp;
+  var pilotFront=(+inp.pilot||0)+(+inp.front||0), rear=+inp.rear||0, bag=+inp.bag||0, fuelWt=r.fuelDep*6;
+  var landFuel=Math.max(0, r.legs[r.legs.length-1].fuelLand), st=[
+    ['Empty airplane', p.emptyWt, p.emptyArm, '#6b7280'], ['Pilot + front seat', pilotFront, p.frontArm, '#38bdf8'],
+    ['Rear seat', rear, p.rearArm, '#22d3ee'], ['Baggage', bag, p.bagArm, '#a78bfa'], ['Fuel '+r.fuelDep+' gal', fuelWt, p.fuelArm, '#f59e0b'] ];
+  var tow=st.reduce(function(a,s){return a+s[1];},0), lw=tow-(r.fuelDep-landFuel)*6, over=tow-p.grossWt;
+  var armsOk=p.emptyArm!=null && st.every(function(s){ return !s[1] || s[2]!=null; });
+  var mom=function(fuelLb){ return st.reduce(function(a,s,i){ var w=(i===4)?fuelLb:s[1]; return a+(w*(s[2]||0)); },0); };
+  var cgTO=armsOk?mom(fuelWt)/tow:null, cgL=armsOk?mom(landFuel*6)/lw:null;
+  var scale=Math.max(tow, p.grossWt)*1.02, x=0;
+  var bar=st.map(function(s){ var w=s[1]/scale*100, h='<i style="left:'+x.toFixed(2)+'%;width:'+w.toFixed(2)+'%;background:'+s[3]+'" title="'+esc(s[0])+' '+Math.round(s[1])+' lb"></i>'; x+=w; return h; }).join('');
+  var grossX=(p.grossWt/scale*100).toFixed(2);
+  var rows=st.map(function(s){ return '<tr><td><i class="xc-sw" style="background:'+s[3]+'"></i>'+esc(s[0])+'</td><td class="mono">'+Math.round(s[1]).toLocaleString()+'</td><td class="mono">'+(s[2]!=null?s[2]:'—')+'</td><td class="mono">'+(s[2]!=null?Math.round(s[1]*s[2]).toLocaleString():'—')+'</td></tr>'; }).join('');
+  var cgHtml=xcEnvelopeSvg(p, armsOk?{w:tow,cg:cgTO}:null, armsOk?{w:lw,cg:cgL}:null);
+  if(armsOk){ var inTO=tow<=p.grossWt&&cgTO>=xcEnvAt(XC_ENV.fwd,tow)&&cgTO<=xcEnvAt(XC_ENV.aft,tow), inL=cgL>=xcEnvAt(XC_ENV.fwd,lw)&&cgL<=xcEnvAt(XC_ENV.aft,lw);
+    cgHtml+='<div class="xc-cg-x"><span style="color:'+(inTO?'var(--green)':'var(--rose)')+'">Takeoff CG '+cgTO.toFixed(2)+'" '+(inTO?'✓ in limits':'✕ OUT of limits')+'</span><span style="color:'+(inL?'var(--sky)':'var(--rose)')+'">Landing '+cgL.toFixed(2)+'" '+(inL?'✓':'✕')+'</span></div>';
+  } else cgHtml+='<div class="xc-note est">To plot your loaded CG, add the front-seat, rear-seat, baggage and fuel arms from the AFM weight &amp; balance loading page under ⚙ Aircraft (POH).</div>';
+  var bagWarn=(p.maxBag!=null&&bag>p.maxBag)?'<div class="xc-note bad">Baggage '+bag+' lb exceeds the '+p.maxBag+' lb limit.</div>':'';
+  var fuelNote=(r.inp.fuel==='full'&&r.fuelFull<p.usableGal)?'<div class="xc-note warn">Full tanks ('+p.usableGal+' gal) would put you '+Math.round((p.usableGal-r.fuelFull)*6)+' lb over gross — fuel limited to <b>'+r.fuelFull+' gal</b> for this load.</div>':'';
+  return '<div class="xc-panel"><h3>Weight &amp; balance</h3>'
+    +'<div class="xc-wbar">'+bar+'<b style="left:'+grossX+'%" title="Max gross"></b></div>'
+    +'<div class="xc-wbar-x"><span>takeoff <b style="color:'+(over>0?'var(--rose)':'var(--green)')+'">'+Math.round(tow).toLocaleString()+' lb</b></span><span>'+(over>0?'<b style="color:var(--rose)">'+Math.round(over)+' lb OVER gross</b>':Math.round(-over)+' lb under '+p.grossWt.toLocaleString()+' gross')+'</span></div>'
+    +'<div class="xc-tbl"><table class="xc-wbt"><thead><tr><th>Station</th><th>lb</th><th>Arm</th><th>Moment</th></tr></thead><tbody>'+rows+'</tbody></table></div>'
+    +cgHtml+bagWarn+fuelNote
+    +'<div class="xc-dim" style="margin-top:8px">Landing weight ≈ '+Math.round(lw).toLocaleString()+' lb with '+landFuel.toFixed(1)+' gal left.'+(p._src.emptyWt==='est'?' <span class="xc-src est">empty weight placeholder</span>':'')+'</div></div>';
+}
+/* weight-vs-CG envelope chart (AFM limits) with empty, takeoff and landing points */
+function xcEnvelopeSvg(p, to, ld){
+  var W=420, H=250, L=44, R=12, Tp=14, B=34, x0=10, x1=22, y0=1300, y1=2400;
+  var X=function(cg){ return L+(cg-x0)/(x1-x0)*(W-L-R); }, Y=function(w){ return H-B-(w-y0)/(y1-y0)*(H-Tp-B); };
+  var poly=[[11.1,y0],[11.1,1500],[14.5,2100],[15.6,2300],[19.0,2300],[20.5,2100],[20.5,y0]].map(function(q){ return X(q[0]).toFixed(1)+','+Y(q[1]).toFixed(1); }).join(' ');
+  var g='';
+  for(var c=10;c<=22;c+=2) g+='<line x1="'+X(c)+'" x2="'+X(c)+'" y1="'+Tp+'" y2="'+(H-B)+'" stroke="#2c2c2c"/><text x="'+X(c)+'" y="'+(H-B+14)+'" fill="#888" font-size="10" text-anchor="middle" font-family="JetBrains Mono">'+c+'</text>';
+  for(var w=1400;w<=2400;w+=200) g+='<line x1="'+L+'" x2="'+(W-R)+'" y1="'+Y(w)+'" y2="'+Y(w)+'" stroke="#2c2c2c"/><text x="'+(L-6)+'" y="'+(Y(w)+3)+'" fill="#888" font-size="10" text-anchor="end" font-family="JetBrains Mono">'+w+'</text>';
+  var pt=function(o,lab,col){ if(!o) return ''; var cx=Math.max(L,Math.min(W-R,X(o.cg))), cy=Math.max(Tp,Math.min(H-B,Y(o.w)));
+    return '<circle cx="'+cx.toFixed(1)+'" cy="'+cy.toFixed(1)+'" r="7" fill="'+col+'" stroke="#0a0a0a" stroke-width="2"/><text x="'+cx.toFixed(1)+'" y="'+(cy+3.5).toFixed(1)+'" fill="#0a0a0a" font-size="9" font-weight="800" text-anchor="middle" font-family="Montserrat">'+lab+'</text>'; };
+  var inEnv=function(o){ return !o || (o.w<=p.grossWt && o.cg>=xcEnvAt(XC_ENV.fwd,o.w) && o.cg<=xcEnvAt(XC_ENV.aft,o.w)); };
+  var line=(to&&ld)?'<line x1="'+X(to.cg).toFixed(1)+'" y1="'+Y(to.w).toFixed(1)+'" x2="'+X(ld.cg).toFixed(1)+'" y2="'+Y(ld.w).toFixed(1)+'" stroke="#bbb" stroke-dasharray="4 3" stroke-width="1.5"/>':'';
+  return '<div class="xc-env"><svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Center of gravity envelope">'+g
+    +'<polygon points="'+poly+'" fill="rgba(34,197,94,.13)" stroke="#22c55e" stroke-width="1.8"/>'
+    +'<line x1="'+L+'" x2="'+(W-R)+'" y1="'+Y(p.grossWt)+'" y2="'+Y(p.grossWt)+'" stroke="#fb7185" stroke-dasharray="5 4"/><text x="'+(W-R-4)+'" y="'+(Y(p.grossWt)-5)+'" fill="#fb7185" font-size="10" text-anchor="end" font-family="Montserrat" font-weight="700">MAX GROSS '+p.grossWt+'</text>'
+    +line+pt({w:p.emptyWt,cg:p.emptyArm},'E','#9a9a9a')+pt(ld,'L',inEnv(ld)?'#38bdf8':'#fb7185')+pt(to,'T',inEnv(to)?'#22c55e':'#fb7185')
+    +'<text x="'+((L+W-R)/2)+'" y="'+(H-4)+'" fill="#777" font-size="10" text-anchor="middle" font-family="Montserrat">CG — inches aft of wing leading edge</text></svg>'
+    +'<div class="xc-env-k"><span><i style="background:#9a9a9a"></i>E empty</span><span><i style="background:#22c55e"></i>T takeoff</span><span><i style="background:#38bdf8"></i>L landing</span></div></div>';
+}
+function xcChecksHtml(r,T){ var p=r.prof, items=[], ok=function(t){items.push(['ok',t]);}, warn=function(t){items.push(['warn',t]);}, bad=function(t){items.push(['bad',t]);}, info=function(t){items.push(['info',t]);};
+  r.warn.forEach(bad);
+  var tow=p.emptyWt+r.people+r.bag+r.fuelDep*6; if(tow>p.grossWt) bad('Over max gross by '+Math.round(tow-p.grossWt)+' lb — offload people, bags or fuel.'); else ok('Takeoff weight '+Math.round(tow).toLocaleString()+' lb, '+Math.round(p.grossWt-tow)+' lb under gross.');
+  var pr=r.prof, st5=[[pr.emptyWt,pr.emptyArm],[(+r.inp.pilot||0)+(+r.inp.front||0),pr.frontArm],[+r.inp.rear||0,pr.rearArm],[r.bag,pr.bagArm],[r.fuelDep*6,pr.fuelArm]];
+  if(pr.emptyArm!=null && st5.every(function(q){ return !q[0]||q[1]!=null; })){ var mm=st5.reduce(function(a,q){ return a+q[0]*(q[1]||0); },0), cg=mm/tow;
+    if(cg<xcEnvAt(XC_ENV.fwd,tow)||cg>xcEnvAt(XC_ENV.aft,tow)) bad('Takeoff CG '+cg.toFixed(2)+'" is outside the envelope ('+xcEnvAt(XC_ENV.fwd,tow).toFixed(1)+'–'+xcEnvAt(XC_ENV.aft,tow).toFixed(1)+'" at this weight) — move weight '+(cg<xcEnvAt(XC_ENV.fwd,tow)?'aft':'forward')+'.');
+    else ok('Takeoff CG '+cg.toFixed(2)+'" is inside the envelope.'); }
+  else info('CG not computed yet — needs the seat, baggage and fuel arms from the AFM (⚙ Aircraft).');
+  var low=r.legs.filter(function(l){return l.fuelLand<l.reserveGal-0.05;});
+  if(low.length) bad('Lands below the '+r.inp.reserve+'-min reserve on '+low.map(function(l){return l.from.icao+'→'+l.to.icao;}).join(', ')+'.');
+  else ok('Every leg lands with at least '+r.inp.reserve+' min of fuel (lowest: '+Math.round(T.minLand.fuelLand/p.gph*60)+' min).');
+  r.legs.forEach(function(l,i){ var v=xcVfrAlt(l.mc, +r.inp.alt);
+    if(v.ok) ok('Leg '+(i+1)+': '+(+r.inp.alt).toLocaleString()+' ft fits the VFR rule for a '+Math.round(l.mc)+'° magnetic course ('+(v.east?'odd':'even')+' thousands + 500).');
+    else warn('Leg '+(i+1)+': magnetic course '+Math.round(l.mc)+'° wants '+(v.east?'odd':'even')+' thousands + 500 above 3,000 AGL — <a href="#" onclick="return xcSetAlt('+v.sug+')" style="color:var(--sky);font-weight:700">use '+v.sug.toLocaleString()+' ft</a>.'); });
+  var nightHits=[];
+  r.legs.forEach(function(l){ var d=xcNight(l.dep, l.from.lat, l.from.lon), a=xcNight(l.arr, l.to.lat, l.to.lon);
+    if(d.night) nightHits.push('departs '+l.from.icao+' at '+xcClock(l.dep));
+    if(a.night) nightHits.push('lands '+l.to.icao+' at '+xcClock(l.arr)+(a.dusk&&l.arr>a.dusk?' (dark after '+xcClock(a.dusk)+')':'')); });
+  if(nightHits.length) warn('Night flying — '+nightHits.join('; ')+'. Night rules apply: 45-min reserve, position lights, and passenger-carrying currency.'+(+r.inp.reserve<45?' Switch the reserve to 45 min.':''));
+  var maxW=0; r.legs.forEach(function(l){ l.segs.forEach(function(s){ if(s.wspd>maxW) maxW=s.wspd; }); });
+  if(r.inp.wind==='aloft' && maxW>=25) warn('Winds up to '+Math.round(maxW)+' kt at cruise — expect turbulence and possible mountain wave near ridgelines.');
+  var dep=r.route[0], da=xcDensityAlt(dep, r.metars[dep.icao]); if(da!=null && da>6500) warn('Density altitude at '+dep.icao+' is '+da.toLocaleString()+' ft right now — longer roll, weaker climb. Lean for best power.');
+  var lands=[r.route[0]].concat(r.legs.map(function(l){return l.to;}));
+  lands.forEach(function(a){ var m=r.metars[a.icao], c=m?metarCat(m):null, rw=xcRunway(a,m);
+    if(c && c[0]!=='VFR' && c[0]!=='STALE') bad(a.icao+' is '+c[0]+' right now.');
+    if(rw && rw.crossG>=12) warn(a.icao+': '+Math.round(rw.crossG)+' kt crosswind component on the best runway — check your personal limits.'); });
+  if(r.inp.windFallback) warn('Winds aloft forecast couldn\'t be reached — times and fuel use METAR surface winds. Tap Plan again to retry.');
+  if(r.inp.wind==='metar') info('Time and fuel use METAR surface winds; winds at cruise are usually stronger — compare with "Winds aloft".');
+  var ph=['tasKt','gph','emptyWt'].filter(function(k){return p._src[k]==='est';});
+  if(ph.length) warn('Using placeholder '+ph.map(function(k){return {tasKt:'cruise speed',gph:'fuel flow',emptyWt:'empty weight'}[k];}).join(', ')+' — enter the POH numbers under ⚙ Aircraft for exact results.');
+  if(T.stops) info('Confirm fuel is available at '+r.legs.slice(0,-1).map(function(l){return l.to.icao;}).join(', ')+' (AirNav or the ForeFlight airport page) — self-serve hours vary.');
+  info('Check the sectional\'s maximum elevation figures along the route and NOTAMs/TFRs before you go.');
+  var ic={ok:'✓',warn:'!',bad:'✕',info:'i'};
+  return '<div class="xc-panel"><h3>Preflight checks</h3><ul class="xc-checks">'+items.map(function(x){ return '<li class="'+x[0]+'"><b>'+ic[x[0]]+'</b><span>'+x[1]+'</span></li>'; }).join('')+'</ul></div>';
+}
+function xcRouteIds(r){ var ids=[r.route[0].icao]; r.legs.forEach(function(l){ (l.via||[]).forEach(function(v){ ids.push(v.icao); }); ids.push(l.to.icao); }); return ids; }
+function xcLinksHtml(r){ var ids=xcRouteIds(r), q=ids.join(' ');
+  return '<div class="xc-links">'
+    +'<a class="xc-btn xc-ff" href="foreflightmobile://maps/search?q='+encodeURIComponent(q)+'">Open in ForeFlight</a>'
+    +'<button class="xc-btn xc-ghost" type="button" onclick="xcCopy(this,\''+esc(q)+'\')">Copy route</button>'
+    +'<a class="xc-btn xc-ghost" href="https://www.1800wxbrief.com/" target="_blank" rel="noopener">Official briefing ↗</a>'
+    +'<a class="xc-btn xc-ghost" href="https://tfr.faa.gov/" target="_blank" rel="noopener">TFRs ↗</a>'
+    +'<a class="xc-btn xc-ghost" href="https://aviationweather.gov/gfa/" target="_blank" rel="noopener">GFA ↗</a></div>'
+    +'<div class="xc-foot">'+esc(r.windNote)+'. Planning aid only — confirm against the AFM, an official briefing, NOTAMs and TFRs. ForeFlight Basic has no public API, so "Open in ForeFlight" hands this route to the ForeFlight app on your iPhone/iPad.</div>';
+}
+function xcCopy(btn, q){ try{ navigator.clipboard.writeText(q).then(function(){ btn.textContent='Copied ✓'; setTimeout(function(){ btn.textContent='Copy route'; },1500); }); }catch(e){} }
+
+/* ---------- map (Leaflet, loaded on first use) ---------- */
+function xcLoadCss(href){ return new Promise(function(res,rej){ var c=document.createElement('link'); c.rel='stylesheet'; c.href=href;
+  c.onload=function(){ res(); }; c.onerror=function(){ if(c.parentNode) c.parentNode.removeChild(c); rej(new Error('css')); }; document.head.appendChild(c); }); }
+function xcLoadJs(src){ return new Promise(function(res,rej){ var s=document.createElement('script'); s.src=src;
+  s.onload=function(){ res(); }; s.onerror=function(){ if(s.parentNode) s.parentNode.removeChild(s); rej(new Error('js')); }; document.head.appendChild(s); }); }
+/* Leaflet from cdnjs, loaded on first use. Waits for BOTH the stylesheet and the script (without
+   the CSS the route layer renders under the tiles), retrying each once on a flaky connection. */
+function xcLeaflet(){ if(XC._leafOk) return Promise.resolve(); if(XC._lp) return XC._lp;
+  var base='https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/';
+  var twice=function(fn,u){ return fn(u).catch(function(){ return new Promise(function(r){ setTimeout(r,900); }).then(function(){ return fn(u); }); }); };
+  XC._lp=Promise.all([ twice(xcLoadCss, base+'leaflet.min.css'), (window.L&&window.L.map)?Promise.resolve():twice(xcLoadJs, base+'leaflet.min.js') ])
+    .then(function(){ XC._leafOk=true; })
+    .catch(function(){ XC._lp=null; throw new Error('the map library didn\'t load — tap Plan again'); });
+  return XC._lp; }
+function xcDrawMap(r){
+  xcLeaflet().then(function(){ var box=XC.el.querySelector('#xcMap'); if(!box||XC.res!==r) return;
+    if(XC.map){ try{ XC.map.remove(); }catch(e){} XC.map=null; }
+    var map=L.map(box,{scrollWheelZoom:false, zoomSnap:0.25});
+    var esri='https://server.arcgisonline.com/ArcGIS/rest/services/';
+    XC.tiles={
+      dark:L.tileLayer(esri+'Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',{maxNativeZoom:16, maxZoom:18, attribution:'Tiles &copy; Esri'}),
+      labels:L.tileLayer(esri+'Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}',{maxNativeZoom:16, maxZoom:18}),
+      sat:L.tileLayer(esri+'World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxNativeZoom:18, maxZoom:18, attribution:'Imagery &copy; Esri'}),
+      // FAA only publishes sectional tiles from zoom 8 in; show them (scaled) from 7
+      sect:L.tileLayer('https://tiles.arcgis.com/tiles/ssFJjBXIUyZDrSYZ/arcgis/rest/services/VFR_Sectional/MapServer/tile/{z}/{y}/{x}',{minZoom:7, minNativeZoom:8, maxNativeZoom:12, maxZoom:14, attribution:'FAA VFR Sectional'})
+    };
+    var pts=[];
+    r.legs.forEach(function(l){ l.segs.forEach(function(s){ var ll=[[s.a.lat,s.a.lon],[s.b.lat,s.b.lon]]; pts.push(ll[0],ll[1]);
+      L.polyline(ll,{color:'#0a0a0a', weight:8, opacity:.55, lineCap:'round'}).addTo(map);
+      L.polyline(ll,{color:xcWindColor(s.head), weight:4.5, opacity:1, lineCap:'round'}).addTo(map); }); });
+    r.legs.forEach(function(l){ (l.via||[]).forEach(function(v){ L.circleMarker([v.lat,v.lon],{radius:4, color:'#111', weight:2, fillColor:'#fff', fillOpacity:1}).addTo(map)
+      .bindTooltip(esc(v.icao),{permanent:true, direction:'right', className:'xc-tip dim', offset:[6,0]}); }); });
+    var lands=[{ap:r.route[0], k:'dep'}].concat(r.legs.map(function(l,i){ return {ap:l.to, k:i<r.legs.length-1?'stop':'dest'}; }));
+    lands.forEach(function(x){ var m=r.metars[x.ap.icao], c=m?metarCat(m):null, col=c?xcCatHex(c[1]):'#9a9a9a';
+      L.circleMarker([x.ap.lat,x.ap.lon],{radius:x.k==='stop'?7:9, color:'#0a0a0a', weight:3, fillColor:col, fillOpacity:1}).addTo(map)
+        .bindTooltip((x.k==='stop'?'⛽ ':'')+esc(x.ap.icao)+(c?' · '+c[0]:''),{permanent:true, direction:'top', className:'xc-tip', offset:[0,-9]}); });
+    map.fitBounds(pts,{padding:[34,34]});
+    XC.map=map;
+    map.on('zoomend', xcMapHint);
+    xcApplyLayer(XC.layer || (map.getZoom()>=6.9 ? 'sect' : 'dark'), false);   // sectional when the trip fits at chart scale
+  }).catch(function(e){ var box=XC.el.querySelector('#xcMap'); if(box) box.innerHTML='<div class="empty">Map unavailable — '+esc(e.message)+'</div>'; });
+}
+function xcApplyLayer(k, user){ var m=XC.map, t=XC.tiles; if(user) XC.layer=k;
+  XC.el.querySelectorAll('.xc-maptog button').forEach(function(b){ b.classList.toggle('on', b.getAttribute('data-l')===k); });
+  if(!m||!t) return;
+  Object.keys(t).forEach(function(n){ if(m.hasLayer(t[n])) m.removeLayer(t[n]); });
+  if(k==='sat') t.sat.addTo(m); else { t.dark.addTo(m); if(k==='dark') t.labels.addTo(m); }
+  if(k==='sect'){ t.sect.addTo(m); if(user && m.getZoom()<7) m.setZoom(7); }
+  m.getPane('tilePane').style.filter = '';
+  xcMapHint(); }
+function xcLayer(k){ xcApplyLayer(k, true); }
+function xcMapHint(){ var h=XC.el&&XC.el.querySelector('.xc-maphint'); if(!h||!XC.map) return;
+  h.hidden=!(XC.el.querySelector('.xc-maptog button.on[data-l=sect]') && XC.map.getZoom()<7); }
 
 function renderFlying(){
   var f=kv('Flying'), ac=arr('Aircraft'), log=arr('FlightLog');
 
-  
+  // Two-pilot cards
   function pilotCard(name, role, hours, sub, rows){
     return '<div class="card" style="border-top:3px solid var(--sky)">'
       +'<div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px"><h2>'+esc(name)+'</h2>'
@@ -1395,7 +2151,7 @@ function renderFlying(){
         '', chelseaRows)
     + '</div>';
 
-  
+  // PPL milestone tracker for Brad — derived from Flying fields, no fabrication
   function ms(done, label, detail){
     return '<div class="kv-row"><span class="k">'+(done?'<span style="color:var(--green)">✓</span> ':'<span style="color:var(--text-dim)">○</span> ')+esc(label)+'</span><span class="v" style="color:var(--text-dim)">'+esc(detail||'')+'</span></div>';
   }
@@ -1415,21 +2171,25 @@ function renderFlying(){
   var logCols=[{label:'Date',key:'Date'},{label:'Aircraft',key:'Aircraft'},{label:'Route',key:'Route'},
     {label:'Hrs',num:true,key:'Hours'},{label:'Type',render:function(r){return has(r.Type)?'<span class="chip">'+esc(r.Type)+'</span>':'';}},{label:'Notes',key:'Notes'}];
 
+  var gap='<div style="height:22px"></div>';
+  // Top: go/no-go, live airport weather (METARs), 7-day outlook — then the cross-country planner
   return (EDIT?'<div class="editbar">'+kvEditBtn('Flying')+'</div>':'')
+    + '<div class="grid cols-2">' + goNoGoCard() + vfrWindowCard() + '</div>'
+    + gap
+    + '<div class="section-title" style="display:flex;justify-content:space-between"><span>Live airport weather (AWOS / ATIS)</span>'+(EDIT?'<button class="ebtn pri" onclick="openEditor(\'Airports\')" style="text-transform:none;letter-spacing:0">＋ Add airport</button>':'')+'</div>'
+    + airportsHtml()
+    + gap
+    + flyingOutlookCard()
+    + gap
+    + '<div id="xcHost"></div>'
+    + gap
     + pilots
     + '<div class="grid cols-2">'
     + card('PPL milestones','Brad\'s path to the certificate.', milestoneHtml, '--sky')
     + card('Aircraft','', tableEl(acCols, ac, {empty:'Add your aircraft (e.g. Maule N51207) in the Aircraft tab.',editTab:'Aircraft'}), '--sky')
-    + '</div><div style="height:22px"></div>'
+    + '</div>' + gap
     + aircraftPerfCard()
-    + '<div style="height:22px"></div>'
-    + '<div class="grid cols-2">' + goNoGoCard() + vfrWindowCard() + '</div>'
-    + '<div style="height:22px"></div>'
-    + flyingOutlookCard()
-    + '<div style="height:22px"></div>'
-    + '<div class="section-title" style="display:flex;justify-content:space-between"><span>Live airport weather (AWOS / ATIS)</span>'+(EDIT?'<button class="ebtn pri" onclick="openEditor(\'Airports\')" style="text-transform:none;letter-spacing:0">＋ Add airport</button>':'')+'</div>'
-    + airportsHtml()
-    + '<div style="height:22px"></div>'
+    + gap
     + card('Flight log','Most recent flights.', tableEl(logCols, log.slice().reverse(), {empty:'Log flights in the FlightLog tab.',editTab:'FlightLog'}), '--sky');
 }
 function airportsHtml(){
@@ -1442,7 +2202,7 @@ function airportsHtml(){
     var wx=m?metarDecode(m):'fetching live weather…';
     var freq=has(a.WxFreq)?((a.WxType||'AWOS')+' '+a.WxFreq):'';
     var ph=has(a.Phone)?'<a class="tel" href="'+telHref(a.Phone)+'">'+esc(a.Phone)+'</a>':'';
-    
+    // when this field's own feed is down, we're showing the nearest reporting station
     var proxyNote = b.proxied
       ? '<div class="foot" style="margin-top:6px;color:var(--sky)">Nearest reporting: <b>'+esc(b.station)+'</b> · '+esc(b.name)+' ('+esc(b.dist)+') — '+esc(icao)+' isn\'t on the network feed. On-field wx: call '+(has(a.WxFreq)?esc(a.WxFreq):'AWOS')+(has(a.Phone)?' / '+esc(a.Phone):'')+'.</div>'
       : '';
@@ -1460,8 +2220,8 @@ function airportsHtml(){
   }).join('');
   return '<div class="grid cols-2">'+cards+'</div>';
 }
-
-
+/* Density altitude at Minden (KMEV, field elev 4722 ft) from live METAR or NWS temp.
+   DA = pressure_alt + 120 * (OAT_C - ISA_C).  Critical for the Franklin-powered Maule in summer. */
 var KMEV_ELEV=4722;
 function kmevDensityAlt(){
   var b=bestMetar('KMEV'), m=b.m;
@@ -1476,12 +2236,10 @@ function kmevDensityAlt(){
 }
 function aircraftPerfCard(){
   var f=kv('Flying');
-  var maxGross=num(f.max_gross_weight)||2300;      
-  var empty=num(f.empty_weight);                    
-  var fuelGal=num(f.usable_fuel_gal)||60;           
-  var fuelWt=fuelGal*6;                              
-  var estimated=isNaN(empty);
-  if(estimated) empty=1500;                          
+  var P=xcProfile();                                 // same profile the XC planner uses (W&B record 9/20/25)
+  var maxGross=P.grossWt, empty=P.emptyWt, fuelGal=P.usableGal;
+  var fuelWt=fuelGal*6;                              // avgas ~6 lb/gal
+  var estimated=(P._src.emptyWt==='est');
   var useful=maxGross-empty;
   var payloadFullFuel=useful-fuelWt;
   var rows=''
@@ -1498,7 +2256,7 @@ function aircraftPerfCard(){
   return card('Performance & loading — Maule M4-220C','Useful load, full-fuel payload, and Minden density altitude.', rows+daHtml+note, '--sky');
 }
 
- 
+/* Bitcoin derisking ladder — Brad's plan: trim at $250k and $1M to fund acquisitions. */
 function btcLadderCard(){
   var cfg=kv('Config');
   var spot=LIVE.btc;
@@ -1519,8 +2277,9 @@ function btcLadderCard(){
   return card('₿ Derisking ladder','Live progress toward your two exit rungs.', body, '--gold');
 }
 
-
-
+/* Compact monthly plan grouped by type. Budget per line + (where computed from your transactions)
+   average monthly spend, a mini trend, and an over/under flag. Actuals live in BudgetCategories
+   (MonthlyActual = avg monthly spend; SpendHist = pipe-separated recent monthly totals). */
 function budgetPlanHtml(){
   var cats=arr('BudgetCategories').filter(function(c){return has(c.Category)&&has(c.MonthlyBudget);});
   if(!cats.length) return '<div class="empty">Add categories with a monthly budget in the BudgetCategories tab.</div>';
@@ -1558,20 +2317,21 @@ function budgetPlanHtml(){
   return head+out+note;
 }
 
-
-
+/* True total return of a rental — appreciation + cash flow + debt paydown + tax savings.
+   Pulls live value (RentCast), the property's mortgage (balance/rate), and the P&L row;
+   assumptions (appreciation %, marginal tax %, land %) are editable in Config. */
 function rentalReturnHtml(r){
   var cfg=kv('Config');
-  var key=String(r.Property||'').split(/\s+/)[0];               
+  var key=String(r.Property||'').split(/\s+/)[0];               // e.g. "Lahontan"
   var re=new RegExp(key,'i');
   var inv=arr('Investments').filter(function(i){return re.test(String(i.Name));})[0];
   var value=inv?num(inv.Value):0;
   var mort=arr('Debts').filter(function(d){return /mortgage/i.test(String(d.Type))&&(re.test(String(d.Property))||re.test(String(d.Name)));})[0];
   var bal=mort?num(mort.Balance):0, rate=mort?num(mort.Rate):0; if(rate>1) rate=rate/100;
-  var pAndI=num(r.Mortgage)||0;                                  
+  var pAndI=num(r.Mortgage)||0;                                  // Mortgage field holds P&I
   var rent=num(r.Rent)||0, exp=pAndI+(num(r.Taxes)||0)+(num(r.Insurance)||0)+(num(r.Other)||0);
   var cash=rent-exp;
-  var interest=bal*rate/12, principal=Math.max(0, pAndI-interest);   
+  var interest=bal*rate/12, principal=Math.max(0, pAndI-interest);   // debt paydown
   var appPct=(num(cfg.re_appreciation_pct)||3)/100;
   var apprec=value*appPct/12;
   var landPct=(num(cfg.re_land_pct)||20)/100, taxPct=(num(cfg.re_marginal_tax_pct)||24)/100;
@@ -1591,8 +2351,9 @@ function rentalReturnHtml(r){
     +'<span class="tag active">'+money(Math.round(monthly))+'/mo</span></div>'+body+'</div>';
 }
 
-
-
+/* ============================================================
+   MONEY & BUDGET
+   ============================================================ */
 function renderMoney(){
   var bt=budgetTotals(), nw=netWorth();
   var accounts=arr('Accounts'), debts=arr('Debts'), inv=arr('Investments'), goals=arr('SavingsGoals');
@@ -1608,7 +2369,7 @@ function renderMoney(){
     + statTile('Debts', debts.length?money(liabilities):'—', debts.length+' accounts')
     + '</div>';
 
-  
+  // Budget vs actual bars by category
   var budgetHtml = budgetPlanHtml();
 
   var acctCols=[{label:'Account',render:function(r){return '<strong>'+esc(r.Name)+'</strong>'+(has(r.Institution)?' <span class="foot" style="color:var(--text-dim)">'+esc(r.Institution)+'</span>':'')+(has(r.Last4)?' <span class="mono" style="color:var(--text-dim)">…'+esc(r.Last4)+'</span>':'');}},
@@ -1632,7 +2393,7 @@ function renderMoney(){
     ? card('Net worth over time','', '<div class="chart-wrap"><canvas id="nwChart"></canvas></div>', '--emerald') + '<div style="height:22px"></div>'
     : '';
 
-  
+  // Markets strip: live BTC + market mortgage-rate reference vs your rates
   var cfg=kv('Config');
   var mktRate=cfg.market_mortgage_30yr, asof=cfg.market_rate_asof;
   var yourRates=debts.filter(function(d){return String(d.Type||'').toLowerCase().indexOf('mortgage')>=0&&has(d.Rate);})
@@ -1644,7 +2405,7 @@ function renderMoney(){
     + '<div class="stat"><div class="label">10-yr Treasury</div><div class="value mono">'+(has(t10)?esc(t10)+'%':'—')+'</div><div class="foot">'+(has(t10asof)?'as of '+esc(t10asof)+' · ':'')+'mortgages track this — watch for refi windows</div></div>'
     + '</div>';
 
-  
+  // ---- Giving / tithe tracker ----
   var giving=arr('Giving').filter(function(g){return has(g.Amount)||has(g.Recipient);});
   var thisYr=String(new Date().getFullYear());
   var givingYtd=giving.filter(function(g){return String(g.Date||'').indexOf(thisYr)>=0;}).reduce(function(s,g){var n=num(g.Amount);return s+(isNaN(n)?0:n);},0);
@@ -1653,7 +2414,7 @@ function renderMoney(){
   var gCols=[{label:'Date',key:'Date'},{label:'Recipient',render:function(r){return '<strong>'+esc(r.Recipient)+'</strong>';}},
     {label:'Type',render:function(r){return has(r.Type)?'<span class="chip">'+esc(r.Type)+'</span>':'';}},
     {label:'Amount',num:true,render:function(r){return money(r.Amount,2);}},{label:'Notes',key:'Notes'}];
-  
+  // progress toward the annual giving goal; if no gifts are logged, show the on-pace portion of the year
   var giveGoal=num(kv('Config').giving_annual_goal)||20000;
   var now=new Date(), yearFrac=(now-new Date(now.getFullYear(),0,0))/(new Date(now.getFullYear()+1,0,0)-new Date(now.getFullYear(),0,0));
   var givingLogged=givingYtd>0;
@@ -1667,7 +2428,7 @@ function renderMoney(){
     + (gTypeHtml?'<div style="margin-top:8px">'+gTypeHtml+'</div>':'')
     + tableEl(gCols, giving.slice().reverse(), {empty:'',editTab:'Giving'}), '--gold');
 
-  
+  // ---- Subscription audit (recurring drains, computed from Bills) ----
   var subRe=/subscription|stream|software|saas|media|music|membership|\bapp\b|cloud|news|premium|plus/i;
   var subs=arr('Bills').filter(function(b){ return has(b.Vendor) && (subRe.test(String(b.Category||''))||subRe.test(String(b.Vendor||''))||subRe.test(String(b.Notes||''))); })
     .map(function(b){return {v:b.Vendor, cat:b.Category, mo:billMonthly(b)};}).filter(function(s){return s.mo>0;}).sort(function(a,b){return b.mo-a.mo;});
@@ -1680,7 +2441,7 @@ function renderMoney(){
     : '<div class="empty">No subscription-type bills detected. Tag recurring services in Bills (category like “Streaming”, “Software”, “Membership”) and they\'ll show up here.</div>';
   var subCard=card('Subscription audit','Recurring services quietly draining cash flow.', subBody, '--emerald');
 
-  
+  // ---- Lahontan / rental P&L ----
   var rentals=arr('Rentals').filter(function(r){return has(r.Property);});
   var rentalCard='';
   if(rentals.length){
@@ -1780,8 +2541,9 @@ function drawMoneyCharts(){
     options:{plugins:{legend:{labels:{color:'#f0f0f0',font:{family:'Montserrat'}}}},cutout:'62%'}}));
 }
 
-
-
+/* ============================================================
+   VENTURES — buy-box, capital plan, deal pipeline
+   ============================================================ */
 function grpKv(obj, accentVar){
   var keys=Object.keys(obj).filter(function(k){return has(obj[k]);});
   if(!keys.length) return '';
@@ -1796,7 +2558,7 @@ function grpKv(obj, accentVar){
 }
 function renderVentures(){
   var v=kv('Ventures'), deals=arr('Deals');
-  
+  // live capital sources
   var cash=arr('Accounts').reduce(function(s,a){var n=num(a.Balance);var t=String(a.Type||'').toLowerCase();return s+(isNaN(n)||t.indexOf('credit')>=0?0:n);},0);
   var crypto=arr('Investments').filter(function(i){return /crypto|btc|bitcoin/i.test(String(i.Type)+' '+String(i.Name));}).reduce(function(s,i){return s+(num(i.Value)||0);},0);
   var reVal=arr('Investments').filter(function(i){return /real estate/i.test(String(i.Type));}).reduce(function(s,i){return s+(num(i.Value)||0);},0);
@@ -1834,8 +2596,9 @@ function renderVentures(){
         tableEl(dcols, deals, {empty:'No deals yet. Add candidates with ✎ Edit — price, SDE, cash needed, stage.',editTab:'Deals'}), '--indigo');
 }
 
-
-
+/* ============================================================
+   HOBBIES
+   ============================================================ */
 function renderHobbies(){
   var hs=arr('Hobbies');
   var cards = hs.length ? addBtn('Hobbies','hobby')+'<div class="grid cols-3">'+hs.map(function(h){
@@ -1858,7 +2621,7 @@ function renderHobbies(){
       ms.map(function(m){return '<div class="kv-row"><span class="k">'+(EDIT?'<button class="ebtn" style="padding:1px 7px;margin-right:6px" onclick="openEditor(\'Milestones\','+m.__row+')">✎</button>':'')+esc(m.Milestone)+' <span style="color:var(--text-dim)">· '+esc(m.Area||'')+(has(m.Who)?' · '+esc(m.Who):'')+'</span></span><span class="v">'+stTag(m.Status)+(has(m.Date)?' <span class="foot" style="display:inline">'+esc(m.Date)+'</span>':'')+'</span></div>';}).join('')+addBtn('Milestones','milestone'),'--violet');
   } else if(EDIT){ msHtml='<div style="height:22px"></div>'+card('Goals & milestones','', addBtn('Milestones','milestone'),'--violet'); }
 
-  
+  // Hunt planner — DIY / no-guide opportunities, cost-focused
   var hunts=arr('Hunts').filter(function(h){return has(h.Species);});
   var huntHtml='';
   if(hunts.length){
@@ -1879,7 +2642,7 @@ function renderHobbies(){
       tableEl(hcols, hunts, {editTab:'Hunts'}), '--violet');
   }
 
-  
+  // Preference & bonus points, grouped by state
   var hp=arr('HuntPoints').filter(function(p){return has(p.State)&&has(p.Species);});
   var hpHtml='';
   if(hp.length){
@@ -1897,7 +2660,7 @@ function renderHobbies(){
     hpHtml='<div style="height:22px"></div><div class="section-title">Preference &amp; bonus points</div><div class="grid cols-2">'+blocks+'</div>';
   }
 
-  
+  // Application deadline countdowns — never miss a draw
   var deadlineCard='';
   var dl=arr('Hunts').filter(function(h){return has(h.Deadline);}).map(function(h){return {h:h, d:daysUntilDate(h.Deadline)};})
     .filter(function(x){return x.d!=null;}).sort(function(a,b){return a.d-b.d;});
@@ -1913,8 +2676,9 @@ function renderHobbies(){
   return cards + msHtml + deadlineCard + huntHtml + hpHtml;
 }
 
-
-
+/* ============================================================
+   VEHICLES
+   ============================================================ */
 function isAircraft(v){ return /air|plane|aircraft|maule|cessna|piper|cirrus/i.test(String(v.Type||'')+' '+String(v.Make||'')+' '+String(v.Name||'')); }
 function vehName(v){ return [v.Year,v.Make,v.Model].filter(has).join(' ')||v.Name||'Vehicle'; }
 
@@ -1969,7 +2733,7 @@ function openVehicle(idx){
     ? '<div class="msec"><div class="h">Live specs from VIN (NHTSA)</div><div id="vinBox"><span class="vinspin">Decoding '+esc(v.VIN)+' …</span></div></div>'
     : (air ? '<div class="msec"><div class="h">Aircraft</div><div class="mgrid">'+mkv('Home field', kv('Flying').home_airport)+(has(v.Notes)?mkv('Notes', v.Notes):'')+'</div></div>' : '');
 
-  
+  // Specifications grid (parses "Label: value | Label: value")
   var specsSection='';
   if(has(v.Specs)){
     var g=String(v.Specs).split('|').map(function(s){return s.trim();}).filter(Boolean)
@@ -1995,7 +2759,7 @@ function openVehicle(idx){
 }
 function closeModal(){ $('modal').classList.add('hidden'); $('modalSheet').innerHTML=''; }
 
- 
+/* ---------- Command palette (⌘K / Ctrl-K) ---------- */
 var PAL_SEL=0, PAL_ITEMS=[];
 function palIndex(){
   var items=[];
@@ -2021,7 +2785,7 @@ function palIndex(){
 function openPalette(){ $('palette').classList.remove('hidden'); var i=$('palInput'); i.value=''; PAL_SEL=0; palRender(); setTimeout(function(){i.focus();},30); }
 function closePalette(){ $('palette').classList.add('hidden'); }
 
- 
+/* ---------- AI assistant ---------- */
 function openAI(){ $('aiPanel').classList.remove('hidden'); $('aiFab').classList.add('hidden');
   if(!$('aiBody').getAttribute('data-init')){ $('aiBody').setAttribute('data-init','1');
     aiPush('a','Hi Brad — ask me anything about your dashboard. A few ideas:'+aiSuggestions()); }
@@ -2067,7 +2831,7 @@ document.addEventListener('keydown', function(e){
   if((e.metaKey||e.ctrlKey) && (e.key==='k'||e.key==='K')){ if(!appHidden){ e.preventDefault(); if($('palette').classList.contains('hidden')) openPalette(); else closePalette(); } return; }
   if(appHidden||e.metaKey||e.ctrlKey||e.altKey) return;
   var tag=(e.target&&e.target.tagName||'').toLowerCase();
-  if(tag==='input'||tag==='textarea'||tag==='select') return;      
+  if(tag==='input'||tag==='textarea'||tag==='select') return;      // don't hijack typing
   if(!$('palette').classList.contains('hidden')||!$('modal').classList.contains('hidden')) return;
   if(e.key==='/'){ e.preventDefault(); openPalette(); }
   else if(e.key>='1'&&e.key<='9'){ var t=TAB_ORDER[parseInt(e.key,10)-1]; if(t){ e.preventDefault(); navGo(t); } }
@@ -2091,8 +2855,9 @@ function decodeVin(vin){
     .catch(function(){ if($('vinBox')) $('vinBox').innerHTML='<span class="vinspin">Couldn’t reach the VIN database right now.</span>'; });
 }
 
-
-
+/* ============================================================
+   HEALTH & FITNESS
+   ============================================================ */
 function renderHealth(){
   var h=kv('Health'), log=arr('HealthLog');
   var cur=num(h.weight)||208, goal=num(h.weight_goal)||185, togo=Math.max(0,Math.round(cur-goal));
@@ -2110,7 +2875,7 @@ function renderHealth(){
     .filter(function(r){return has(r[1]);});
   var infoHtml=(rows.length?rows.map(function(r){return '<div class="kv-row"><span class="k">'+esc(r[0])+'</span><span class="v">'+esc(r[1])+'</span></div>';}).join(''):'<div class="empty">Add your metrics with the ✎ Edit button.</div>');
 
-  
+  // Hybrid weekly plan (CompTrain strength/conditioning + Z2 endurance), aligned to Brad's rhythm
   var plan=[
     ['Mon','Long run — Zone 2 (conversational)','endurance base; 45–75 min'],
     ['Tue','CompTrain strength + short metcon','heavy lift, then 8–12 min conditioning'],
@@ -2146,7 +2911,7 @@ function renderHealth(){
     {label:'Workout',key:'Name'},{label:'Dist',num:true,key:'Distance'},{label:'Time',num:true,render:woDur},
     {label:'Avg HR',num:true,key:'AvgHR'},{label:'Elev',num:true,key:'Elevation'}];
   function woTs(r){ var m=String(r.Date||'').match(/(\d{4})-(\d{2})-(\d{2})/); return m?new Date(+m[1],+m[2]-1,+m[3]).getTime():0; }
-  var woRecent = workouts.slice().sort(function(a,b){return woTs(b)-woTs(a);}).slice(0,15);   
+  var woRecent = workouts.slice().sort(function(a,b){return woTs(b)-woTs(a);}).slice(0,15);   // newest first, by actual date
   var woCard = stravaOn ? '<div style="height:22px"></div>'+card('Recent workouts','Auto-synced from Strava — most recent first.', tableEl(woCols, woRecent, {}), '--pink') : '';
 
   var logCols=[{label:'Date',key:'Date'},{label:'Metric',key:'Metric'},{label:'Value',num:true,key:'Value'},{label:'Notes',key:'Notes'}];
@@ -2165,8 +2930,9 @@ function renderHealth(){
     + card('Weight & metrics log','', tableEl(logCols, log.slice().reverse(), {empty:'Log weight & metrics with ✎ Edit.',editTab:'HealthLog'}), '--pink');
 }
 
-
-
+/* ============================================================
+   FAITH & RHYTHM — rule of life, prayer/people, decision journal
+   ============================================================ */
 function ymd(d){ d=d||new Date(); return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2); }
 function daysBetween(a,b){ var da=parseDate(a), db=parseDate(b); if(!da||!db) return null;
   return Math.round((new Date(db.getFullYear(),db.getMonth(),db.getDate())-new Date(da.getFullYear(),da.getMonth(),da.getDate()))/864e5); }
@@ -2174,8 +2940,8 @@ async function habitDidToday(rownum){
   var row=arr('Habits').filter(function(r){return String(r.__row)===String(rownum);})[0]; if(!row) return;
   var today=ymd(); var last=row.LastDone; var streak=parseInt(row.Streak,10)||0;
   var gap=has(last)?daysBetween(last,new Date()):null;
-  if(gap===0){ return; }                       
-  if(gap===1||streak===0||gap==null){ streak=streak+1; } else { streak=1; }  
+  if(gap===0){ return; }                       // already logged today
+  if(gap===1||streak===0||gap==null){ streak=streak+1; } else { streak=1; }  // consecutive day continues; a break resets
   await apiWrite({action:'upsert',tab:'Habits',rownum:rownum,row:JSON.stringify({Practice:row.Practice,Cadence:row.Cadence,Streak:streak,LastDone:today,Notes:row.Notes||''})});
   await afterWrite();
 }
@@ -2193,7 +2959,7 @@ function renderFaith(){
     + statTile('Decisions logged', journal.length||'—', 'in the journal')
     + '</div>';
 
-  
+  // Rule of life — habits with a one-tap "did it" streak button
   var habitBody = habits.length ? habits.map(function(h){
     var doneT=String(h.LastDone||'').slice(0,10)===today;
     var streak=parseInt(h.Streak,10)||0;
@@ -2208,7 +2974,7 @@ function renderFaith(){
   var habitCard = (EDIT?'<div class="editbar">'+addBtn('Habits','practice')+'</div>':'')
     + card('Rule of life','Your rhythms. Tap ✓ each day to keep the streak.', habitBody, '--gold');
 
-  
+  // People / prayer list
   var prCols=[
     {label:'Name',render:function(r){return '<strong>'+esc(r.Name)+'</strong>';}},
     {label:'Praying for',render:function(r){return esc(r.For||'');}},
@@ -2218,12 +2984,12 @@ function renderFaith(){
       return '<span'+(stale?' style="color:var(--amber)"':'')+'>'+esc(r.LastContact)+(d!=null?' <span class="foot" style="color:'+(stale?'var(--amber)':'var(--text-dim)')+'">('+d+'d)</span>':'')+'</span>';}},
     {label:'Notes',render:function(r){return esc(r.Notes||'');}}
   ];
-  
+  // Gentle nudge: open loops not contacted in >30 days
   var reach=prayer.filter(function(p){var s=String(p.Status||'').toLowerCase(); if(s==='closed'||s==='answered') return false; var d=has(p.LastContact)?daysBetween(p.LastContact,new Date()):999; return d==null||d>30;});
   var reachNote=reach.length?'<div class="foot" style="margin:0 0 10px;color:var(--amber)">🤝 Reach out soon: '+reach.slice(0,5).map(function(p){return esc(p.Name);}).join(', ')+(reach.length>5?' +'+(reach.length-5)+' more':'')+'</div>':'';
   var prayerCard=card('People & prayer','Who you\'re praying for and following up with.', reachNote+tableEl(prCols, prayer, {empty:'Add people to pray for and stay in touch with.',editTab:'Prayer'}), '--gold');
 
-  
+  // Decision journal
   var jCols=[
     {label:'Date',render:function(r){return esc(r.Date||'');}},
     {label:'Decision',render:function(r){return '<strong>'+esc(r.Decision)+'</strong>'+(has(r.Rationale)?'<div class="foot" style="color:var(--text-dim);white-space:normal">'+esc(r.Rationale)+'</div>':'');}},
@@ -2241,8 +3007,9 @@ function renderFaith(){
     + journalCard;
 }
 
-
-
+/* ============================================================
+   TRAVEL
+   ============================================================ */
 function renderTravel(){
   var trips=arr('Travel'), checklist=arr('TravelChecklist'), points=arr('Points');
   var upcoming=trips.filter(function(t){return String(t.Status||'').toLowerCase()!=='past';});
@@ -2261,7 +3028,7 @@ function renderTravel(){
   var out=addBtn('Travel','trip')+(EDIT?'<div class="editbar" style="margin-top:-4px"><button class="ebtn pri" onclick="openEditor(\'TravelChecklist\')">＋ Add checklist item</button></div>':'');
   out += upcoming.length?'<div class="section-title">Upcoming</div><div class="grid cols-2">'+upcoming.map(tripCard).join('')+'</div>'
     : card('Travel','', '<div class="empty">Add trips with ✎ Edit. I can also pull upcoming travel from your Google Calendar.</div>','--cyan');
-  
+  // Points → estimated cash value ("travel wallet")
   var CPP=[[/capital one/i,1.4],[/chase|ultimate rewards/i,1.5],[/amex|membership rewards/i,1.5],[/southwest|rapid rewards/i,1.35],
     [/united/i,1.3],[/alaska|atmos|hawaiian/i,1.3],[/delta|skymiles/i,1.1],[/flying blue/i,1.2],[/marriott|bonvoy/i,0.7],[/hilton/i,0.5]];
   function cpp(prog){ for(var i=0;i<CPP.length;i++){ if(CPP[i][0].test(String(prog||''))) return CPP[i][1]; } return 1.0; }
@@ -2281,7 +3048,7 @@ function renderTravel(){
   return out;
 }
 
- 
+/* ---- PWA: register service worker so Life OS installs to the home screen & works offline ---- */
 if('serviceWorker' in navigator){
   window.addEventListener('load', function(){
     navigator.serviceWorker.register('sw.js').catch(function(){});
