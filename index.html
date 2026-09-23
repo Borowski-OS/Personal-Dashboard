@@ -538,6 +538,13 @@ var TAB_ALIAS = { bills:'home', family:'home', money:'home', travel:'home' };
 
 function $(id){ return document.getElementById(id); }
 function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+/* escape text, then turn web addresses (https://… or site.com/path) into clickable links that open in a new tab */
+function linkify(s){
+  return esc(s).replace(/\b(https?:\/\/[^\s<]+|(?:www\.)?[a-z0-9-]+(?:\.[a-z0-9-]+)*\.(?:com|net|org|gov|io|co|us|biz|info)\/[^\s<]*)/gi, function(m){
+    var trail=''; while(/[.,;:)\]]$/.test(m)){ trail=m.slice(-1)+trail; m=m.slice(0,-1); }
+    var href=/^https?:/i.test(m)?m:'https://'+m;
+    return '<a href="'+href+'" target="_blank" rel="noopener" onclick="event.stopPropagation()">'+m+'</a>'+trail; });
+}
 function num(v){ if(v===''||v==null) return NaN; var n=parseFloat(String(v).replace(/[$,\s]/g,'')); return isNaN(n)?NaN:n; }
 function money(v,dec){ var n=num(v); if(isNaN(n)) return (v===''||v==null)?'—':esc(v);
   return '$'+n.toLocaleString('en-US',{minimumFractionDigits:dec||0,maximumFractionDigits:dec||0}); }
@@ -943,7 +950,7 @@ function tableEl(cols, rows, opts){
   if(!rows.length) return addBar + '<div class="empty">'+(opts.empty||'Nothing here yet — add rows in your sheet.')+'</div>';
   var h='<div style="overflow-x:auto"><table class="tbl"><thead><tr>'+cols.map(function(c){return '<th'+(c.num?' class="num"':'')+'>'+esc(c.label)+'</th>';}).join('')+(canEdit?'<th></th>':'')+'</tr></thead><tbody>';
   h+=rows.map(function(r){ return '<tr'+(r.__click?' class="clickable" onclick="'+r.__click+'"':'')+'>'+cols.map(function(c){
-      var v = c.render ? c.render(r) : esc(r[c.key]==null?'':r[c.key]);
+      var v = c.render ? c.render(r) : linkify(r[c.key]==null?'':r[c.key]);
       return '<td'+(c.num?' class="num"':'')+'>'+v+'</td>';
     }).join('')+(canEdit?'<td class="num"><button class="ebtn" onclick="event.stopPropagation();openEditor(\''+opts.editTab+'\','+(r.__row||'')+')">✎</button></td>':'')+'</tr>'; }).join('');
   return addBar + h+'</tbody></table></div>';
@@ -1209,9 +1216,9 @@ function ventureBestBetsCard(){
   out+= deal ? row('📈','Business to buy',esc(deal.Name)+(has(deal.Location)?' · '+esc(deal.Location):''),
       [has(deal.Price)?money(deal.Price)+' ask':'', has(deal.SDE)?money(deal.SDE)+' SDE':'', has(deal.CashNeeded)?'~'+money(deal.CashNeeded)+' cash in':'', has(deal.MonthlyNet)?'~'+money(deal.MonthlyNet)+'/mo net':'', has(deal.Stage)?esc(deal.Stage):''].filter(Boolean).join(' · '))
     : row('📈','Business to buy','No live deals','Add candidates on the Ventures tab');
-  out+= prop ? row('🏘️','Rental property',esc(prop.Address)+(has(prop.Area)?' · '+esc(prop.Area):''),
+  out+= prop ? row('🏘️','Real estate investment',esc(prop.Address)+(has(prop.Area)?' · '+esc(prop.Area):''),
       [has(prop.Price)?money(prop.Price):'', has(prop.CapRate)?esc(prop.CapRate)+' cap':'', has(prop.CashFlowMo)?money(prop.CashFlowMo)+'/mo cash flow':'', has(prop.Appreciation5yr)?esc(prop.Appreciation5yr)+' 5-yr equity':'', has(prop.Stage)?esc(prop.Stage):''].filter(Boolean).join(' · '))
-    : row('🏘️','Rental property','No live properties','Add candidates on the Ventures tab');
+    : row('🏘️','Real estate investment','No live properties','Add candidates on the Ventures tab');
   out+= row('💡','Side income (start now)','Anchor Soul Coaching + church websites',
       coach+'/'+coachGoal+' coaching clients · '+web+'/'+webGoal+' church sites · '+money(side)+'/mo recurring now');
   return card('🎯 Best bets','The top idea from each venture track — tap for the full pipeline.', out, '--indigo') + '<div style="height:22px"></div>';
@@ -2577,7 +2584,7 @@ function grpKv(obj, accentVar){
     if(!groups[g]){groups[g]=[];order.push(g);} groups[g].push([label,obj[k]]); });
   return order.map(function(g){
     return '<div class="card" style="border-top:3px solid var('+accentVar+')"><h2 style="font-size:15px">'+esc(g)+'</h2><div style="margin-top:6px">'
-      +groups[g].map(function(r){return '<div class="kv-row"><span class="k">'+esc(r[0])+'</span><span class="v" style="max-width:60%;text-align:right">'+esc(r[1])+'</span></div>';}).join('')
+      +groups[g].map(function(r){return '<div class="kv-row"><span class="k">'+esc(r[0])+'</span><span class="v" style="max-width:60%;text-align:right">'+linkify(r[1])+'</span></div>';}).join('')
       +'</div></div>';
   }).join('');
 }
@@ -2633,10 +2640,10 @@ function renderVentures(){
     + '<div class="grid cols-2" style="margin-bottom:22px">' + btcScenarioCard() + btcLadderCard() + '</div>'
     + boxCard
     + card('Deal pipeline','Screening estimates — underwrite before trusting SDE. Turn on ✎ Edit to add or update deals.',
-        tableEl(dcols, deals, {empty:'No deals yet. Add candidates with ✎ Edit — price, SDE, cash needed, stage.',editTab:'Deals'}), '--indigo')
+        tableEl(dcols, deals.filter(function(r){return !/(pass|dead)/i.test(String(r.Stage||''));}), {empty:'No deals yet. Add candidates with ✎ Edit — price, SDE, cash needed, stage.',editTab:'Deals'}), '--indigo')
     + '<div style="height:22px"></div>'
-    + card('Multifamily pipeline','Reno / Tahoe / Carson rentals that fit the real-estate buy-box. Rents and expenses are screening estimates — verify with a rent roll and T-12.',
-        tableEl(pcols, arr('Properties'), {empty:'No properties yet. Add candidates with ✎ Edit.',editTab:'Properties'}), '--teal');
+    + card('Real Estate Investments','Reno / Tahoe / Carson rentals that fit the real-estate buy-box. Rents and expenses are screening estimates — verify with a rent roll and T-12.',
+        tableEl(pcols, arr('Properties').filter(function(r){return !/(pass|dead)/i.test(String(r.Stage||''));}), {empty:'No properties yet. Add candidates with ✎ Edit.',editTab:'Properties'}), '--teal');
 }
 
 /* ============================================================
