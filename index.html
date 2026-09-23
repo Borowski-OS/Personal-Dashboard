@@ -1194,6 +1194,29 @@ function goNoGoCard(){
     rows+'<p style="font-size:12.5px;color:var(--text-muted);margin:12px 0 0">'+advice+'</p>'
     +'<p class="foot" style="margin:8px 0 0;color:var(--text-dim)">Rough estimate for planning only — not a substitute for the POH performance charts and your own weight & balance.</p>','--sky');
 }
+/* ---------- Overview: the top idea from each venture track (Deals, Properties, side income) ---------- */
+function ventureBestBetsCard(){
+  var live=function(r){ return !/(pass|dead)/i.test(String(r.Stage||'')); };
+  var deal=arr('Deals').filter(function(r){return has(r.Name)&&live(r);})[0];
+  var prop=arr('Properties').filter(function(r){return has(r.Address)&&live(r);})[0];
+  var v=kv('Ventures'), f=function(k){ return num(v['Funnel|'+k]); };
+  var coach=f('Coaching clients now')||0, coachGoal=f('Coaching goal')||6, web=f('Church web clients now')||0, webGoal=f('Church web goal')||20;
+  var side=(coach*(f('Coaching $/mo each')||400))+(web*(f('Church web $/mo each')||125));
+  var row=function(icon,label,title,sub){ return '<div class="kv-row" style="cursor:pointer;align-items:flex-start" onclick="navGo(\'ventures\')"><span class="k" style="min-width:0">'
+    +'<span class="foot" style="display:block;letter-spacing:.06em;text-transform:uppercase;color:var(--text-dim)">'+icon+' '+label+'</span>'
+    +'<strong>'+title+'</strong>'+(sub?'<div class="foot" style="color:var(--text-dim)">'+sub+'</div>':'')+'</span></div>'; };
+  var out='';
+  out+= deal ? row('📈','Business to buy',esc(deal.Name)+(has(deal.Location)?' · '+esc(deal.Location):''),
+      [has(deal.Price)?money(deal.Price)+' ask':'', has(deal.SDE)?money(deal.SDE)+' SDE':'', has(deal.CashNeeded)?'~'+money(deal.CashNeeded)+' cash in':'', has(deal.MonthlyNet)?'~'+money(deal.MonthlyNet)+'/mo net':'', has(deal.Stage)?esc(deal.Stage):''].filter(Boolean).join(' · '))
+    : row('📈','Business to buy','No live deals','Add candidates on the Ventures tab');
+  out+= prop ? row('🏘️','Rental property',esc(prop.Address)+(has(prop.Area)?' · '+esc(prop.Area):''),
+      [has(prop.Price)?money(prop.Price):'', has(prop.CapRate)?esc(prop.CapRate)+' cap':'', has(prop.CashFlowMo)?money(prop.CashFlowMo)+'/mo cash flow':'', has(prop.Appreciation5yr)?esc(prop.Appreciation5yr)+' 5-yr equity':'', has(prop.Stage)?esc(prop.Stage):''].filter(Boolean).join(' · '))
+    : row('🏘️','Rental property','No live properties','Add candidates on the Ventures tab');
+  out+= row('💡','Side income (start now)','Anchor Soul Coaching + church websites',
+      coach+'/'+coachGoal+' coaching clients · '+web+'/'+webGoal+' church sites · '+money(side)+'/mo recurring now');
+  return card('🎯 Best bets','The top idea from each venture track — tap for the full pipeline.', out, '--indigo') + '<div style="height:22px"></div>';
+}
+
 /* ---------- Acquisition readiness: buy-box capital plan as live progress ---------- */
 function acquisitionReadinessCard(){
   var cash=arr('Accounts').reduce(function(s,a){var n=num(a.Balance);var t=String(a.Type||'').toLowerCase();return s+(isNaN(n)||t.indexOf('credit')>=0?0:n);},0);
@@ -1312,6 +1335,7 @@ function renderOverview(){
     + '<div class="grid cols-3" style="margin-bottom:22px">'+tiles.join('')+'</div>'
     + card('📡 Radar','What changed out there that affects your plans, money, and flying.', radarHtml(), '--gold')
     + '<div style="height:22px"></div>'
+    + ventureBestBetsCard()
     + trends
     + '<div class="grid cols-2" style="margin-bottom:22px">'
     + card('Your next steps','Auto-built from your goals, tasks & status — soonest first.', stepsHtml, '--gold')
