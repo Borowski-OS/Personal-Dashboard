@@ -17,7 +17,7 @@ permissions:
 
 concurrency:
   group: pages-publish
-  cancel-in-progress: false
+  cancel-in-progress: true   # a newer run replaces a stuck one instead of queueing behind it forever
 
 jobs:
   deploy:
