@@ -1211,6 +1211,10 @@ function smartSteps(){
   var today=(function(){var n=new Date();return n.getFullYear()+'-'+('0'+(n.getMonth()+1)).slice(-2)+'-'+('0'+n.getDate()).slice(-2);})();
   arr('Habits').filter(function(hb){return /daily/i.test(String(hb.Cadence||''))&&String(hb.LastDone||'').slice(0,10)!==today;}).slice(0,3).forEach(function(hb){
     var st=parseInt(hb.Streak,10)||0; out.push({t:'Keep your '+hb.Practice+(st>1?' streak ('+st+'d)':''), tab:'faith', d:0, sort:12}); });
+  // stale balances (manual from Monarch/Empower) — nudge after 2 weeks
+  var asofs=arr('Accounts').map(function(x){return parseDate(x.AsOf);}).filter(Boolean).sort(function(a,b){return b-a;});
+  if(asofs.length){ var age=Math.floor((Date.now()-asofs[0].getTime())/864e5);
+    if(age>=14) out.push({t:'Refresh account balances — last updated '+asofs[0].toLocaleDateString('en-US',{month:'short',day:'numeric',timeZone:'UTC'})+' ('+age+' days). Send Claude a Monarch screenshot.', tab:'home', d:null, sort:55}); }
   // estate essentials Chelsea would need
   var bm=binderMissing(); if(bm.length>=3) out.push({t:'Emergency binder: '+bm.length+' essentials missing — start with '+bm.slice(0,2).join(' + ').toLowerCase(), tab:'family', d:null, sort:60});
   // de-dupe by first 24 chars
