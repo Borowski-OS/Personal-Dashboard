@@ -189,6 +189,12 @@
   @media (max-width:640px){ .mit { flex-wrap:wrap; } .mit-r { width:100%; padding-left:68px; } .mit-t { flex:1 1 60%; font-size:15px; } }
   @media (max-width:640px){ .sc-row { grid-template-columns:12px 1fr auto; } .sc-t, .sc-s { display:none; } .hero-h { font-size:24px; } .bchip { min-width:0; flex:1 1 45%; } }
   .agenda-h { font-size:11.5px; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:var(--text-dim); margin-bottom:4px; }
+  /* ---- airport weather grid: home field wide, the rest compact ---- */
+  .ap-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(min(280px,100%),1fr)); gap:14px; }
+  .ap-grid .ap-home { grid-column:1 / -1; }
+  .ap-card { padding:16px 18px; }
+  .ap-raw summary { cursor:pointer; font-size:12px; color:var(--text-dim); margin-top:10px; }
+  .ap-raw .code { font-size:11.5px; color:var(--text-dim); margin-top:6px; word-break:break-word; }
   /* ---- deal cards ---- */
   .deals { display:grid; grid-template-columns:repeat(auto-fill,minmax(min(340px,100%),1fr)); gap:14px; }
   @media (max-width:640px){ .card { padding:18px 16px; } .header .updated { text-align:left; } }
@@ -2494,16 +2500,16 @@ function airportsHtml(){
     var noneNote = (b.none||!m)
       ? '<div class="foot" style="margin-top:6px;color:var(--amber)">No nearby station reporting — call AWOS'+(has(a.WxFreq)?' '+esc(a.WxFreq):'')+(has(a.Phone)?' / '+esc(a.Phone):'')+'.</div>'
       : '';
-    return '<div class="card" style="border-top:3px solid var(--sky)">'
+    return '<div class="card ap-card'+(icao==='KMEV'?' ap-home':'')+'" style="border-top:3px solid var(--sky)">'
       +'<div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px"><h2 style="font-size:16px">'+esc(icao)+' <span class="foot" style="font-weight:400">'+esc(a.Name||'')+'</span></h2>'+badge+'</div>'
       +'<div style="margin-top:8px;font-size:13.5px;color:var(--text)">'+esc(wx)+(b.proxied?' <span class="foot" style="color:var(--text-dim)">@ '+esc(b.station)+'</span>':'')+'</div>'
       +proxyNote+noneNote
       +((icao==='KMEV'&&LIVE.kmevNws)?'<div class="foot" style="margin-top:6px;color:var(--text-dim)">'+esc(nwsNowLine())+' <span>(model)</span></div>':'')
       +((freq||ph)?'<div class="kv-row" style="margin-top:8px"><span class="k">'+esc(freq)+'</span><span class="v">'+ph+(EDIT?' '+editBtn('Airports',a.__row):'')+'</span></div>':(EDIT?'<div style="margin-top:8px">'+editBtn('Airports',a.__row)+'</div>':''))
-      +(m&&m.rawOb?'<div class="code" style="margin-top:8px;font-size:11.5px;color:var(--text-dim);white-space:normal;word-break:break-word">'+esc(m.rawOb)+'</div>':'')
+      +(m&&m.rawOb?'<details class="ap-raw"><summary>Raw METAR</summary><div class="code">'+esc(m.rawOb)+'</div></details>':'')
       +'</div>';
   }).join('');
-  return '<div class="grid cols-2">'+cards+'</div>';
+  return '<div class="ap-grid">'+cards+'</div>';
 }
 /* Density altitude at Minden (KMEV, field elev 4722 ft) from live METAR or NWS temp.
    DA = pressure_alt + 120 * (OAT_C - ISA_C).  Critical for the Franklin-powered Maule in summer. */
