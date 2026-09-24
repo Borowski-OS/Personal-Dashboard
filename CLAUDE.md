@@ -15,3 +15,5 @@
   investor rate (at list or a days-on-market-capped offer) and be within ~1 hr of Carson City; only verified-live listings.
 - This repo is PUBLIC. Never commit data.js, Code.js or other backend files, .clasprc.json, passwords, or personal financial data.
 - Brad doesn't code: work autonomously, explain in plain English, and only ask for things only he can do.
+- CFI balance: Flying kv `cfi_rate`, `cfi_aircraft` (tail), `cfi_paid_through` (date). Owed = hours in that tail after the date × rate; "Mark paid" advances the date.
+- Medical tab (Start, End, Kind, What, Symptoms, Treatment, Notes). An Illness row with no End = "sick mode": training targets paused, recovery plan on Health, IMSAFE grounding on Today/Flying.
