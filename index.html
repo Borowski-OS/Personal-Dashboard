@@ -1232,7 +1232,9 @@ function smartSteps(){
   // health-driven
   var h=kv('Health'), cur=num(h.weight), goal=num(h.weight_goal);
   var wk=trainingWeek().sessions;
-  if(wk<5) out.push({t:'Train — '+wk+' workout'+(wk===1?'':'s')+' logged this week so far (aim 5)', tab:'health', d:0, sort:8});
+  var sk=sickNow();
+  if(sk) out.push({t:'Recover — '+(sk.fever?'rest, fluids, sleep; no training or flying until 24 hrs fever-free':'easy day only; no lifting, intervals or flying')+'. Tap when you\'re better.', tab:'health', d:0, sort:5});
+  else if(wk<5) out.push({t:'Train — '+wk+' workout'+(wk===1?'':'s')+' logged this week so far (aim 5)', tab:'health', d:0, sort:8});
   if(!isNaN(cur)&&!isNaN(goal)&&cur>goal) out.push({t:'Log today’s weight ('+Math.round(cur-goal)+' lb to your '+goal+' goal)', tab:'health', d:null, sort:40, act:'quickLogWeight()'});
   // CFI balance due
   var co=cfiOwed(); if(co&&co.amt>0) out.push({t:'Pay '+co.first+' '+cfiUsd(co.amt)+' for '+co.hrs+' hr in the '+co.tail+' (last flight '+prettyIso(String(co.flights[co.flights.length-1].Date))+')', tab:'flying', d:null, sort:6});
@@ -1417,6 +1419,8 @@ function goNoGoCard(){
     +'<div class="kv-row"><span class="k">Density altitude</span><span class="v mono" style="color:var('+lcol+')">'+da.da.toLocaleString()+' ft</span></div>'
     +'<div class="kv-row"><span class="k">Est. ground roll</span><span class="v mono">~'+roll.toLocaleString()+' ft</span></div>'
     +'<div class="kv-row"><span class="k">Runway 16/34 available</span><span class="v mono">7,400 ft</span></div>';
+  var sk=sickNow();
+  if(sk) rows='<div style="border:1px solid var(--amber);border-radius:10px;padding:10px 12px;margin-bottom:10px;color:var(--amber);font-weight:600">🤒 IMSAFE — you\'re logged as sick (day '+sk.day+'). Don\'t fly until you\'re symptom-free and off cold meds.</div>'+rows;
   return card('Go / no-go — takeoff @ KMEV','Live density-altitude performance ('+da.src+', '+da.tempC+'°C).',
     rows+'<p style="font-size:12.5px;color:var(--text-muted);margin:12px 0 0">'+advice+'</p>'
     +'<p class="foot" style="margin:8px 0 0;color:var(--text-dim)">Rough estimate for planning only — not a substitute for the POH performance charts and your own weight & balance.</p>','--sky');
@@ -1542,14 +1546,15 @@ function todayHero(){
   var today=ymd(n), chips=[];
   // flying window from the KMEV TAF
   var nf=tafNextFly();
-  if(!LIVE.tafs) chips.push(chipHtml('✈️','Flying','checking TAF…','', 'flying'));
+  if(sickNow()) chips.push(chipHtml('✈️','Flying','grounded — sick (IMSAFE)','bad','flying'));
+  else if(!LIVE.tafs) chips.push(chipHtml('✈️','Flying','checking TAF…','', 'flying'));
   else if(!nf||nf.none) chips.push(chipHtml('✈️','Flying','no good window in TAF','bad','flying'));
   else chips.push(chipHtml('✈️','Good to fly', (nf.f.from*1000<=Date.now()+60000?'now':dayLbl(nf.f.from)+' '+hhmm(nf.f.from))+' – '+hhmm(nf.f.to),'good','flying'));
   if(LIVE.kmevNws){ var w=LIVE.kmevNws; chips.push(chipHtml('🌤️','Minden', w.temp+'° · '+esc(w.sky||''),'', 'flying')); }
   if(LIVE.aqi&&LIVE.aqi.now!=null){ var q=LIVE.aqi.now; chips.push(chipHtml('🌫️','Air quality', q+' · '+aqiLabel(q).replace('Unhealthy for sensitive groups','Sensitive'), q>100?'bad':(q<=50?'good':''), '')); }
   var ev=arr('Events').filter(function(e){return String(e.Date).slice(0,10)===today&&has(e.Title);});
   chips.push(chipHtml('📅','Calendar', ev.length?ev.length+' event'+(ev.length===1?'':'s')+' today':'nothing scheduled','', ''));
-  var wo=todayWorkoutPlan(); if(wo) chips.push(chipHtml('💪','Training', esc(wo),'', 'health'));
+  var sk=sickNow(), wo=sk?('Rest — sick day '+sk.day):todayWorkoutPlan(); if(wo) chips.push(chipHtml(sk?'🤒':'💪','Training', esc(wo),'', 'health'));
   var hb=arr('Habits').filter(function(x){return /daily/i.test(String(x.Cadence||''));}), done=hb.filter(function(x){return String(x.LastDone||'').slice(0,10)===today;}).length;
   chips.push(chipHtml('🙏','Rhythm', done+' / '+hb.length+' kept', done===hb.length&&hb.length?'good':'', ''));
   var quotes=arr('Quotes').filter(function(q){return has(q.Quote);}), qTxt='';
@@ -1593,6 +1598,7 @@ function scorecardRows(){
   row('health','Workouts this week', wk, '5 / wk', wk>=5?'g':(wk>=pace?'g':(wk>=pace-1?'a':'r')), 'Mon–today · on pace = '+pace+' by today');
   row('health','Zone 2 minutes', Math.round(tw.z2), '150 / wk', tw.z2>=150?'g':(tw.z2>=z2pace*0.8?'a':'r'), 'easy cardio at '+tw.z2lo+'–'+tw.z2hi+' bpm');
   row('health','Strength sessions', tw.strength, '2 / wk', tw.strength>=2?'g':(dow>=4&&tw.strength===0?'r':'a'));
+  if(sickNow()) rows.slice(-3).forEach(function(r){ if(r.status!=='g'){ r.status='a'; r.note='paused — sick'; } });
   var h=kv('Health'), cur=num(h.weight), goal=num(h.weight_goal), ws=weightSeries();
   if(!isNaN(cur)){ var ch=ws.length>=2?ws[ws.length-1]-ws[Math.max(0,ws.length-5)]:null;
     row('health','Weight', cur+' lb', (isNaN(goal)?'':goal+' lb'), (ch==null||ch===0)?'a':(ch<0?'g':'r'), (ch==null||ch===0)?'log a weigh-in weekly to see the trend':((ch<0?'':'+')+ch.toFixed(1)+' lb recent')); }
@@ -3325,6 +3331,58 @@ function decodeVin(vin){
 /* ============================================================
    HEALTH & FITNESS
    ============================================================ */
+/* ---------- Medical history + sick mode: an open illness (no End date) pauses training targets and flags IMSAFE ---------- */
+function sickNow(){
+  var today=ymd(laNow());
+  var open=arr('Medical').filter(function(r){ return /ill|sick|cold|flu|covid|virus|infection/i.test(String(r.Kind||'')+' '+String(r.What||'')) && !has(r.End) && has(r.Start); })
+    .sort(function(a,b){ return String(b.Start).localeCompare(String(a.Start)); })[0];
+  if(!open) return null;
+  var st=String(open.Start).slice(0,10), days=Math.round((new Date(today)-new Date(st))/864e5)+1;
+  if(days>30) return null;   // forgotten entry — don't pause training forever
+  var sym=String(open.Symptoms||'')+' '+String(open.Notes||'');
+  return {row:open.__row, r:open, day:days, what:open.What||'Sick', fever:/fever|chills|body ?ache|chest|cough/i.test(sym)};
+}
+async function logMedical(){
+  var what=window.prompt('What happened? (e.g. "Cold", "Dentist cleaning", "Sprained ankle")'); if(what==null||!String(what).trim()) return;
+  var sym=window.prompt('Symptoms or details (optional):')||'';
+  var start=window.prompt('Start date (YYYY-MM-DD):', ymd(laNow())); if(start==null) return;
+  var kind=/visit|dentist|doctor|physical|check|appointment|lab|vaccine|shot|surgery/i.test(what)?'Visit':(/sprain|strain|injur|broke|fracture|pull/i.test(what)?'Injury':'Illness');
+  await apiWrite({action:'upsert',tab:'Medical',row:JSON.stringify({Start:start,End:kind==='Illness'?'':start,Kind:kind,What:what,Symptoms:sym,Treatment:'',Notes:''})});
+  await afterWrite();
+}
+async function markRecovered(rownum){
+  var r=arr('Medical').filter(function(x){ return String(x.__row)===String(rownum); })[0]; if(!r) return;
+  var end=window.prompt('Feeling better — last sick day (YYYY-MM-DD):', ymd(laNow())); if(end==null) return;
+  var o={}; ['Start','End','Kind','What','Symptoms','Treatment','Notes'].forEach(function(k){ o[k]=r[k]==null?'':r[k]; });
+  o.Start=String(o.Start).slice(0,10); o.End=end;
+  await apiWrite({action:'upsert',tab:'Medical',rownum:rownum,row:JSON.stringify(o)});
+  await afterWrite();
+}
+function sickPlanCard(){
+  var s=sickNow(); if(!s) return '';
+  var rest = s.fever
+    ? '<b>Rest fully while you have a fever</b> — no training at all. Symptoms below the neck or a fever means the body needs every bit of energy for the fight; hard exercise can prolong it or, rarely, inflame the heart.'
+    : '<b>Above-the-neck only</b> (sore throat, stuffy nose, mild headache, no fever): an easy 20–30 min walk or Zone 2 spin is okay if you feel up to it. Skip lifting and intervals.';
+  var body='<p style="margin:0 0 10px">'+rest+'</p>'
+    +'<div class="kv-row"><span class="k">Back to training</span><span class="v">24 hrs fever-free (without meds) → 2–3 easy Zone 2 days (≤30 min) → lifting → intervals last</span></div>'
+    +'<div class="kv-row"><span class="k">Nutrition</span><span class="v">Pause the deficit — eat at maintenance. Keep protein up, lots of fluids, sleep 8+ hrs.</span></div>'
+    +'<div class="kv-row"><span class="k">Flying (IMSAFE)</span><span class="v">No flying while sick — fever, congestion (ear/sinus block on descent) or cold meds like antihistamines all disqualify.</span></div>'
+    +'<div class="kv-row"><span class="k">See a doctor if</span><span class="v">fever over 103°F, trouble breathing, a sore throat with no cough + white spots (strep), or not improving after 7–10 days</span></div>'
+    +'<div style="display:flex;justify-content:flex-end;margin-top:12px"><button class="ebtn pri" onclick="markRecovered('+s.row+')">✓ I\'m better</button></div>';
+  return card('🤒 Sick mode — day '+s.day+': '+s.what, (s.r.Symptoms?String(s.r.Symptoms):'')+' · training targets paused until you mark yourself better.', body, '--amber');
+}
+function medicalHistoryCard(){
+  var rows=arr('Medical').filter(function(r){ return has(r.What)||has(r.Start); })
+    .sort(function(a,b){ return String(b.Start).localeCompare(String(a.Start)); });
+  var cols=[{label:'When',render:function(r){ var fd=function(v){ var m=String(v||'').match(/^(\d{4})-(\d{2})-(\d{2})/); return m?MONTHS[+m[2]-1]+' '+(+m[3])+', '+m[1]:String(v||''); };
+        var a=fd(r.Start), b=has(r.End)?fd(r.End):'';
+        return esc(a)+(r.Kind==='Illness'?(b?(b!==a?' – '+esc(b):''):' – <span style="color:var(--amber);font-weight:600">ongoing</span>'):''); }},
+    {label:'What',render:function(r){ return '<strong>'+esc(r.What||'')+'</strong>'+(has(r.Kind)?' <span class="chip">'+esc(r.Kind)+'</span>':''); }},
+    {label:'Symptoms',key:'Symptoms',wide:true},{label:'Treatment',key:'Treatment'},{label:'Notes',key:'Notes'}];
+  return card('Medical history','Illnesses, injuries and visits — so you can remember what happened and when.',
+    '<div class="editbar" style="justify-content:flex-start;margin-bottom:12px"><button class="ebtn pri" onclick="logMedical()">＋ Log illness / visit</button></div>'
+    + tableEl(cols, rows, {empty:'Nothing logged yet.', editTab:'Medical'}), '--pink');
+}
 function trainingTargetsCard(){
   var t=trainingWeek();
   var bars = goalBar('Zone 2 cardio → 150 min', t.z2/150*100, fmtMins(t.z2)+' this week at '+t.z2lo+'–'+t.z2hi+' bpm avg HR', '--sky')
@@ -3391,6 +3449,7 @@ function renderHealth(){
 
   var logCols=[{label:'Date',key:'Date'},{label:'Metric',key:'Metric'},{label:'Value',num:true,key:'Value'},{label:'Notes',key:'Notes'}];
   return '<div class="editbar" style="gap:8px">'+(EDIT?kvEditBtn('Health'):'')+'<button class="ebtn pri" onclick="quickLogWeight()">＋ Log weight</button></div>'
+    + (sickNow()?sickPlanCard()+'<div style="height:22px"></div>':'')
     + tiles
     + trainingTargetsCard() + '<div style="height:22px"></div>'
     + '<div class="grid cols-2">'
@@ -3401,6 +3460,8 @@ function renderHealth(){
         ? '<div class="grid cols-2">' + card('Health admin','Recovery, resting HR and appointments.', infoHtml, '--pink') + card('Connections','Auto-sync + logging.', connect, '--pink') + '</div>'
         : card('Connections','Auto-sync + logging.', connect, '--pink'))
     + woCard
+    + '<div style="height:22px"></div>'
+    + medicalHistoryCard()
     + '<div style="height:22px"></div>'
     + card('Weight & metrics log','', tableEl(logCols, log.slice().sort(function(a,b){ return String(b.Date).localeCompare(String(a.Date)); }), {empty:'Log weight & metrics with ✎ Edit.',editTab:'HealthLog'}), '--pink');
 }
