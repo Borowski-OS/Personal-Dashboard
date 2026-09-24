@@ -1237,6 +1237,7 @@ function smartSteps(){
   else if(wk<5) out.push({t:'Train — '+wk+' workout'+(wk===1?'':'s')+' logged this week so far (aim 5)', tab:'health', d:0, sort:8});
   if(!isNaN(cur)&&!isNaN(goal)&&cur>goal) out.push({t:'Log today’s weight ('+Math.round(cur-goal)+' lb to your '+goal+' goal)', tab:'health', d:null, sort:40, act:'quickLogWeight()'});
   if(has(kv('Health').ins_medical)&&!has(kv('Health').pcp)) out.push({t:'Pick a primary care doctor — your '+kv('Health').ins_medical+' plan needs one on file for referrals', tab:'health', d:null, sort:35});
+  if(has(kv('Health').ins_dental)&&!has(kv('Health').dentist)) out.push({t:'Find an in-network dentist and book a cleaning (usually covered 100%, 2×/yr)', tab:'health', d:null, sort:50});
   // CFI balance due
   var co=cfiOwed(); if(co&&co.amt>0) out.push({t:'Pay '+co.first+' '+cfiUsd(co.amt)+' for '+co.hrs+' hr in the '+co.tail+' (last flight '+prettyIso(String(co.flights[co.flights.length-1].Date))+')', tab:'flying', d:null, sort:6});
   // flying-driven (only if not already present)
@@ -3409,17 +3410,20 @@ function coverageCard(){
   var todo=function(k,hint){ return '<div class="kv-row"><span class="k">'+esc(k)+'</span><span class="v" style="color:var(--text-dim)">'+esc(hint)+'</span></div>'; };
   var med='<div class="section-title" style="margin:0 0 6px">Medical'+(has(h.ins_medical)?' · '+esc(h.ins_medical):'')+'</div>'
     + line('Member ID',h.med_member_id,true) + line('Group #',h.med_group,true) + line('Member services',h.med_phone)
+    + (/^https:\/\//.test(String(h.med_portal||''))?'<div class="kv-row"><span class="k">Benefits, claims & ID card</span><span class="v"><a href="'+esc(h.med_portal)+'" target="_blank" rel="noopener">'+esc(String(h.med_portal).replace(/^https:\/\//,''))+' ↗</a></span></div>':'')
+    + line('Pharmacy',h.rx_plan)
     + (has(h.pcp)?line('Primary care doctor',h.pcp):'<div class="kv-row"><span class="k">Primary care doctor</span><span class="v" style="color:var(--amber);font-weight:600">none yet — needed for HMO referrals</span></div>')
     + (has(h.med_deductible)||has(h.med_oop_max)
-        ? line('Deductible',h.med_deductible)+line('Out-of-pocket max',h.med_oop_max)+line('Deductible met this year',h.med_deductible_met)
+        ? line('Deductible (in-network)',h.med_deductible)+line('Out-of-pocket max (in-network)',h.med_oop_max)+line('Deductible met this year',h.med_deductible_met)
+          +'<p class="foot" style="margin:8px 0 4px;color:var(--text-dim)">You pay the plan\'s price for most care until the deductible is met, then a share until the out-of-pocket max — after that, in-network care is covered 100% for the rest of the year. HMO: stay in the Renown network and get referrals from your primary care doctor.</p>'
         : todo('Deductible / out-of-pocket max','add from your plan summary (SBC)'))
     + (['copay_pcp','copay_specialist','copay_urgent','copay_er','copay_rx','copay_lab'].some(function(k){return has(h[k]);})
         ? '<div class="section-title" style="margin:14px 0 6px">What a visit costs you</div>'
           + line('Primary care visit',h.copay_pcp)+line('Specialist',h.copay_specialist)+line('Urgent care',h.copay_urgent)
           + line('Emergency room',h.copay_er)+line('Lab / X-ray',h.copay_lab)+line('Prescriptions',h.copay_rx)+line('Preventive / annual physical',h.copay_preventive||'$0 (ACA preventive care)')
-        : todo('Copays (PCP, specialist, urgent care, ER)','printed on the front of your card'));
+        : todo('Copays (PCP, specialist, urgent care, ER)','not on your card — MyChart → Benefits'));
   var dental='<div class="section-title" style="margin:14px 0 6px">Dental'+(has(h.ins_dental)?' · '+esc(h.ins_dental):'')+'</div>'
-    + line('Dentist',h.dentist) + line('Member ID',h.dental_member_id,true) + line('Annual max',h.dental_annual_max) + line('Cleanings',h.dental_cleanings||'usually 2/yr covered 100%');
+    + (has(h.dentist)?line('Dentist',h.dentist):'<div class="kv-row"><span class="k">Dentist</span><span class="v" style="color:var(--amber);font-weight:600">none yet — pick an in-network one</span></div>') + line('Member ID',h.dental_member_id,true) + line('Annual max',h.dental_annual_max) + line('Cleanings',h.dental_cleanings||'usually 2/yr covered 100%');
   var vision='<div class="section-title" style="margin:14px 0 6px">Vision'+(has(h.ins_vision)?' · '+esc(h.ins_vision):'')+'</div>'
     + line('Eye doctor',h.eye_doctor) + line('Member ID',h.vision_member_id,true) + line('Exam',h.vision_exam) + line('Glasses / contacts allowance',h.vision_allowance);
   return card('Insurance & coverage','Your plans, who to call, and what things cost.', med+dental+vision
