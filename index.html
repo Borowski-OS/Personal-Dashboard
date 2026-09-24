@@ -72,6 +72,26 @@
     border-radius:8px; padding:6px 10px; font-size:12px; cursor:pointer; font-family:inherit; }
   .refresh-btn:hover { color:var(--text); border-color:#4b525d; }
   @media (max-width:640px){ #topNav{padding:0 12px;} .nav-title{display:none;} .nav-tab{padding:0 11px;font-size:12px;} .nav-right{display:none;} }
+  .lbl-sm { display:none; }
+  /* phones: app-style bottom tab bar with icons */
+  @media (max-width:640px){
+    #topNav { backdrop-filter:none; -webkit-backdrop-filter:none; background:#14171b; }
+    #navTabs { position:fixed; left:0; right:0; bottom:0; top:auto; height:calc(60px + env(safe-area-inset-bottom)); margin:0; padding:0 0 env(safe-area-inset-bottom);
+      background:rgba(16,18,22,.98); border-top:1px solid var(--card-border); display:flex; justify-content:space-around; gap:0; overflow:visible; z-index:2300; }
+    #navTabs .nav-tab { flex:1 1 0; min-width:0; flex-direction:column; justify-content:center; gap:3px; padding:0 2px; font-size:10.5px; letter-spacing:0;
+      border-bottom:none !important; border-top:2px solid transparent; height:60px; }
+    #navTabs .nav-tab.active { border-top-color:var(--gold); color:#fff; background:rgba(255,255,255,.03); }
+    #navTabs .nav-tab::before { font-size:19px; line-height:1; }
+    .nav-tab[data-tab="overview"]::before { content:'☀️'; } .nav-tab[data-tab="home"]::before { content:'💵'; }
+    .nav-tab[data-tab="ventures"]::before { content:'📈'; } .nav-tab[data-tab="flying"]::before { content:'✈️'; }
+    .nav-tab[data-tab="health"]::before { content:'💪'; } .nav-tab[data-tab="life"]::before { content:'🏡'; }
+    .nav-tab[data-tab="faith"]::before { content:'✝️'; }
+    .lbl-lg { display:none; } .lbl-sm { display:inline; }
+    body { padding-bottom:calc(76px + env(safe-area-inset-bottom)); }
+    #aiFab { bottom:calc(76px + env(safe-area-inset-bottom)) !important; width:50px; height:50px; }
+    #topNav .nav-title { display:none; } body.on-today .header { display:none; } #topNav .nav-right { display:flex !important; margin-left:auto; gap:6px; }
+    #topNav .nav-right .pk { display:none; } #topNav .refresh-btn { padding:6px 9px; font-size:12px; }
+  }
 
   .dashboard { width:100%; max-width:1500px; margin:0 auto; padding:30px 34px 70px; }
   @media (max-width:640px){ .dashboard{ padding:22px 16px 60px; } }
@@ -554,7 +574,7 @@
     <button class="nav-tab" data-tab="ventures" onclick="navGo('ventures')">Ventures</button>
     <button class="nav-tab" data-tab="flying" onclick="navGo('flying')">Flying</button>
     <button class="nav-tab" data-tab="health" onclick="navGo('health')">Health</button>
-    <button class="nav-tab" data-tab="life" onclick="navGo('life')">Home &amp; Life</button>
+    <button class="nav-tab" data-tab="life" onclick="navGo('life')"><span class="lbl-lg">Home &amp; Life</span><span class="lbl-sm">Life</span></button>
     <button class="nav-tab" data-tab="faith" onclick="navGo('faith')">Faith</button>
   </div>
   <div class="nav-right">
@@ -823,7 +843,7 @@ function tafNextFly(){ var t=(LIVE.tafs||{}).KMEV; if(!t) return null;
   var ps=tafPeriods(t).filter(function(p){return !p.tempo;}), now=Date.now()/1000;
   for(var i=0;i<ps.length;i++){ if(!ps[i].fly) continue; var f=ps[i].f;
     // daylight only: first hour between 7 AM and 7 PM Pacific inside this period
-    for(var s=Math.max(f.from,now); s<f.to; s+=3600){ var hr=+new Date(s*1000).toLocaleString('en-US',{hour:'numeric',hour12:false,timeZone:'America/Los_Angeles'});
+    for(var s=Math.max(f.from,Math.ceil(now/3600)*3600); s<f.to; s+=3600){ var hr=+new Date(s*1000).toLocaleString('en-US',{hour:'numeric',hour12:false,timeZone:'America/Los_Angeles'});
       if(hr>=7&&hr<19){ var e=Math.min(f.to, s+(19-hr)*3600); return {f:{from:s,to:e}, fly:true}; } } }
   return {none:true}; }
 /* pull METARs through the Apps Script proxy (JSONP), pw-gated */
