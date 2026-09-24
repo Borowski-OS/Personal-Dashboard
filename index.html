@@ -1878,6 +1878,35 @@ function renderHome(){
     + secDivider('Bills & vendor contacts','sec-bills') + renderBills();
 }
 /* Home & Life: everything about the household that isn't money */
+/* ---------- Points game plan: best transfer partners for Brad's actual trips (RNO home; FL family, AK trip, Tahoe, western hunts) ---------- */
+function pointsPlanCard(points){
+  var bal=function(re){ var r=points.filter(function(p){ return re.test(String(p.Program||'')); })[0]; var n=r?num(r.Balance):NaN; return isNaN(n)?'':' <span class="foot" style="color:var(--text-dim)">('+Math.round(n).toLocaleString()+')</span>'; };
+  var goal=function(t,how,why){ return '<div style="padding:10px 0;border-bottom:1px solid var(--card-border)"><div style="font-weight:700">'+t+'</div><div style="margin-top:3px">'+how+'</div><div class="foot" style="color:var(--text-dim);margin-top:3px">'+why+'</div></div>'; };
+  var cur=function(t,rows){ return '<div class="kv-row"><span class="k"><b>'+t+'</b></span><span class="v" style="max-width:62%;text-align:right">'+rows+'</span></div>'; };
+  var body=''
+    + '<div class="section-title" style="margin:0 0 4px">By trip</div>'
+    + goal('✈️ Florida family visits (RNO → Orlando / Tampa)',
+        '<b>Chase → Southwest</b> for simple, flexible trips (free bags, free changes) — you already have Southwest'+bal(/southwest/i)+'. <b>Chase, Amex or Capital One → Air Canada Aeroplan</b> to book <b>United</b> saver seats: ~12,500 pts one-way for this distance.',
+        'Aeroplan usually beats paying cash-value for United. Chase has a 20% Aeroplan transfer bonus through Sep 30, 2026. Always check seats are available before you transfer — transfers can’t be undone.')
+    + goal('🎣 Alaska fishing / hunting trip',
+        'Use your Alaska Atmos miles'+bal(/alaska|atmos/i)+' first, then cover the rest with <b>Capital One “Purchase Eraser”</b> (1¢/mile against any Alaska fare) — or <b>Chase/Amex/Capital One → British Airways Avios</b> to book Alaska-operated flights if the Avios price is low.',
+        'Chase, Amex and Capital One no longer transfer to Alaska Atmos (only Bilt and Marriott do), so the eraser is the simplest route.')
+    + goal('⛷️ Tahoe skiing & hotel nights anywhere',
+        '<b>Chase → World of Hyatt</b> (1:1). Hyatt properties around Tahoe and in ski towns often price at 2¢+ per point.',
+        'The single best use of Chase points. Don’t transfer Chase to Marriott even with bonuses — Marriott points are worth ~0.7¢.')
+    + goal('🦌 Western hunting trips (WY / CO / ID / MT) — rental cars, small-town motels',
+        '<b>Capital One miles via Purchase Eraser or Capital One Travel</b> at 1¢ — works on any travel charge, no award availability needed.',
+        'Venture X also gives a $300 yearly credit through Capital One Travel + 10,000 anniversary miles — use the credit on these trips.')
+    + goal('🌍 Big trip someday (Europe / Hawaii)',
+        '<b>Amex or Capital One → Air France/KLM Flying Blue</b> (watch the monthly “Promo Rewards” to Europe) · <b>Aeroplan</b> for United to Hawaii.',
+        'Save Amex points for this — they’re weakest for domestic trips.')
+    + '<div class="section-title" style="margin:16px 0 4px">By card</div>'
+    + cur('Chase Ultimate Rewards'+bal(/chase|ultimate/i),'Hyatt → Southwest → Aeroplan (United)')
+    + cur('Amex Membership Rewards'+bal(/amex|membership/i),'Aeroplan → Flying Blue · avoid “pay with points” (~0.6¢)')
+    + cur('Capital One'+bal(/capital one/i),'Purchase Eraser for AK/hunting trips (1¢) · Aeroplan / Flying Blue / BA for flights')
+    + '<p class="foot" style="margin:12px 0 0;color:var(--text-dim)">Rules of thumb: find the award seat first, then transfer. Keep small airline balances alive (United and Southwest miles don’t expire). Transfer ratios and bonuses change — check before moving points.</p>';
+  return card('Points game plan', 'Where your points go furthest for the trips you actually take (home airport: Reno).', body, '--cyan');
+}
 function renderLife(){
   return subnavHtml([['Family & household','sec-family'],['Projects','sec-projects'],['Vehicles','sec-vehicles'],['Hunting & hobbies','sec-hobbies'],['Travel & points','sec-travel']])
     + '<div id="sec-family" style="scroll-margin-top:70px"></div>' + renderFamily()
@@ -1946,6 +1975,13 @@ function binderFromOtherTabs(item){
 function binderMissing(){ var f=kv('Family');
   var want=[['Will / trust',/\bwill\b|living trust|estate/i],['Beneficiaries',/beneficiar/i],['Power of attorney',/power of attorney|\bpoa\b/i],['Advance directive',/advance directive|health.?care proxy|living will/i],['Executor / trustee',/executor|trustee/i],['Password manager',/password manager|1password|bitwarden|lastpass/i],['Key accounts access',/account access|emergency access|master list/i]];
   return want.filter(function(w){ return !Object.keys(f).some(function(k){ return w[1].test(k)&&has(f[k]); }); }).map(function(w){return w[0];}); }
+var BINDER_HELP={
+  'Will / trust':'Cheapest: <a href="https://www.freewill.com" target="_blank" rel="noopener">FreeWill</a> (free, ~20 min). Most complete: <a href="https://trustandwill.com" target="_blank" rel="noopener">Trust &amp; Will</a> living trust (keeps both houses out of probate). Free Nevada option for the houses: a recorded <a href="https://www.willmaker.com/legal-manual/transfer-on-death-deeds-nevada.html" target="_blank" rel="noopener">Deed Upon Death</a> for Prospect (Carson City recorder) and Lahontan (Humboldt County).',
+  'Executor / trustee':'Named inside your will or trust — e.g. Chelsea, with Sam as backup. Set it when you do the will.',
+  'Password manager':'Easiest: <a href="https://1password.com/families" target="_blank" rel="noopener">1Password Families</a> (~$5/mo, shared vault + printable Emergency Kit). Cheapest with a true emergency-access feature: <a href="https://bitwarden.com/help/emergency-access/" target="_blank" rel="noopener">Bitwarden</a> (~$40/yr family).',
+  'Key accounts access':'Free, 10 min each: <a href="https://support.apple.com/en-us/102631" target="_blank" rel="noopener">Apple Legacy Contact</a> · <a href="https://myaccount.google.com/inactive" target="_blank" rel="noopener">Google Inactive Account Manager</a> · add Chelsea as payable-on-death / beneficiary on bank, Robinhood, IRA and 403(b) accounts (in each app’s settings).',
+  'Safe / documents':'Note where originals live (safe, fireproof box) so Chelsea can find the policy, deeds and titles.'
+};
 function emergencyBinderCard(){
   var f=kv('Family');
   // Curated "if something happens to me" essentials — pull from Family keys by meaning
@@ -1964,12 +2000,15 @@ function emergencyBinderCard(){
     var hit=Object.keys(f).filter(function(k){var label=k.split('|').pop(); return w[1].test(label)||w[1].test(k);})
       .filter(function(k){return has(f[k]);});
     if(hit.length){ var v=hit.map(function(k){return String(f[k]);}).join(' · ');
+      if(/^not needed|^skip/i.test(v)) return '<div class="kv-row"><span class="k" style="color:var(--text-dim)">– '+esc(w[0])+'</span><span class="v" style="color:var(--text-dim)">'+esc(v)+'</span></div>';
       var vh=/safe|password|account/i.test(w[0])?'<span class="secret" title="Tap to show" onclick="this.classList.toggle(\'show\')">'+esc(v)+'</span>':esc(v);
       return '<div class="kv-row"><span class="k">✓ '+esc(w[0])+'</span><span class="v mono" style="max-width:60%;text-align:right">'+vh+'</span></div>'; }
     // also look in Contacts / Bills (e.g. the life-insurance policy is recorded there)
     var other=binderFromOtherTabs(w[0]);
     if(other) return '<div class="kv-row"><span class="k">✓ '+esc(w[0])+'</span><span class="v" style="max-width:60%;text-align:right">'+esc(other)+'</span></div>';
-    return '<div class="kv-row"><span class="k" style="color:var(--text-dim)">○ '+esc(w[0])+'</span><span class="v" style="color:var(--rose)">not documented</span></div>';
+    var help=BINDER_HELP[w[0]];
+    return '<div class="kv-row"><span class="k" style="color:var(--text-dim)">○ '+esc(w[0])+'</span><span class="v" style="color:var(--amber)">not set up yet</span>'
+      +(help?'<div class="foot" style="flex-basis:100%;color:var(--text-muted);margin-top:2px">'+help+'</div>':'')+'</div>';
   }).join('');
   var have=want.filter(function(w){return Object.keys(f).some(function(k){var label=k.split('|').pop();return (w[1].test(label)||w[1].test(k))&&has(f[k]);})||!!binderFromOtherTabs(w[0]);}).length;
   var head='<div class="sub">If something happens to you, Chelsea can find everything here. '+have+' of '+want.length+' essentials documented. '
@@ -3843,7 +3882,7 @@ function renderTravel(){
       + valued.map(function(v){return '<div class="kv-row"><span class="k">'+esc(v.prog)+' <span class="foot" style="color:var(--text-dim)">'+v.bal.toLocaleString()+' pts @ '+v.cpp+'¢</span></span><span class="v mono">'+money(v.val)+'</span></div>';}).join(''),'--cyan')
       +'<div style="height:22px"></div>';
   }
-  out+='<div style="height:22px"></div>'+walletCard+card('Points & miles','', tableEl(pointsCols, points, {editTab:'Points'}), '--cyan');
+  out+='<div style="height:22px"></div>'+walletCard+pointsPlanCard(points)+'<div style="height:22px"></div>'+card('Points & miles','', tableEl(pointsCols, points, {editTab:'Points'}), '--cyan');
   if(past.length) out+='<div style="height:22px"></div><div class="section-title">Past trips</div><div class="grid cols-3">'+past.map(tripCard).join('')+'</div>';
   return out;
 }
