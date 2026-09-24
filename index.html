@@ -1234,6 +1234,8 @@ function smartSteps(){
   var wk=trainingWeek().sessions;
   if(wk<5) out.push({t:'Train — '+wk+' workout'+(wk===1?'':'s')+' logged this week so far (aim 5)', tab:'health', d:0, sort:8});
   if(!isNaN(cur)&&!isNaN(goal)&&cur>goal) out.push({t:'Log today’s weight ('+Math.round(cur-goal)+' lb to your '+goal+' goal)', tab:'health', d:null, sort:40, act:'quickLogWeight()'});
+  // CFI balance due
+  var co=cfiOwed(); if(co&&co.amt>0) out.push({t:'Pay '+co.first+' '+cfiUsd(co.amt)+' for '+co.hrs+' hr in the '+co.tail+' (last flight '+prettyIso(String(co.flights[co.flights.length-1].Date))+')', tab:'flying', d:null, sort:6});
   // flying-driven (only if not already present)
   var fn=flyingNextStep(); if(!out.some(function(s){return /written|solo|checkride/i.test(s.t)&&s.tab==='flying';})) out.push({t:fn, tab:'flying', d:null, sort:45});
   // hunt application deadlines within ~45 days
@@ -2515,6 +2517,39 @@ function logTotals(){ var t={total:0,dual:0,solo:0,dualXC:0,soloXC:0,night:0,ins
     if(!solo&&d&&d.getTime()>=cut) t.dual60+=h; });
   return t; }
 /* 14 CFR 61.109(a): private pilot aeronautical experience, airplane single-engine land */
+/* ---- what Brad owes his CFI for rental+instruction: flights in the CFI's plane after the paid-through date × hourly rate ---- */
+function cfiOwed(){
+  var f=kv('Flying'), rate=num(f.cfi_rate), tail=String(f.cfi_aircraft||'').trim().toUpperCase();
+  if(isNaN(rate)||!tail) return null;
+  var paid=String(f.cfi_paid_through||'').slice(0,10);
+  var fl=arr('FlightLog').filter(function(r){ return String(r.Aircraft||'').trim().toUpperCase()===tail && num(r.Hours)>0 && String(r.Date||'').slice(0,10)>paid; })
+    .sort(function(a,b){ return String(a.Date).localeCompare(String(b.Date)); });
+  var hrs=fl.reduce(function(t,r){ return t+num(r.Hours); },0);
+  return {name:has(f.cfi_name)?String(f.cfi_name):'your CFI', first:String(f.cfi_name||'CFI').split(' ')[0], rate:rate, tail:tail, paid:paid, flights:fl, hrs:Math.round(hrs*10)/10, amt:Math.round(hrs*rate*100)/100};
+}
+function cfiUsd(n){ return '$'+n.toLocaleString('en-US',{minimumFractionDigits:n%1?2:0,maximumFractionDigits:2}); }
+async function markCfiPaid(){
+  var o=cfiOwed(); if(!o||!o.flights.length) return;
+  if(!confirm('Mark '+cfiUsd(o.amt)+' to '+o.name+' as paid?')) return;
+  var last=String(o.flights[o.flights.length-1].Date).slice(0,10);
+  await apiWrite({action:'setkv',tab:'Flying',row:JSON.stringify({cfi_paid_through:last})});
+  await afterWrite();
+}
+function cfiOwedCard(){
+  var o=cfiOwed(); if(!o) return '';
+  var ac=arr('Aircraft').filter(function(a){ return String(a.Tail||'').toUpperCase()===o.tail; })[0], plane=ac&&has(ac.MakeModel)?ac.MakeModel+' '+o.tail:o.tail;
+  var body;
+  if(!o.flights.length){
+    body='<div style="display:flex;align-items:baseline;gap:10px"><span style="font-size:26px;font-weight:700;color:var(--green)">$0</span><span class="foot" style="margin:0">all paid up'+(o.paid?' through '+esc(prettyIso(o.paid)):'')+'</span></div>';
+  } else {
+    body='<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">'
+      +'<div><span style="font-size:28px;font-weight:700;color:var(--amber)">'+cfiUsd(o.amt)+'</span>'
+      +'<span class="foot" style="display:inline;margin-left:8px">'+o.hrs+' hr × '+cfiUsd(o.rate)+'/hr</span></div>'
+      +'<button class="ebtn pri" onclick="markCfiPaid()">✓ Mark paid</button></div>'
+      +o.flights.map(function(r){ return '<div class="kv-row"><span class="k">'+esc(prettyIso(String(r.Date)))+' · '+esc(r.Route||'')+'</span><span class="v">'+num(r.Hours)+' hr · '+cfiUsd(num(r.Hours)*o.rate)+'</span></div>'; }).join('');
+  }
+  return card('Owed to '+o.name, plane+' at '+cfiUsd(o.rate)+'/hr, plane + instruction. Adds up automatically when a flight in his plane lands in your logbook.', body, '--amber');
+}
 function ppl109Card(){
   var t=logTotals();
   var req=[['Total flight time',t.total,40,'hrs'],['Dual instruction',t.dual,20,'hrs'],['Solo',t.solo,10,'hrs'],
@@ -2585,6 +2620,7 @@ function renderFlying(){
     + gap
     + '<div id="xcHost"></div>'
     + gap
+    + (cfiOwedCard()?cfiOwedCard()+gap:'')
     + pilots
     + flyingStudyCards()
     + '<div class="grid cols-2">'
