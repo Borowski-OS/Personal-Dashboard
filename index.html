@@ -2768,8 +2768,7 @@ function renderMoney(){
   var yourRates=debts.filter(function(d){return String(d.Type||'').toLowerCase().indexOf('mortgage')>=0&&has(d.Rate);})
     .map(function(d){var r=num(d.Rate); var pct=r<1?(r*100):r; return esc(d.Name.replace(/ Mortgage$/,''))+' '+pct.toFixed(2)+'%';}).join(' · ');
   var t10=cfg.market_10yr_treasury, t10asof=cfg.market_10yr_asof;
-  var mkt='<div class="grid cols-3" style="margin-bottom:22px">'
-    + '<div class="stat"><div class="label">Bitcoin (live spot)</div><div class="value mono" data-live="btc">…</div><div class="foot">market price · your holdings self-reported in Investments</div></div>'
+  var mkt='<div class="grid cols-2" style="margin-bottom:22px">'
     + '<div class="stat"><div class="label">30-yr mortgage — market</div><div class="value mono">'+(has(mktRate)?esc(mktRate)+'%':'—')+'</div><div class="foot">'+(has(asof)?'as of '+esc(prettyIso(asof))+' · ':'')+(yourRates?'you: '+yourRates:'')+'</div></div>'
     + '<div class="stat"><div class="label">10-yr Treasury</div><div class="value mono">'+(has(t10)?esc(t10)+'%':'—')+'</div><div class="foot">'+(has(t10asof)?'as of '+esc(prettyIso(t10asof))+' · ':'')+'mortgages track this — watch for refi windows</div></div>'
     + '</div>';
@@ -3267,8 +3266,7 @@ function renderHealth(){
     + statTile('Target pace', '~1 lb/wk', '~'+Math.max(1,Math.round(togo))+' wks at ~500 cal deficit')
     + '</div>';
 
-  var rows=[['Program',h.program],['Weekly rhythm',h.weekly_shape],['Current weight',h.weight],['Goal',h.weight_goal?(h.weight_goal+' lb'):''],
-    ['Resting HR',h.resting_hr],['Recovery',h.recovery_note],['Next appointment',h.next_appointment]]
+  var rows=[['Resting HR',h.resting_hr],['Recovery',h.recovery_note],['Next appointment',h.next_appointment]]
     .filter(function(r){return has(r[1]);});
   var infoHtml=(rows.length?rows.map(function(r){return '<div class="kv-row"><span class="k">'+esc(r[0])+'</span><span class="v">'+esc(r[1])+'</span></div>';}).join(''):'<div class="empty">Add your metrics with the ✎ Edit button.</div>');
 
@@ -3319,10 +3317,9 @@ function renderHealth(){
     + card('Training plan','Hybrid: CompTrain strength + Zone-2 endurance.', planHtml, '--pink')
     + card('Nutrition — lose fat, keep muscle', 'Targets for '+cur+' → '+goal+' lb.', nutrition, '--pink')
     + '</div><div style="height:22px"></div>'
-    + '<div class="grid cols-2">'
-    + card('Your metrics','Rhythm and essentials.', infoHtml, '--pink')
-    + card('Connections','Auto-sync + logging.', connect, '--pink')
-    + '</div>'
+    + (rows.length
+        ? '<div class="grid cols-2">' + card('Health admin','Recovery, resting HR and appointments.', infoHtml, '--pink') + card('Connections','Auto-sync + logging.', connect, '--pink') + '</div>'
+        : card('Connections','Auto-sync + logging.', connect, '--pink'))
     + woCard
     + '<div style="height:22px"></div>'
     + card('Weight & metrics log','', tableEl(logCols, log.slice().sort(function(a,b){ return String(b.Date).localeCompare(String(a.Date)); }), {empty:'Log weight & metrics with ✎ Edit.',editTab:'HealthLog'}), '--pink');
