@@ -1298,7 +1298,7 @@ function goalsHtml(){
 function agendaHtml(){
   var ev=arr('Events').filter(function(e){return has(e.Title);})
     .sort(function(a,b){return (String(a.Date)+String(a.Time)).localeCompare(String(b.Date)+String(b.Time));});
-  if(!ev.length) return '<div class="empty">Calendar syncs here daily. (Nothing loaded yet.)</div>';
+  if(!ev.length) return '<div class="empty">No events in the next 7 days. To see your Apple calendars here: iPhone Calendar app → Calendars → ⓘ next to a calendar → turn on <b>Public Calendar</b> → Share Link, and send Claude the link.</div>';
   var days=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
   return ev.slice(0,10).map(function(e){ var m=String(e.Date).match(/(\d{4})-(\d{2})-(\d{2})/);
     var dl=m?(days[new Date(+m[1],+m[2]-1,+m[3]).getDay()]+' '+(+m[3])):esc(e.Date);
