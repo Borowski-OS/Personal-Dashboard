@@ -1096,9 +1096,9 @@ async function afterWrite(){
 async function quickLogWeight(){
   var w=window.prompt('Today’s weight (lb):'); if(w==null) return; w=String(w).trim();
   if(!w||isNaN(parseFloat(w))){ if(w) alert('Enter a number.'); return; }
-  var today=new Date().toISOString().slice(0,10);
+  var today=ymd(laNow());   // Pacific calendar day, full date (so 'days since weigh-in' works)
   await apiWrite({action:'upsert',tab:'HealthLog',row:JSON.stringify({Date:today,Metric:'Weight',Value:w,Notes:''})});
-  await apiWrite({action:'setkv',tab:'Health',row:JSON.stringify({weight:w,weight_updated:new Date().toLocaleDateString('en-US',{month:'short',day:'numeric'})})});
+  await apiWrite({action:'setkv',tab:'Health',row:JSON.stringify({weight:w,weight_updated:today})});
   await afterWrite();
 }
 async function stravaSync(){
@@ -1199,7 +1199,7 @@ function smartSteps(){
   var h=kv('Health'), cur=num(h.weight), goal=num(h.weight_goal);
   var wk=trainingWeek().sessions;
   if(wk<5) out.push({t:'Train — '+wk+' workout'+(wk===1?'':'s')+' logged this week so far (aim 5)', tab:'health', d:0, sort:8});
-  if(!isNaN(cur)&&!isNaN(goal)&&cur>goal) out.push({t:'Log today’s weight ('+Math.round(cur-goal)+' lb to your '+goal+' goal)', tab:'health', d:null, sort:40});
+  if(!isNaN(cur)&&!isNaN(goal)&&cur>goal) out.push({t:'Log today’s weight ('+Math.round(cur-goal)+' lb to your '+goal+' goal)', tab:'health', d:null, sort:40, act:'quickLogWeight()'});
   // flying-driven (only if not already present)
   var fn=flyingNextStep(); if(!out.some(function(s){return /written|solo|checkride/i.test(s.t)&&s.tab==='flying';})) out.push({t:fn, tab:'flying', d:null, sort:45});
   // hunt application deadlines within ~45 days
@@ -1528,7 +1528,7 @@ function big3Card(){
   if(!steps.length) return card('Today’s top 3','','<div class="empty">All clear. Add a to-do with ＋ Quick add.</div>','--gold');
   function item(s,i,big){
     var box = s.row ? '<button class="chk" title="Mark done" onclick="event.stopPropagation();this.disabled=true;this.textContent=\'✓\';markActionDone('+s.row+')"></button>' : '<span class="chk chk-auto" title="Auto-built from your data">•</span>';
-    return '<div class="'+(big?'mit':'mit-sm')+'" onclick="navGo(\''+s.tab+'\')">'+box+(big?'<span class="mit-n">'+(i+1)+'</span>':'')
+    return '<div class="'+(big?'mit':'mit-sm')+'" onclick="'+(s.act?s.act:'navGo(\''+s.tab+'\')')+'">'+box+(big?'<span class="mit-n">'+(i+1)+'</span>':'')
       +'<span class="mit-t">'+esc(s.t)+'</span><span class="mit-r">'+domChip(s.tab)+(s.d!=null?' <span class="'+dueClass(s.d)+'">'+fmtDue(s.d)+'</span>':'')+'</span></div>'; }
   var top=steps.slice(0,3).map(function(s,i){return item(s,i,true);}).join('');
   var rest=steps.slice(3);
