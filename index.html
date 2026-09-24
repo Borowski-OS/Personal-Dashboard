@@ -1726,7 +1726,10 @@ function renderBills(){
     {label:'Call', render:function(r){return has(r.Phone)?'<a class="tel" href="'+telHref(r.Phone)+'">'+esc(r.Phone)+'</a>':'';}}
   ];
   var personal=bills.filter(function(b){return b.Personal===''||b.Personal==null?true:truthy(b.Personal);});
-  var body = tableEl(cols, personal, {empty:'No bills yet. Add them in the Bills tab of your sheet — I can help pre-fill.',editTab:'Bills'});
+  // bills with a known cost first; ones without an amount fold away so real costs scan at a glance
+  var known=personal.filter(function(b){return billMonthly(b)>0;}), unknown=personal.filter(function(b){return !(billMonthly(b)>0);});
+  var body = tableEl(cols, known.length?known:personal, {empty:'No bills yet. Add them in the Bills tab of your sheet — I can help pre-fill.',editTab:'Bills'})
+    + (known.length&&unknown.length ? '<details class="bud-more" style="margin-top:10px"><summary>'+unknown.length+' more services without an amount entered (autopay utilities, streaming…)</summary>'+tableEl(cols, unknown, {editTab:'Bills'})+'</details>' : '');
 
   var contacts = arr('Contacts');
   var cc = [
