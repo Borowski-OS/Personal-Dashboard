@@ -572,6 +572,43 @@
   }
 .rd-sub{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;color:var(--text-dim);font-size:13px;margin-top:3px;cursor:zoom-in}
 .rd-sub.open{display:block;-webkit-line-clamp:unset;cursor:zoom-out}
+
+  /* ================= refined theme: one quiet accent, muted status colors, no sideways scroll ================= */
+  :root {
+    --accent:#c7a45c;                                   /* muted brass — the only brand color */
+    --green:#5fae82; --red:#d06b62; --amber:#cf9f4a;    /* status colors, desaturated */
+    --gold:#c7a45c; --orange:#c7a45c;
+    --teal:#7f93a8; --sky:#7f93a8; --emerald:#7f93a8; --violet:#7f93a8; --rose:#7f93a8; --pink:#7f93a8; --cyan:#7f93a8; --indigo:#7f93a8;
+  }
+  html, body { overflow-x:hidden; overflow-x:clip; overscroll-behavior-x:none; max-width:100vw; }
+  #app, .dashboard { overflow-x:clip; }
+  /* iPhone home-screen app: keep the top bar below the clock / notch */
+  #topNav { height:calc(var(--nav-h) + env(safe-area-inset-top)); padding-top:env(safe-area-inset-top); }
+  body { padding-top:calc(var(--nav-h) + env(safe-area-inset-top)); }
+  .hero-actions { flex-wrap:wrap; justify-content:flex-end; }
+  @media (max-width:640px){
+    .hero-actions { justify-content:flex-start; margin-top:12px; width:100%; }
+    .hero-actions .ebtn { flex:0 1 auto; }
+    .subnav { flex-wrap:wrap; overflow-x:visible; }
+  }
+  /* calmer surfaces */
+  .nav-logo, #gate .logo { background:var(--accent); }
+  .ebtn.pri, #gate button, .aiMsg.u .bub { background:var(--accent); color:#15171b; }
+  #aiFab { background:#2a2f37; border:1px solid #3a414c; box-shadow:0 6px 20px rgba(0,0,0,.45); color:var(--accent); }
+  .hero { background:linear-gradient(180deg,#1a1d22,#16191d); }
+  .card[style*="border-top"] { border-top:1px solid var(--card-border) !important; }
+  .nav-tab.active, .nav-tab[data-tab].active { border-bottom-color:var(--accent) !important; }
+  #navTabs .nav-tab.active { border-top-color:var(--accent) !important; }
+  .bchip.good { border-color:rgba(95,174,130,.35); background:rgba(95,174,130,.06); }
+  .bchip.bad { border-color:rgba(208,107,98,.4); background:rgba(208,107,98,.06); }
+  .tag.active { background:rgba(95,174,130,.14); color:#8fcaa6; } .tag.blocked { background:rgba(208,107,98,.14); color:#e0a09a; }
+  /* emoji icons in monochrome so the page reads calm; tab icons light up when active */
+  .bchip-i, .emo { filter:grayscale(1); opacity:.8; }
+  #navTabs .nav-tab::before { filter:grayscale(1); opacity:.55; }
+  #navTabs .nav-tab.active::before { opacity:1; }
+  .xc-title span { background:none; color:var(--text); -webkit-text-fill-color:currentColor; }
+  .xc-go { background:var(--accent); color:#15171b; box-shadow:none; }
+  .xc-card { background:var(--card-bg); }
 </style>
 </head>
 <body>
@@ -659,6 +696,8 @@
 var API_URL = 'https://script.google.com/macros/s/AKfycbwdO_d4gj2Rj_cLM7JFvehuRUHuwFFocaxJz0MwJxKYhECksIHVe3p3VdhbgjKioWd-/exec';
 var LS_API = 'lifeos_api_url';
 var SS_PW  = 'lifeos_pw_hash';
+var LS_PW  = 'lifeos_pw_remember';   // stay signed in on this device (Lock forgets it)
+try{ if(!sessionStorage.getItem(SS_PW) && localStorage.getItem(LS_PW)) sessionStorage.setItem(SS_PW, localStorage.getItem(LS_PW)); }catch(e){}
 var DATA = null;        // full dataset from the web app
 var CURRENT = 'overview';
 
@@ -949,13 +988,13 @@ async function boot(api, hash, btn){
   try{
     var res = await readData(api + '?pw=' + hash);
     if(!res || res.ok===false){
-      if(res && res.error==='unauthorized'){ $('gateErr').textContent='Wrong password.'; sessionStorage.removeItem(SS_PW); }
+      if(res && res.error==='unauthorized'){ $('gateErr').textContent='Wrong password.'; sessionStorage.removeItem(SS_PW); try{localStorage.removeItem(LS_PW);}catch(e){} }
       else { $('gateErr').textContent='Could not load data. Try again.'; }
       if(btn){ btn.disabled=false; btn.textContent=btn.dataset.label||'Unlock'; }
       return;
     }
     localStorage.setItem(LS_API, api);
-    sessionStorage.setItem(SS_PW, hash);
+    sessionStorage.setItem(SS_PW, hash); try{ localStorage.setItem(LS_PW, hash); }catch(e){}
     showApp(res);
     if(btn){ btn.disabled=false; btn.textContent=btn.dataset.label||'Unlock'; }
   }catch(e){
@@ -982,7 +1021,7 @@ async function reload(){
     try{ localStorage.setItem(LS_DATA, JSON.stringify({data:DATA, updated:res.updated})); }catch(e){}
     $('stamp').textContent=fmtStamp(res.updated); render(CURRENT);} }catch(e){}
 }
-function signOut(){ sessionStorage.removeItem(SS_PW); location.reload(); }
+function signOut(){ sessionStorage.removeItem(SS_PW); try{ localStorage.removeItem(LS_PW); localStorage.removeItem(LS_DATA); }catch(e){} location.reload(); }
 
 /* ============================================================
    Tab routing
@@ -1146,7 +1185,7 @@ async function stravaSync(){
 
 function card(title, sub, body, accentVar){
   return '<div class="card"'+(accentVar?' style="border-top:3px solid var('+accentVar+')"':'')+'>'
-    + (title?'<h2>'+esc(title)+'</h2>':'') + (sub?'<div class="sub">'+esc(sub)+'</div>':'') + body + '</div>';
+    + (title?'<h2>'+esc(title).replace(/^([\u2600-\u27BF\uD83C-\uDBFF][\uDC00-\uDFFF]?\uFE0F?)\s*/,'<span class="emo">$1</span> ')+'</h2>':'') + (sub?'<div class="sub">'+esc(sub)+'</div>':'') + body + '</div>';
 }
 function tableEl(cols, rows, opts){
   opts=opts||{};
@@ -1570,7 +1609,7 @@ function todayHero(){
   if(quotes.length){ var doy=Math.floor((Date.now()-new Date(n.getFullYear(),0,0))/864e5), q=quotes[doy%quotes.length];
     qTxt='<div class="hero-q">“'+esc(q.Quote)+'” <span>— '+esc(q.Author||'Unknown')+'</span></div>'; }
   return '<div class="hero"><div class="hero-top"><div><div class="hero-date">'+esc(dateTxt)+'</div><h1 class="hero-h">'+greet+', '+esc(name)+'.</h1></div>'
-    +'<div class="hero-actions"><button class="ebtn pri" onclick="quickAdd()">＋ Quick add</button><button class="ebtn" onclick="printReview()">🖨 Weekly review</button>'+inboxLink()+cronoLink()+'</div></div>'
+    +'<div class="hero-actions"><button class="ebtn pri" onclick="quickAdd()">＋ Quick add</button><button class="ebtn" onclick="printReview()">Weekly review</button>'+inboxLink()+cronoLink()+'</div></div>'
     +'<div class="bchips">'+chips.join('')+'</div>'+qTxt+'</div>';
 }
 async function markActionDone(rownum){
@@ -2965,8 +3004,8 @@ function drawMoneyCharts(){
       charts.push(new Chart(nw.getContext('2d'),{type:'line',
         data:{labels:hist.map(function(h){ var d=parseDate(h.Date); return d?d.toLocaleDateString('en-US',{month:'short',day:'numeric',timeZone:'UTC'}):String(h.Date); }),
           datasets:[{data:hist.map(function(h){return num(h.NetWorth);}),
-            borderColor:'#34d399', backgroundColor:'rgba(52,211,153,.12)', fill:true, tension:.3,
-            pointBackgroundColor:'#34d399', pointRadius:3}]},
+            borderColor:'#c7a45c', backgroundColor:'rgba(199,164,92,.10)', fill:true, tension:.3,
+            pointBackgroundColor:'#c7a45c', pointRadius:3}]},
         options:{plugins:{legend:{display:false}},
           scales:{x:{ticks:{color:'#9a9a9a',font:{family:'Inter'}},grid:{color:'#252a31'}},
             y:{ticks:{color:'#9a9a9a',font:{family:'Inter'},callback:function(v){return '$'+(v/1000)+'k';}},grid:{color:'#252a31'}}}}}));
@@ -3399,8 +3438,8 @@ function medicalHistoryCard(){
 }
 /* ---------- Drive inbox (ForeFlight + Cronometer CSV drop) and nutrition from Cronometer ---------- */
 function inboxUrl(){ var u=String(kv('Config').inbox_url||''); return /^https:\/\/drive\.google\.com\//.test(u)?u:'https://drive.google.com/drive/search?q=%22Life%20OS%20Inbox%22'; }
-function cronoLink(label){ return '<a class="ebtn" href="https://cronometer.com/#account" target="_blank" rel="noopener" style="text-decoration:none">'+(label||'🥗 Cronometer export')+'</a>'; }
-function inboxLink(label){ return '<a class="ebtn" href="'+inboxUrl()+'" target="_blank" rel="noopener" style="text-decoration:none">'+(label||'📂 Drive inbox')+'</a>'; }
+function cronoLink(label){ return '<a class="ebtn" href="https://cronometer.com/#account" target="_blank" rel="noopener" style="text-decoration:none">'+(label||'Cronometer export')+'</a>'; }
+function inboxLink(label){ return '<a class="ebtn" href="'+inboxUrl()+'" target="_blank" rel="noopener" style="text-decoration:none">'+(label||'Drive inbox')+'</a>'; }
 function nutritionWeek(){
   var today=ymd(laNow()), cut=ymd(new Date(laNow().getTime()-7*864e5));
   var rows=arr('Nutrition').map(function(r){ return {d:String(r.Date||'').slice(0,10), cal:num(r.Calories), p:num(r.Protein), c:num(r.Carbs), f:num(r.Fat)}; })
@@ -3513,7 +3552,7 @@ function renderHealth(){
         +'<div class="kv-row"><span class="k">Protein avg</span><span class="v" style="color:var('+(nw.p>=proteinLo?'--green':'--amber')+')">'+nw.p+' g</span></div>'
         +'<div class="kv-row"><span class="k">Carbs / fat avg</span><span class="v">'+nw.c+' g / '+nw.f+' g</span></div>'
         +'<div class="section-title" style="margin:16px 0 6px">Targets</div>'
-      : '<div class="foot" style="margin:0 0 10px">'+cronoLink('🥗 Export from Cronometer')+' (Daily Nutrition + Biometrics) and drop the CSVs in your '+inboxLink('📂 Drive inbox')+' — actuals show here next morning.</div>')
+      : '<div class="foot" style="margin:0 0 10px">'+cronoLink('Export from Cronometer')+' (Daily Nutrition + Biometrics) and drop the CSVs in your '+inboxLink('Drive inbox')+' — actuals show here next morning.</div>')
     + nutrition;
 
   var workouts=arr('Workouts');
@@ -3525,7 +3564,7 @@ function renderHealth(){
     +'<div class="kv-row"><span class="k">WHOOP</span><span class="v" style="color:'+(recoveryInfo()?'var(--green)':'var(--text-dim)')+'">'+(recoveryInfo()?'via Cronometer — through '+esc(prettyIso(recoveryInfo().last.d)):'syncs into Cronometer → export Biometrics')+'</span></div>'
     +'<div class="kv-row"><span class="k">Apple Health</span><span class="v" style="color:var(--text-dim)">needs a bridge app (Health Auto Export)</span></div>'
     +'<div class="kv-row"><span class="k">Cronometer</span><span class="v" style="color:'+(arr('Nutrition').length?'var(--green)':'var(--text-dim)')+'">'+(arr('Nutrition').length?'imported — through '+esc(prettyIso(String(nutritionWeek()&&nutritionWeek().last||''))):'export CSVs → Drive inbox')+'</span></div>'
-    +'<div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">'+inboxLink('📂 Open Drive inbox')+cronoLink('🥗 Export from Cronometer')+'</div>'
+    +'<div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">'+inboxLink('Open Drive inbox')+cronoLink('Export from Cronometer')+'</div>'
     +'<p style="font-size:12px;color:var(--text-dim);margin:10px 0 0">Weight isn\'t in Strava — log it here with ✎ Edit (or a smart scale via Apple Health later).</p>';
 
   function woDate(r){ var m=String(r.Date||'').match(/(\d{4})-(\d{2})-(\d{2})/); return m?(MONTHS[+m[2]-1]+' '+(+m[3])):esc(r.Date||''); }
