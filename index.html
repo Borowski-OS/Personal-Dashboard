@@ -2864,6 +2864,7 @@ function budgetPlanHtml(){
     : '<p class="foot" style="margin:12px 0 0;color:var(--text-dim)">Showing your plan. Send me a Monarch CSV export and each line gets an average-spend and trend vs budget.</p>';
   var ov=budgetOverruns(), ovTot=ov.reduce(function(s,o){return s+o.over;},0);
   var alert=ov.length?'<div class="bud-alert"><b>'+ov.length+' lines over plan · +'+money(ovTot)+'/mo.</b> Biggest: '+ov.slice(0,4).map(function(o){return esc(o.cat)+' +'+money(o.over);}).join(' · ')+'</div>':'';
+  var bnote=String(kv('Config').budget_note||''); if(bnote) alert+='<div class="foot" style="margin:-4px 0 12px;color:var(--text-dim)">'+esc(bnote)+'</div>';
   return head+alert+out+note;
 }
 
@@ -3073,10 +3074,10 @@ function drawMoneyCharts(){
     arr('Accounts').forEach(function(x){var t=String(x.Type||'').toLowerCase(); var v=num(x.Balance); if(t.indexOf('credit')<0&&!isNaN(v)&&v>0){ byClass['Cash']=(byClass['Cash']||0)+v; }});
     var aLabels=Object.keys(byClass).sort(function(a,b){return byClass[b]-byClass[a];});
     if(aLabels.length){
-      var aColors={'Real estate':'#34d399','Retirement':'#38bdf8','Crypto':'#eab308','Aircraft':'#7dd3fc','Vehicles':'#fb7185','Precious metals':'#fbbf24','Brokerage':'#a78bfa','Cash':'#4ade80','Other':'#9a9a9a'};
+      var aColors={'Real estate':'#7ba1bb','Retirement':'#0093e7','Crypto':'#c3d4df','Aircraft':'#4f6b80','Vehicles':'#35495a','Precious metals':'#9fb8c9','Brokerage':'#2f6fa3','Cash':'#4cd26b','Other':'#6b7680'};
       charts.push(new Chart(alloc.getContext('2d'),{type:'doughnut',
         data:{labels:aLabels,datasets:[{data:aLabels.map(function(l){return Math.round(byClass[l]);}),
-          backgroundColor:aLabels.map(function(l){return aColors[l]||'#9a9a9a';}),borderColor:'#181b20',borderWidth:3}]},
+          backgroundColor:aLabels.map(function(l){return aColors[l]||'#9a9a9a';}),borderColor:'#232b31',borderWidth:3}]},
         options:{plugins:{legend:{position:'right',labels:{color:'#f0f0f0',font:{family:'Inter',size:11},boxWidth:12}},
           tooltip:{callbacks:{label:function(c){return c.label+': $'+c.parsed.toLocaleString();}}}},cutout:'58%'}}));
     }
@@ -3084,10 +3085,10 @@ function drawMoneyCharts(){
   var cvs=$('mixChart'); if(!cvs) return;
   var byType={}; arr('BudgetCategories').forEach(function(c){var t=String(c.Type||'Other');var b=num(c.MonthlyBudget);if(!isNaN(b))byType[t]=(byType[t]||0)+b;});
   var labels=Object.keys(byType); if(!labels.length) return;
-  var colors={Needs:'#38bdf8',Wants:'#a78bfa',Savings:'#34d399',Tithe:'#eab308',Other:'#9a9a9a'};
+  var colors={Needs:'#7ba1bb',Wants:'#0093e7',Savings:'#4cd26b',Tithe:'#dfe6ec',Other:'#6b7680'};
   charts.push(new Chart(cvs.getContext('2d'),{type:'doughnut',
     data:{labels:labels,datasets:[{data:labels.map(function(l){return Math.round(byType[l]);}),
-      backgroundColor:labels.map(function(l){return colors[l]||'#9a9a9a';}),borderColor:'#181b20',borderWidth:3}]},
+      backgroundColor:labels.map(function(l){return colors[l]||'#9a9a9a';}),borderColor:'#232b31',borderWidth:3}]},
     options:{plugins:{legend:{labels:{color:'#f0f0f0',font:{family:'Inter'}}}},cutout:'62%'}}));
 }
 
