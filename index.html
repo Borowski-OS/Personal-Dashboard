@@ -573,42 +573,62 @@
 .rd-sub{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;color:var(--text-dim);font-size:13px;margin-top:3px;cursor:zoom-in}
 .rd-sub.open{display:block;-webkit-line-clamp:unset;cursor:zoom-out}
 
-  /* ================= refined theme: one quiet accent, muted status colors, no sideways scroll ================= */
+  /* ================= WHOOP-style theme: near-black, dark-gray cards, one teal accent; vertical scrolling only ================= */
   :root {
-    --accent:#c7a45c;                                   /* muted brass — the only brand color */
-    --green:#5fae82; --red:#d06b62; --amber:#cf9f4a;    /* status colors, desaturated */
-    --gold:#c7a45c; --orange:#c7a45c;
-    --teal:#7f93a8; --sky:#7f93a8; --emerald:#7f93a8; --violet:#7f93a8; --rose:#7f93a8; --pink:#7f93a8; --cyan:#7f93a8; --indigo:#7f93a8;
+    --bg:#0b0f12; --card-bg:#141a1f; --card-border:#222b33; --card-border-2:#2b3640;
+    --text:#f1f4f6; --text-muted:#aab5bf; --text-dim:#7d8a96;
+    --accent:#1fd1b2;                                   /* teal — the main color */
+    --accent-2:#3b9eff;                                 /* blue — secondary (charts, links) */
+    --green:#2ee07f; --red:#ff4f5e; --amber:#ffc53d;    /* WHOOP-like recovery colors */
+    --gold:#1fd1b2; --orange:#1fd1b2;
+    --teal:#1fd1b2; --emerald:#1fd1b2; --sky:#3b9eff; --cyan:#3b9eff; --indigo:#3b9eff; --violet:#3b9eff; --rose:#3b9eff; --pink:#3b9eff;
   }
-  html, body { overflow-x:hidden; overflow-x:clip; overscroll-behavior-x:none; max-width:100vw; }
-  #app, .dashboard { overflow-x:clip; }
-  /* iPhone home-screen app: keep the top bar below the clock / notch */
-  #topNav { height:calc(var(--nav-h) + env(safe-area-inset-top)); padding-top:env(safe-area-inset-top); }
+  html, body { overflow-x:hidden; overflow-x:clip; overscroll-behavior-x:none; max-width:100%; touch-action:pan-y pinch-zoom; }
+  #app, .dashboard { overflow-x:clip; max-width:100%; }
+  /* fixed bars can widen the page on iPhone if anything inside them overflows — clamp them */
+  #topNav, #navTabs, #syncBar { max-width:100vw; overflow:hidden; }
+  #topNav { height:calc(var(--nav-h) + env(safe-area-inset-top)); padding-top:env(safe-area-inset-top); background:rgba(11,15,18,.96); }
   body { padding-top:calc(var(--nav-h) + env(safe-area-inset-top)); }
+  .nav-right { min-width:0; }
   .hero-actions { flex-wrap:wrap; justify-content:flex-end; }
   @media (max-width:640px){
+    #topNav .nav-right { gap:6px; }
+    #topNav .refresh-btn { padding:6px 10px; min-width:34px; }
+    .nl { display:none; }
     .hero-actions { justify-content:flex-start; margin-top:12px; width:100%; }
-    .hero-actions .ebtn { flex:0 1 auto; }
     .subnav { flex-wrap:wrap; overflow-x:visible; }
+    #navTabs { background:rgba(11,15,18,.98); }
+    .bchip { min-width:0; }
+    .bchip-v { overflow-wrap:anywhere; }
   }
-  /* calmer surfaces */
-  .nav-logo, #gate .logo { background:var(--accent); }
-  .ebtn.pri, #gate button, .aiMsg.u .bub { background:var(--accent); color:#15171b; }
-  #aiFab { background:#2a2f37; border:1px solid #3a414c; box-shadow:0 6px 20px rgba(0,0,0,.45); color:var(--accent); }
-  .hero { background:linear-gradient(180deg,#1a1d22,#16191d); }
+  /* surfaces */
+  .card { background:var(--card-bg); border-color:var(--card-border); }
+  .nav-logo, #gate .logo { background:var(--accent); color:#06231e; }
+  .ebtn.pri, #gate button, .aiMsg.u .bub { background:var(--accent); color:#06231e; }
+  .refresh-btn, .ebtn { border-color:var(--card-border-2); }
+  #aiFab { background:#1a2228; border:1px solid var(--card-border-2); box-shadow:0 6px 20px rgba(0,0,0,.5); color:var(--accent); animation:none !important; }
+  .hero { background:radial-gradient(900px 260px at 0% 0%, rgba(31,209,178,.10), transparent 60%), linear-gradient(180deg,#151c21,#11171b); border-color:var(--card-border); }
   .card[style*="border-top"] { border-top:1px solid var(--card-border) !important; }
-  .nav-tab.active, .nav-tab[data-tab].active { border-bottom-color:var(--accent) !important; }
-  #navTabs .nav-tab.active { border-top-color:var(--accent) !important; }
-  .bchip.good { border-color:rgba(95,174,130,.35); background:rgba(95,174,130,.06); }
-  .bchip.bad { border-color:rgba(208,107,98,.4); background:rgba(208,107,98,.06); }
-  .tag.active { background:rgba(95,174,130,.14); color:#8fcaa6; } .tag.blocked { background:rgba(208,107,98,.14); color:#e0a09a; }
-  /* emoji icons in monochrome so the page reads calm; tab icons light up when active */
-  .bchip-i, .emo { filter:grayscale(1); opacity:.8; }
-  #navTabs .nav-tab::before { filter:grayscale(1); opacity:.55; }
-  #navTabs .nav-tab.active::before { opacity:1; }
+  .nav-tab.active, .nav-tab[data-tab].active { border-bottom-color:var(--accent) !important; color:#fff; }
+  #navTabs .nav-tab.active { border-top-color:var(--accent) !important; color:var(--accent); }
+  .bchip { background:#1a2228; border-color:var(--card-border-2); }
+  .bchip.good { border-color:rgba(46,224,127,.40); background:rgba(46,224,127,.07); }
+  .bchip.bad { border-color:rgba(255,79,94,.45); background:rgba(255,79,94,.07); }
+  .tag.active { background:rgba(46,224,127,.14); color:#6ff0a8; } .tag.blocked { background:rgba(255,79,94,.14); color:#ff9aa3; }
+  table.tbl a, .card a:not(.ebtn) { color:#6cb8ff; }
+  /* icons: monochrome, active tab lights up */
+  .bchip-i, .emo { filter:grayscale(1) brightness(1.2); opacity:.85; }
+  #navTabs .nav-tab::before { filter:grayscale(1) brightness(1.3); opacity:.5; }
+  #navTabs .nav-tab.active::before { opacity:1; filter:none; }
   .xc-title span { background:none; color:var(--text); -webkit-text-fill-color:currentColor; }
-  .xc-go { background:var(--accent); color:#15171b; box-shadow:none; }
+  .xc-go { background:var(--accent); color:#06231e; box-shadow:none; }
   .xc-card { background:var(--card-bg); }
+
+  /* sync progress: thin bar under the top nav + % on the unlock button */
+  #syncBar { position:fixed; left:0; top:calc(var(--nav-h) + env(safe-area-inset-top)); height:2px; width:0; z-index:2200; background:var(--accent);
+    transition:width .25s ease, opacity .4s ease; opacity:0; pointer-events:none; }
+  #syncBar.on { opacity:1; }
+  #gate #syncBar { top:0; }
 </style>
 </head>
 <body>
@@ -626,8 +646,8 @@
   </div>
   <div class="nav-right">
     <button class="refresh-btn" onclick="openPalette()" title="Search (⌘K)">🔍 <span class="pk">⌘K</span></button>
-    <button class="refresh-btn" id="editToggle" onclick="toggleEdit()">✎ Edit</button>
-    <button class="refresh-btn" onclick="reload()">↻ Refresh</button>
+    <button class="refresh-btn" id="editToggle" onclick="toggleEdit()">✎<span class="nl"> Edit</span></button>
+    <button class="refresh-btn" onclick="reload()" title="Refresh">↻<span class="nl"> Refresh</span></button>
     <button class="refresh-btn" onclick="signOut()">Lock</button>
   </div>
 </nav>
@@ -657,6 +677,7 @@
 </div>
 
 <!-- Password / setup gate -->
+<div id="syncBar"></div>
 <div id="gate">
   <div class="box">
     <div class="logo" id="gateLogo">L</div>
@@ -981,12 +1002,29 @@ async function submitGate(){
   var hash = await sha256(pw);
   await boot(API_URL, hash, btn);
 }
+/* ---- load progress: Apps Script usually answers in ~1.5–3 s (longer when it's cold), so estimate % from elapsed time ---- */
+var SYNC={t:null, start:0, btn:null};
+function syncStart(btn){
+  var bar=$('syncBar'); SYNC.start=Date.now(); SYNC.btn=btn||null; if(bar){ bar.classList.add('on'); bar.style.width='4%'; }
+  var st=$('stamp'); if(st&&!btn) st.textContent='updating…';
+  clearInterval(SYNC.t);
+  SYNC.t=setInterval(function(){ var sec=(Date.now()-SYNC.start)/1000, pct=Math.min(95, Math.round(95*(1-Math.exp(-sec/1.4))));
+    if(bar) bar.style.width=pct+'%';
+    if(SYNC.btn) SYNC.btn.textContent='Unlocking… '+pct+'%'+(sec>8?' (waking up the server)':''); }, 120);
+}
+function syncDone(){
+  clearInterval(SYNC.t); var bar=$('syncBar');
+  if(bar){ bar.style.width='100%'; setTimeout(function(){ bar.classList.remove('on'); setTimeout(function(){ bar.style.width='0'; },400); },250); }
+}
 async function boot(api, hash, btn){
   // If we have this session's password and a cached copy, show it instantly, then refresh in the background.
   var cached=null; try{ cached=JSON.parse(localStorage.getItem(LS_DATA)||'null'); }catch(e){}
   if(btn===undefined && cached && cached.data){ showApp(cached); }   // auto-boot (already authed) → instant from cache
+  if(btn===undefined && !(cached && cached.data)){ btn=$('unlockBtn'); if(btn){ btn.disabled=true; btn.dataset.label='Unlock'; } }   // remembered login, no copy yet: show % on the button
+  syncStart(btn);
   try{
     var res = await readData(api + '?pw=' + hash);
+    syncDone();
     if(!res || res.ok===false){
       if(res && res.error==='unauthorized'){ $('gateErr').textContent='Wrong password.'; sessionStorage.removeItem(SS_PW); try{localStorage.removeItem(LS_PW);}catch(e){} }
       else { $('gateErr').textContent='Could not load data. Try again.'; }
@@ -998,6 +1036,7 @@ async function boot(api, hash, btn){
     showApp(res);
     if(btn){ btn.disabled=false; btn.textContent=btn.dataset.label||'Unlock'; }
   }catch(e){
+    syncDone(); if(cached && cached.data && $('stamp')) $('stamp').textContent=fmtStamp(cached.updated)+' (offline copy)';
     if(btn){ btn.disabled=false; btn.textContent=btn.dataset.label||'Unlock'; }
     // if we already rendered from cache on auto-boot, stay silent; otherwise surface a retry
     if(!(cached && cached.data)) $('gateErr').textContent='Connection problem — tap Unlock to retry.';
@@ -1017,9 +1056,10 @@ function fmtStamp(iso){ try{ var d=new Date(iso); return d.toLocaleString('en-US
 async function reload(){
   var api = localStorage.getItem(LS_API), pw = sessionStorage.getItem(SS_PW);
   if(!api||!pw) return signOut();
-  try{ var res=await readData(api+'?pw='+pw); if(res&&res.ok){ DATA=res.data||{};
+  syncStart();
+  try{ var res=await readData(api+'?pw='+pw); syncDone(); if(res&&res.ok){ DATA=res.data||{};
     try{ localStorage.setItem(LS_DATA, JSON.stringify({data:DATA, updated:res.updated})); }catch(e){}
-    $('stamp').textContent=fmtStamp(res.updated); render(CURRENT);} }catch(e){}
+    $('stamp').textContent=fmtStamp(res.updated); render(CURRENT);} }catch(e){ syncDone(); }
 }
 function signOut(){ sessionStorage.removeItem(SS_PW); try{ localStorage.removeItem(LS_PW); localStorage.removeItem(LS_DATA); }catch(e){} location.reload(); }
 
@@ -3004,8 +3044,8 @@ function drawMoneyCharts(){
       charts.push(new Chart(nw.getContext('2d'),{type:'line',
         data:{labels:hist.map(function(h){ var d=parseDate(h.Date); return d?d.toLocaleDateString('en-US',{month:'short',day:'numeric',timeZone:'UTC'}):String(h.Date); }),
           datasets:[{data:hist.map(function(h){return num(h.NetWorth);}),
-            borderColor:'#c7a45c', backgroundColor:'rgba(199,164,92,.10)', fill:true, tension:.3,
-            pointBackgroundColor:'#c7a45c', pointRadius:3}]},
+            borderColor:'#1fd1b2', backgroundColor:'rgba(31,209,178,.10)', fill:true, tension:.3,
+            pointBackgroundColor:'#1fd1b2', pointRadius:3}]},
         options:{plugins:{legend:{display:false}},
           scales:{x:{ticks:{color:'#9a9a9a',font:{family:'Inter'}},grid:{color:'#252a31'}},
             y:{ticks:{color:'#9a9a9a',font:{family:'Inter'},callback:function(v){return '$'+(v/1000)+'k';}},grid:{color:'#252a31'}}}}}));
