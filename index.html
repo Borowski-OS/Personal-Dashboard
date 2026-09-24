@@ -642,6 +642,33 @@
   .card, .hero, .kv-row .k, .kv-row .v, .bchip-v, h1, h2 { overflow-wrap:anywhere; word-break:normal; }
   .kv-row .k { flex:1 1 auto; }
   img, svg, canvas, table, pre { max-width:100%; }
+
+  /* phones: compact type & spacing (~80%) so more fits per screen */
+  @media (max-width:640px){
+    body { font-size:13.5px; }
+    .dashboard { padding:14px 10px 56px; }
+    .grid { gap:12px; } .grid.cols-4 { gap:8px; }
+    .card { padding:14px 14px; border-radius:14px; }
+    .card h2 { font-size:15px; margin-bottom:2px; } .card .sub { font-size:12px; margin-bottom:8px; }
+    .hero { padding:14px 14px; border-radius:16px; margin-bottom:12px; }
+    .hero-h { font-size:21px !important; } .hero-date { font-size:11px; } .hero-q { font-size:12px; }
+    .hero-actions .ebtn { font-size:11.5px; padding:5px 9px; }
+    .bchips { gap:6px; margin-top:10px; } .bchip { padding:7px 9px; gap:7px; border-radius:11px; }
+    .bchip-i { font-size:14px; } .bchip-l { font-size:9.5px; } .bchip-v { font-size:12.5px; }
+    .kv-row { font-size:13px; padding:7px 0; gap:10px; }
+    .stat { padding:10px 11px !important; } .stat .label { font-size:10px; } .stat .value, .grid.cols-4 .stat .value { font-size:17px !important; } .stat .value.mono { font-size:16px !important; } .stat .foot { font-size:11px; }
+    .foot { font-size:11px; } .section-title { font-size:11px; } .empty { font-size:12px; }
+    .mit-n { font-size:17px; } .mit-t { font-size:13.5px; } .mit-r { font-size:11.5px; } .mit-sm, .mit-sm .mit-t { font-size:12.5px; } .mit-more summary { font-size:12px; }
+    .chk { font-size:12.5px; } .rh-t { font-size:13px; } .rh-s { font-size:11.5px; }
+    .sc-v { font-size:14px; } .sc-n { font-size:11px; }
+    .tag { font-size:10.5px; } .chip { font-size:10px; }
+    table.tbl { font-size:13px; } table.tbl tbody tr td:first-child { font-size:14px; padding:8px 12px; } table.tbl td:not(:first-child) { padding:6px 12px 5px; } table.tbl td::before, table.tbl td:not(:first-child)::before { font-size:9.5px; }
+    .taf-row { font-size:12.5px; padding:8px 0; } .taf-tempo { font-size:12px; }
+    .deal-n { font-size:14px; } .deal-s, .deal-o { font-size:12px; } .bud-alert { font-size:12.5px; }
+    .header h1 { font-size:20px; } .header .subtitle { font-size:12px; }
+    .domain-sec { font-size:13px; } .subpill { font-size:11px; } .refbox summary { font-size:14px; }
+    .rd-sub { font-size:11.5px; }
+  }
 </style>
 </head>
 <body>
