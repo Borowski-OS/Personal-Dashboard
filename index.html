@@ -159,7 +159,7 @@
     table.tbl td.wide::before { display:block; margin-bottom:4px; }
     table.tbl td:last-child { border-bottom:none; }
   }
-  .taf-row { display:grid; grid-template-columns:150px 64px 1fr auto; gap:12px; align-items:center; padding:11px 0; border-bottom:1px solid #2c323a; font-size:14.5px; }
+  .taf-row { display:grid; grid-template-columns:190px 64px 1fr auto; gap:12px; align-items:center; padding:11px 0; border-bottom:1px solid #2c323a; font-size:14.5px; }
   .taf-row:last-of-type { border-bottom:none; }
   .taf-tempo { padding-left:14px; opacity:.85; font-size:13.5px; }
   .taf-when { font-weight:600; } .taf-cat { font-weight:800; letter-spacing:.03em; } .taf-wx { color:var(--text-muted); }
@@ -822,6 +822,8 @@ function tafPeriods(t){ var now=Date.now()/1000;
 function hhmm(sec){ return new Date(sec*1000).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',timeZone:'America/Los_Angeles'}).replace(':00',''); }
 function dayLbl(sec){ var d=new Date(sec*1000), t=new Date(); var same=d.toLocaleDateString('en-US',{timeZone:'America/Los_Angeles'})===t.toLocaleDateString('en-US',{timeZone:'America/Los_Angeles'});
   return same?'Today':d.toLocaleDateString('en-US',{weekday:'short',timeZone:'America/Los_Angeles'}); }
+/* daylight hours (7 AM–7 PM Pacific) inside a period */
+function dayHours(from,to){ var n=0; for(var t=Math.ceil(from/3600)*3600; t<to; t+=3600){ var h=+new Date(t*1000).toLocaleString('en-US',{hour:'numeric',hour12:false,timeZone:'America/Los_Angeles'}); if(h>=7&&h<19) n++; } return n; }
 function tafCard(){
   var t=(LIVE.tafs||{}).KMEV;
   if(!LIVE.tafs){ fetchTaf(); return card('KMEV forecast (TAF)','Official terminal forecast for Minden.','<div class="empty">Loading the Minden TAF…</div>','--sky'); }
@@ -830,10 +832,10 @@ function tafCard(){
   var rows=tafPeriods(t).map(function(p){
     var f=p.f, wind=(f.wdir==='VRB'?'Variable':(f.wdir!=null?String(f.wdir).padStart(3,'0')+'°':''))+' '+p.spd+(p.gust?'G'+p.gust:'')+' kt';
     var sky=(f.clouds||[]).map(function(c){ return c.cover+(c.base!=null?' '+(c.base>=1000?(c.base/1000)+'k':c.base):''); }).join(' ')||'—';
-    return '<div class="taf-row'+(p.tempo?' taf-tempo':'')+'"><div class="taf-when">'+(p.tempo?'<span class="foot">'+esc(f.change||('PROB'+f.prob))+'</span> ':'')+dayLbl(f.from)+' '+hhmm(f.from)+'–'+hhmm(f.to)+'</div>'
+    return '<div class="taf-row'+(p.tempo?' taf-tempo':'')+'"><div class="taf-when">'+(p.tempo?'<span class="foot">'+esc(f.change||('PROB'+f.prob))+'</span> ':'')+dayLbl(f.from)+' '+hhmm(f.from)+' – '+(dayLbl(f.to)!==dayLbl(f.from)?dayLbl(f.to)+' ':'')+hhmm(f.to)+'</div>'
       +'<div class="taf-cat" style="color:'+catCol[p.cat]+'">'+p.cat+'</div>'
       +'<div class="taf-wx">'+esc(wind)+' · vis '+(f.visib||'—')+' sm · '+esc(sky)+(f.wx?' · '+esc(f.wx):'')+(p.xw?' · <span style="color:'+(p.xw>10?'var(--amber)':'var(--text-dim)')+'">xwind '+p.xw+' kt</span>':'')+'</div>'
-      +'<div class="taf-go">'+(p.fly?'<span class="tag active">Good to fly</span>':'<span class="tag blocked">'+(p.cat!=='VFR'?'Not VFR':'Too windy')+'</span>')+'</div></div>'; }).join('');
+      +'<div class="taf-go">'+(p.fly?(dayHours(f.from,f.to)?'<span class="tag active">Good to fly</span>':'<span class="tag">Night</span>'):'<span class="tag blocked">'+(p.cat!=='VFR'?'Not VFR':'Too windy')+'</span>')+'</div></div>'; }).join('');
   var issued=new Date(t.issued).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',timeZone:'America/Los_Angeles'});
   return card('KMEV forecast (TAF)','Official Minden terminal forecast, issued '+issued+' local. "Good to fly" = VFR, wind ≤15 kt, gusts ≤20, crosswind ≤10 on the best runway.',
     rows+'<details style="margin-top:12px"><summary class="foot" style="cursor:pointer;color:var(--text-dim)">Raw TAF</summary><div class="code" style="font-size:12.5px;margin-top:6px;color:var(--text-muted);white-space:pre-wrap">'+esc(t.raw)+'</div></details>', '--sky');
