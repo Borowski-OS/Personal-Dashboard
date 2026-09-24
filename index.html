@@ -282,6 +282,7 @@
   /* monthly review print */
   #printArea { display:none; }
   @media print {
+    #aiFab, .hero-actions, #topNav { display:none !important; }
     body { background:#fff; color:#000; padding:0; }
     #topNav, #app, #modal { display:none !important; }
     #printArea { display:block !important; padding:32px; color:#000; }
@@ -1192,8 +1193,8 @@ function smartSteps(){
     var d=has(a.Due)?daysUntilDate(a.Due):null; out.push({t:a.Action, tab:a.Tab||'overview', d:d, sort:(d==null?300:d), row:a.__row}); });
   // health-driven
   var h=kv('Health'), cur=num(h.weight), goal=num(h.weight_goal);
-  var wk=weekWorkouts();
-  if(wk<5) out.push({t:'Train — '+wk+' workout'+(wk===1?'':'s')+' logged this week (aim 5–6)', tab:'health', d:0, sort:8});
+  var wk=trainingWeek().sessions;
+  if(wk<5) out.push({t:'Train — '+wk+' workout'+(wk===1?'':'s')+' logged this week so far (aim 5)', tab:'health', d:0, sort:8});
   if(!isNaN(cur)&&!isNaN(goal)&&cur>goal) out.push({t:'Log today’s weight ('+Math.round(cur-goal)+' lb to your '+goal+' goal)', tab:'health', d:null, sort:40});
   // flying-driven (only if not already present)
   var fn=flyingNextStep(); if(!out.some(function(s){return /written|solo|checkride/i.test(s.t)&&s.tab==='flying';})) out.push({t:fn, tab:'flying', d:null, sort:45});
@@ -1508,7 +1509,7 @@ function todayHero(){
   if(quotes.length){ var doy=Math.floor((Date.now()-new Date(n.getFullYear(),0,0))/864e5), q=quotes[doy%quotes.length];
     qTxt='<div class="hero-q">“'+esc(q.Quote)+'” <span>— '+esc(q.Author||'Unknown')+'</span></div>'; }
   return '<div class="hero"><div class="hero-top"><div><div class="hero-date">'+esc(dateTxt)+'</div><h1 class="hero-h">'+greet+', '+esc(name)+'.</h1></div>'
-    +'<div class="hero-actions"><button class="ebtn pri" onclick="quickAdd()">＋ Quick add</button><button class="ebtn" onclick="printReview()">🖨 Review</button></div></div>'
+    +'<div class="hero-actions"><button class="ebtn pri" onclick="quickAdd()">＋ Quick add</button><button class="ebtn" onclick="printReview()">🖨 Weekly review</button></div></div>'
     +'<div class="bchips">'+chips.join('')+'</div>'+qTxt+'</div>';
 }
 async function markActionDone(rownum){
@@ -1537,7 +1538,7 @@ function rhythmCard(){
   return card('Daily rhythm','Small, repeatable, non-negotiable. Tap to log.', rows, '--gold');
 }
 /* weekly scorecard — a handful of lead measures, each with a target and a traffic light */
-function scorecardCard(){
+function scorecardRows(){
   var n=laNow(), dow=(n.getDay()+6)%7;               // Mon=0
   var rows=[];
   function row(tab, label, now, target, status, note){ rows.push({tab:tab,label:label,now:now,target:target,status:status,note:note||''}); }
@@ -1568,6 +1569,10 @@ function scorecardCard(){
   var live=function(r){return !/(pass|dead)/i.test(String(r.Stage||''));};
   var dl=arr('Deals').filter(live).length, pl=arr('Properties').filter(live).length;
   row('ventures','Live deals in pipeline', dl+' biz · '+pl+' RE', '5+', dl+pl>=5?'g':(dl+pl>=2?'a':'r'), 'refreshed every Monday');
+  return rows;
+}
+function scorecardCard(){
+  var rows=scorecardRows();
   var cls={g:'sc-g',a:'sc-a',r:'sc-r'}, lbl={g:'On track',a:'Watch',r:'Off track'};
   var body='<div class="sc">'+rows.map(function(r){ return '<div class="sc-row" onclick="navGo(\''+r.tab+'\')"><span class="sc-dot '+cls[r.status]+'"></span>'
     +'<span class="sc-l">'+esc(r.label)+(r.note?'<span class="sc-n">'+esc(r.note)+'</span>':'')+'</span><span class="sc-v">'+r.now+'</span><span class="sc-t">'+r.target+'</span><span class="sc-s '+cls[r.status]+'">'+lbl[r.status]+'</span></div>'; }).join('')+'</div>';
@@ -1580,11 +1585,11 @@ function agendaCard(){
   return card('Next 7 days','Calendar, deadlines and renewals in one place.', '<div class="agenda-h">Calendar</div>'+agendaHtml()+'<div class="agenda-h" style="margin-top:14px">Due soon</div>'+due, '--cyan');
 }
 function renderOverview(){
-  var nw=netWorth(), h=kv('Health'), cur=num(h.weight), goal=num(h.weight_goal), wk=weekWorkouts();
+  var nw=netWorth(), h=kv('Health'), cur=num(h.weight), goal=num(h.weight_goal), wk=trainingWeek().sessions;
   var trends='<div class="grid cols-3" style="margin-bottom:22px">'
     + trendCard('Net worth', nw?money2(nw):'—', nwSeries(), '--emerald', 'tracking')
     + trendCard('Weight', (!isNaN(cur)?cur+' lb':'—'), weightSeries(), '--pink', 'toward '+(isNaN(goal)?'goal':goal+' lb'))
-    + trendCard('Workouts / wk', ''+wk, workoutWeekSeries(), '--sky', 'last 8 wks')
+    + trendCard('Workouts this week', ''+wk, workoutWeekSeries(), '--sky', 'weekly, last 8 wks')
     + '</div>';
   return todayHero()
     + '<div class="grid g-today" style="margin-bottom:22px">' + big3Card() + rhythmCard() + '</div>'
@@ -1603,14 +1608,22 @@ function printReview(){
   rows+=pr('Net worth', money(nw));
   rows+=pr('Monthly bills', money(bills));
   rows+=pr('Weight', (has(h.weight)?h.weight+' lb → '+(h.weight_goal||'')+' lb goal':'—'));
-  rows+=pr('Workouts this week', weekWorkouts());
+  rows+=pr('Workouts this week', trainingWeek().sessions+' (Mon–today)');
   rows+=pr('Flying hours', has(fly.total_hours)?fly.total_hours:'—');
   var steps=smartSteps().slice(0,10).map(function(s){return '<li style="margin:3px 0">'+esc(s.t)+'</li>';}).join('');
+  var sc=scorecardRows(), dot={g:'#16a34a',a:'#d97706',r:'#dc2626'}, lab={g:'On track',a:'Watch',r:'Off track'};
+  var scHtml='<h2 style="font-size:16px;margin:18px 0 6px">Weekly scorecard — '+sc.filter(function(r){return r.status==='g';}).length+' of '+sc.length+' on track</h2><table style="border-collapse:collapse;width:100%;font-size:13px">'
+    +sc.map(function(r){ return '<tr style="border-bottom:1px solid #ddd"><td style="padding:5px 8px 5px 0">'+esc(r.label)+(r.note?'<div style="color:#777;font-size:11px">'+esc(r.note)+'</div>':'')+'</td><td style="padding:5px 8px;text-align:right;font-weight:700">'+r.now+'</td><td style="padding:5px 8px;text-align:right;color:#777">'+r.target+'</td><td style="padding:5px 0;text-align:right;color:'+dot[r.status]+';font-weight:700">'+lab[r.status]+'</td></tr>'; }).join('')+'</table>';
+  var ov=budgetOverruns(), ovHtml=ov.length?'<h2 style="font-size:16px;margin:18px 0 6px">Spending over plan</h2><ul style="margin:0;padding-left:18px">'+ov.slice(0,8).map(function(o){return '<li>'+esc(o.cat)+' +'+money(o.over)+'/mo</li>';}).join('')+'</ul>':'';
+  var reflect='<h2 style="font-size:16px;margin:18px 0 6px">Reflect</h2><ol style="margin:0;padding-left:18px;line-height:2">'
+    +'<li>What went well this week?</li><li>What didn’t — and why?</li><li>The one thing that would make next week a win:</li><li>Top 3 for next week (big rocks first):</li></ol>';
   var box=document.getElementById('printArea');
-  box.innerHTML='<h1 style="font-size:22px;margin:0 0 4px">Monthly Review</h1>'
-    +'<div style="color:#5c6470;margin-bottom:16px">'+new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})+'</div>'
-    +'<table style="border-collapse:collapse;margin-bottom:18px">'+rows+'</table>'
-    +'<h2 style="font-size:16px;margin:0 0 6px">Next steps</h2><ul style="margin:0;padding-left:18px">'+steps+'</ul>';
+  box.innerHTML='<h1 style="font-size:22px;margin:0 0 4px">Weekly Review</h1>'
+    +'<div style="color:#5c6470;margin-bottom:16px">'+new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'})+'</div>'
+    +'<table style="border-collapse:collapse;margin-bottom:8px">'+rows+'</table>'
+    +scHtml+ovHtml
+    +'<h2 style="font-size:16px;margin:18px 0 6px">Open next steps</h2><ul style="margin:0;padding-left:18px">'+steps+'</ul>'
+    +reflect;
   window.print();
 }
 function money2(v){ var n=num(v); if(isNaN(n)) return '—'; if(Math.abs(n)>=1000) return '$'+Math.round(n/1000)+'k'; return money(v); }
