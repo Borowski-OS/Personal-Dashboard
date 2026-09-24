@@ -1004,9 +1004,9 @@ var LS_DATA = 'lifeos_data_cache';
 window.addEventListener('DOMContentLoaded', function(){
   localStorage.setItem(LS_API, API_URL);
   var aw = $('apiWrap'); if(aw) aw.classList.add('hidden');
-  warmUp();                                   // spin up Apps Script now, before the user clicks
   var pw = sessionStorage.getItem(SS_PW);
-  if(pw){ boot(API_URL, pw); }
+  if(pw){ boot(API_URL, pw); }                 // remembered: one request only (a parallel warm-up ping slows a cold server)
+  else warmUp();                               // gate showing: spin up Apps Script while the password is typed
   $('pwInput').addEventListener('keydown', function(e){ if(e.key==='Enter') submitGate(); });
 });
 /* Fire a lightweight request so the Apps Script container is warm by unlock time (cuts cold-start lag). */
@@ -1061,7 +1061,7 @@ function syncStart(btn){
   clearInterval(SYNC.t);
   SYNC.t=setInterval(function(){ var sec=(Date.now()-SYNC.start)/1000, pct=Math.min(95, Math.round(95*(1-Math.exp(-sec/1.4))));
     if(bar) bar.style.width=pct+'%';
-    if(SYNC.btn) SYNC.btn.textContent='Unlocking… '+pct+'%'+(sec>8?' (waking up the server)':''); }, 120);
+    if(SYNC.btn) SYNC.btn.textContent='Unlocking… '+pct+'%'+(sec>6?' — Google is slow right now':''); }, 120);
 }
 function syncDone(){
   clearInterval(SYNC.t); var bar=$('syncBar');
