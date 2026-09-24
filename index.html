@@ -3291,7 +3291,9 @@ function renderHealth(){
   var proteinLo=Math.round(goal*0.9), proteinHi=Math.round(goal*1.1);
 
   var tiles='<div class="grid cols-4" style="margin-bottom:22px">'
-    + statTile('Current weight', cur+' lb', has(h.weight_updated)?('as of '+esc(prettyIso(h.weight_updated))):'')
+    + (function(){ var ws=weightSeries(); if(Math.min.apply(null,ws)===Math.max.apply(null,ws)) ws=[]; var t=statTile('Current weight', cur+' lb', (has(h.weight_updated)?('as of '+prettyIso(h.weight_updated)):'')
+        +(ws.length>1?' · '+(ws[ws.length-1]-ws[0]<=0?'':'+')+(Math.round((ws[ws.length-1]-ws[0])*10)/10)+' lb since first log':''));
+        return ws.length>1 ? t.replace(/<\/div>$/, sparkline(ws.slice(-30),'--pink')+'</div>') : t; })()
     + statTile('Goal weight', goal+' lb', togo+' lb to go')
     + statTile('Protein / day', proteinLo+'–'+proteinHi+' g', 'preserve & build muscle')
     + statTile('Target pace', '~1 lb/wk', 'goal by ~'+new Date(Date.now()+Math.max(1,togo)*7*864e5).toLocaleDateString('en-US',{month:'short',year:'numeric'})+' at ~500 cal/day deficit')
