@@ -1251,7 +1251,7 @@ function goalsHtml(){
   var heloc=arr('Debts').filter(function(d){return /heloc/i.test(String(d.Type)+String(d.Name));})[0];
   if(heloc){ var bal=num(heloc.Balance)||0; out+=goalBar('Pay off HELOC', (20000-bal)/20000*100, money(bal)+' left of $20k', '--emerald'); }
   var cash=arr('Accounts').reduce(function(s,a){var t=String(a.Type||'').toLowerCase();return s+(t.indexOf('credit')>=0?0:(num(a.Balance)||0));},0);
-  out+=goalBar('Emergency fund → $35k', cash/35000*100, money(cash)+' liquid', '--gold');
+  out+=goalBar('Cash buffer → $40k', cash/40000*100, money(cash)+' liquid', '--gold');
   return out||'<div class="empty">Set weight & goals to track progress.</div>';
 }
 function agendaHtml(){
@@ -1394,7 +1394,7 @@ function ventureBestBetsCard(){
     : row('📈','Business to buy','No live deals','Add candidates on the Ventures tab');
   out+= prop ? row('🏘️','Real estate investment',esc(prop.Address)+(has(prop.Area)?' · '+esc(prop.Area):''),
       [has(prop.Price)?money(prop.Price):'', has(prop.CapRate)?esc(prop.CapRate)+' cap':'', has(prop.CashFlowMo)?money(prop.CashFlowMo)+'/mo cash flow':'', has(prop.Appreciation5yr)?esc(prop.Appreciation5yr)+' 5-yr equity':'', has(prop.Stage)?esc(prop.Stage):''].filter(Boolean).join(' · '))
-    : row('🏘️','Real estate investment','No live properties','Add candidates on the Ventures tab');
+    : row('🏘️','Real estate investment','Nothing cash-flows at today’s rates','2–4 units within an hour of Carson · the Monday search keeps looking');
   out+= row('💡','Side income (start now)','Anchor Soul Coaching + church websites',
       coach+'/'+coachGoal+' coaching clients · '+web+'/'+webGoal+' church sites · '+money(side)+'/mo recurring now');
   return card('🎯 Best bets','The top idea from each venture track — tap for the full pipeline.', out, '--indigo') + '<div style="height:22px"></div>';
