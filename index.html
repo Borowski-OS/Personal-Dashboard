@@ -3260,7 +3260,7 @@ function renderHealth(){
     +'<div class="kv-row"><span class="k">Protein</span><span class="v">'+proteinLo+'–'+proteinHi+' g/day (~1 g/lb goal wt)</span></div>'
     +'<div class="kv-row"><span class="k">Carbs</span><span class="v">Cycle: more on long bike/run + metcon days, less on rest/lift days</span></div>'
     +'<div class="kv-row"><span class="k">Fats</span><span class="v">~70–85 g/day</span></div>'
-    +'<p style="font-size:12.5px;color:var(--text-muted);margin:12px 0 0">Anchor every meal on 40–50g protein (eggs, Greek yogurt, chicken, beef, whey). Fuel the long Sat bike and Mon run with carbs before/during; pull carbs on Wed/Sun. A modest ~500 cal/day deficit (not aggressive) protects strength and recovery — at 208→185 that\'s ~5–6 months. Weigh daily, track the 7-day average, adjust ~200 cal if the average stalls 2 weeks.</p>';
+    +'<p style="font-size:12.5px;color:var(--text-muted);margin:12px 0 0">Anchor every meal on 40–50g protein (eggs, Greek yogurt, chicken, beef, whey). Fuel the long Sat bike and Mon run with carbs before/during; pull carbs on Wed/Sun. A modest ~500 cal/day deficit (not aggressive) protects strength and recovery — at '+cur+'→'+goal+' that\'s ~'+Math.max(1,Math.round((cur-goal)/4.3))+' months. Weigh daily, track the 7-day average, adjust ~200 cal if the average stalls 2 weeks.</p>';
 
   var workouts=arr('Workouts');
   var stravaOn=workouts.length>0;
@@ -3288,7 +3288,7 @@ function renderHealth(){
     + trainingTargetsCard() + '<div style="height:22px"></div>'
     + '<div class="grid cols-2">'
     + card('Training plan','Hybrid: CompTrain strength + Zone-2 endurance.', planHtml, '--pink')
-    + card('Nutrition — lose fat, keep muscle', 'Targets for 208 → 185.', nutrition, '--pink')
+    + card('Nutrition — lose fat, keep muscle', 'Targets for '+cur+' → '+goal+' lb.', nutrition, '--pink')
     + '</div><div style="height:22px"></div>'
     + '<div class="grid cols-2">'
     + card('Your metrics','Rhythm and essentials.', infoHtml, '--pink')
