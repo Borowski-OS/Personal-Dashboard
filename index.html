@@ -195,6 +195,9 @@
   .ap-card { padding:16px 18px; }
   .ap-raw summary { cursor:pointer; font-size:12px; color:var(--text-dim); margin-top:10px; }
   .ap-raw .code { font-size:11.5px; color:var(--text-dim); margin-top:6px; word-break:break-word; }
+  .bud-alert { margin:8px 0 6px; padding:10px 14px; border-radius:10px; background:rgba(239,68,68,.08); border:1px solid rgba(239,68,68,.3); font-size:14px; color:var(--text-muted); }
+  .bud-alert b { color:#fca5a5; }
+  .bud-more summary { cursor:pointer; font-size:13px; font-weight:600; color:var(--text-dim); padding:8px 0; }
   /* ---- deal cards ---- */
   .deals { display:grid; grid-template-columns:repeat(auto-fill,minmax(min(340px,100%),1fr)); gap:14px; }
   @media (max-width:640px){ .card { padding:18px 16px; } .header .updated { text-align:left; } }
@@ -1477,6 +1480,8 @@ function trainingWeek(){ var mx=hrMax(), z2lo=Math.round(mx*0.65), z2hi=Math.rou
     else if(!isNaN(hr)&&hr>=z2lo&&hr<=z2hi) out.z2+=mins;
     else if(!isNaN(hr)&&hr>z2hi) out.hard++; });
   return out; }
+function budgetOverruns(){ return arr('BudgetCategories').filter(function(c){ var a=num(c.MonthlyActual), b=num(c.MonthlyBudget)||0; return has(c.Category)&&!isNaN(a)&&b>0&&a>b*1.05; })
+  .map(function(c){ return {cat:c.Category, over:num(c.MonthlyActual)-num(c.MonthlyBudget)}; }).sort(function(a,b){return b.over-a.over;}); }
 function liquidCash(){ return arr('Accounts').reduce(function(s,a){var n=num(a.Balance);var t=String(a.Type||'').toLowerCase();return s+(isNaN(n)||t.indexOf('credit')>=0?0:n);},0); }
 function flightHoursSince(days){ var cut=Date.now()-days*864e5; return arr('FlightLog').reduce(function(s,f){ var d=parseDate(f.Date); return s+(d&&d.getTime()>=cut?(num(f.Hours)||0):0); },0); }
 function daysSinceFlight(){ var ds=arr('FlightLog').map(function(f){return parseDate(f.Date);}).filter(Boolean).sort(function(a,b){return b-a;}); return ds.length?Math.floor((Date.now()-ds[0].getTime())/864e5):null; }
@@ -1547,6 +1552,8 @@ function scorecardCard(){
   var f30=flightHoursSince(30), dsf=daysSinceFlight();
   row('flying','Flight hours, last 30 days', f30.toFixed(1), '8+', f30>=8?'g':(f30>=4?'a':'r'), 'hours logged in your flight log');
   row('flying','Days since last flight', dsf==null?'—':dsf, '≤ 7', dsf==null?'r':(dsf<=7?'g':(dsf<=14?'a':'r')), 'currency + skill retention');
+  var ov=budgetOverruns(), ovTot=ov.reduce(function(s,o){return s+o.over;},0);
+  row('home','Budget lines over plan', ov.length, '≤ 3', ov.length<=3?'g':(ov.length<=6?'a':'r'), ov.length?'+'+money(ovTot)+'/mo · biggest: '+ov.slice(0,2).map(function(o){return o.cat+' +'+money(o.over);}).join(', '):'all lines on plan');
   var cash=liquidCash();
   row('home','Cash buffer', money2(cash), '$40k', cash>=40000?'g':(cash>=25000?'a':'r'));
   var heloc=arr('Debts').filter(function(d){return /heloc/i.test(String(d.Type)+String(d.Name));})[0], hb=heloc?(num(heloc.Balance)||0):0;
@@ -2583,7 +2590,7 @@ function budgetPlanHtml(){
     var sub=list.reduce(function(s,c){return s+(num(c.MonthlyBudget)||0);},0);
     var subAct=list.reduce(function(s,c){var a=num(c.MonthlyActual);return s+(isNaN(a)?0:a);},0);
     out+='<div style="display:flex;justify-content:space-between;align-items:baseline;margin:16px 0 4px"><span class="tag '+t.toLowerCase()+'" style="font-size:11px">'+esc(t)+'</span><span class="foot mono">'+(subAct?money(subAct)+' avg / ':'')+money(sub)+'/mo</span></div>';
-    out+=list.map(function(c){
+    var lineHtml=function(c){
       var b=num(c.MonthlyBudget)||0, a=num(c.MonthlyActual);
       var right='<span class="mono">'+(isNaN(a)?'':'<span style="color:var('+(a>b*1.05?'--rose':'--text)')+'">'+money(a)+'</span> <span style="color:var(--text-dim)">/ </span>')+money(b)+'</span>';
       var trend='';
@@ -2597,7 +2604,12 @@ function budgetPlanHtml(){
           +'<span class="foot mono" style="color:var('+dcol+')">'+pct+'% of budget'+(over?' · over by '+money(a-b):(under?' · room to spend':' · on track'))+'</span></div>';
       }
       return '<div style="padding:7px 0;border-bottom:1px solid #252a31"><div style="display:flex;justify-content:space-between;gap:10px;font-size:13.5px"><span>'+esc(c.Category)+(has(c.Notes)?' <span class="foot" style="color:var(--text-dim)">'+esc(c.Notes)+'</span>':'')+'</span>'+right+'</div>'+trend+'</div>';
-    }).join('');
+    };
+    // over-budget lines stay visible; the rest fold away so the list scans in seconds
+    var isOver=function(c){ var a=num(c.MonthlyActual), bb=num(c.MonthlyBudget)||0; return !isNaN(a)&&a>bb*1.05; };
+    var hot=list.filter(isOver), calm=list.filter(function(c){return !isOver(c);});
+    out+=hot.map(lineHtml).join('');
+    if(calm.length) out+='<details class="bud-more"'+(hot.length?'':' open')+'><summary>'+calm.length+' '+(anyActual?'on-track / planned':'planned')+' line'+(calm.length===1?'':'s')+'</summary>'+calm.map(lineHtml).join('')+'</details>';
   });
   var grand=cats.reduce(function(s,c){return s+(num(c.MonthlyBudget)||0);},0);
   var grandAct=cats.reduce(function(s,c){var a=num(c.MonthlyActual);return s+(isNaN(a)?0:a);},0);
@@ -2605,7 +2617,9 @@ function budgetPlanHtml(){
   var note = anyActual
     ? '<p class="foot" style="margin:12px 0 0;color:var(--text-dim)">Avg = your average monthly spend on that line (from your transactions). Red = running over budget. Re-upload a Monarch CSV anytime and I\'ll refresh these.</p>'
     : '<p class="foot" style="margin:12px 0 0;color:var(--text-dim)">Showing your plan. Send me a Monarch CSV export and each line gets an average-spend and trend vs budget.</p>';
-  return head+out+note;
+  var ov=budgetOverruns(), ovTot=ov.reduce(function(s,o){return s+o.over;},0);
+  var alert=ov.length?'<div class="bud-alert"><b>'+ov.length+' lines over plan · +'+money(ovTot)+'/mo.</b> Biggest: '+ov.slice(0,4).map(function(o){return esc(o.cat)+' +'+money(o.over);}).join(' · ')+'</div>':'';
+  return head+alert+out+note;
 }
 
 /* True total return of a rental — appreciation + cash flow + debt paydown + tax savings.
