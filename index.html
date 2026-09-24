@@ -199,6 +199,9 @@
   .bud-alert { margin:8px 0 6px; padding:10px 14px; border-radius:10px; background:rgba(239,68,68,.08); border:1px solid rgba(239,68,68,.3); font-size:14px; color:var(--text-muted); }
   .bud-alert b { color:#fca5a5; }
   .bud-more summary { cursor:pointer; font-size:13px; font-weight:600; color:var(--text-dim); padding:8px 0; }
+  .req { padding:9px 0; } .req-h { display:flex; justify-content:space-between; gap:10px; font-size:14px; }
+  .req-v { font-weight:700; white-space:nowrap; } .req-bar { height:6px; border-radius:4px; background:#252a31; margin-top:6px; overflow:hidden; }
+  .req-bar span { display:block; height:100%; border-radius:4px; } .req-o { font-size:12.5px; color:var(--text-dim); margin-top:10px; line-height:1.5; }
   /* ---- deal cards ---- */
   .deals { display:grid; grid-template-columns:repeat(auto-fill,minmax(min(340px,100%),1fr)); gap:14px; }
   @media (max-width:640px){ .card { padding:18px 16px; } .header .updated { text-align:left; } }
@@ -2458,6 +2461,32 @@ function flyingStudyCards(){
     return card(p.Name, done+' of '+ts.length+' steps done'+(has(p.Notes)?' · '+p.Notes:'')+'.', goalBar('Progress', ts.length?done/ts.length*100:0, '', '--sky')+rows, '--sky') + '<div style="height:22px"></div>';
   }).join('');
 }
+/* logbook totals by category (Type column: dual / solo / dual XC / solo XC / night / instrument; landings from "(N ldg)") */
+function logTotals(){ var t={total:0,dual:0,solo:0,dualXC:0,soloXC:0,night:0,inst:0,ldg:0,dual60:0}, cut=Date.now()-60*864e5;
+  arr('FlightLog').forEach(function(r){ var h=num(r.Hours)||0, ty=String(r.Type||'').toLowerCase(), nt=String(r.Notes||''), d=parseDate(r.Date);
+    t.total+=h; var solo=/solo/.test(ty), xc=/xc|cross/.test(ty);
+    if(solo) t.solo+=h; else t.dual+=h;
+    if(xc&&solo) t.soloXC+=h; if(xc&&!solo) t.dualXC+=h;
+    if(/night/.test(ty)||/\bnight\b/i.test(nt)) t.night+=h;
+    if(/instrument|hood|sim/.test(ty)||/\b(hood|instrument)\b/i.test(nt)) t.inst+=h;
+    var m=nt.match(/\((\d+)\s*ldg\)/i); if(m) t.ldg+=+m[1];
+    if(!solo&&d&&d.getTime()>=cut) t.dual60+=h; });
+  return t; }
+/* 14 CFR 61.109(a): private pilot aeronautical experience, airplane single-engine land */
+function ppl109Card(){
+  var t=logTotals();
+  var req=[['Total flight time',t.total,40,'hrs'],['Dual instruction',t.dual,20,'hrs'],['Solo',t.solo,10,'hrs'],
+    ['Dual cross-country',t.dualXC,3,'hrs'],['Dual night (incl. 100 nm XC + 10 night landings)',t.night,3,'hrs'],['Dual instrument (hood)',t.inst,3,'hrs'],
+    ['Solo cross-country',t.soloXC,5,'hrs']];
+  var rows=req.map(function(r){ var pct=Math.min(100,r[1]/r[2]*100), done=r[1]>=r[2];
+    return '<div class="req"><div class="req-h"><span>'+(done?'<b style="color:var(--green)">✓</b> ':'')+esc(r[0])+'</span><span class="req-v">'+r[1].toFixed(1)+' / '+r[2]+' '+r[3]+'</span></div>'
+      +'<div class="req-bar"><span style="width:'+pct+'%;background:var('+(done?'--green':'--sky')+')"></span></div></div>'; }).join('');
+  var ck=parseDate(kv('Flying').checkride_target), dToCk=ck?Math.round((ck-Date.now())/864e5):null;
+  rows+='<div class="req"><div class="req-h"><span>Checkride prep — 3 hrs dual in the 60 days before the test</span><span class="req-v" style="color:var(--text-dim)">'+(dToCk!=null&&dToCk<=60?t.dual60.toFixed(1)+' / 3 hrs':'when a checkride date is set')+'</span></div></div>';
+  var foot='<div class="req-o">Also required: 150 nm solo XC with full-stop landings at 3 points (one leg 50 nm+) · 3 solo takeoffs & landings at a towered airport · knowledge test · practical test. '
+    +'Landings logged: <b>'+t.ldg+'</b>. Night and hood time are read from the flight Type or Notes ("night", "hood").</div>';
+  return card('Private pilot requirements (§61.109)', 'Minimums the FAA requires before the checkride — computed from your logbook. Most students finish around 60–70 hrs.', rows+foot, '--sky');
+}
 function renderFlying(){
   var f=kv('Flying'), ac=arr('Aircraft'), log=arr('FlightLog');
 
@@ -2484,14 +2513,14 @@ function renderFlying(){
   function ms(done, label, detail){
     return '<div class="kv-row"><span class="k">'+(done?'<span style="color:var(--green)">✓</span> ':'<span style="color:var(--text-dim)">○</span> ')+esc(label)+'</span><span class="v" style="color:var(--text-dim)">'+esc(detail||'')+'</span></div>';
   }
-  var soloDone=num(f.solo_hours)>0, xcDone=num(f.xc_hours)>0;
+  var L=logTotals(), soloDone=L.solo>0, xcDone=L.soloXC>0;
   var writtenDone=/pass|complete|done/i.test(String(f.written_status||''));
   var milestoneHtml=
       ms(has(f.total_hours), 'Begin primary training', has(f.total_hours)?f.total_hours+' hrs logged':'')
     + ms(/pass|current|valid|done/i.test(String(f.ppl_medical||'')), 'FAA medical certificate', f.ppl_medical||'update in sheet (ppl_medical)')
     + ms(soloDone, 'First solo', soloDone?(f.solo_hours+' solo hrs'):'pre-solo — landings & maneuvers')
     + ms(writtenDone, 'Written (knowledge) exam', f.written_status||'not started')
-    + ms(xcDone, 'Solo cross-country', xcDone?(f.xc_hours+' XC hrs'):'after solo')
+    + ms(xcDone, 'Solo cross-country', xcDone?(L.soloXC.toFixed(1)+' solo XC hrs'):'after solo ('+L.dualXC.toFixed(1)+' dual XC so far)')
     + ms(false, 'Checkride (PPL)', has(f.checkride_target)?('target '+f.checkride_target):'target TBD');
 
   var acCols=[{label:'Tail',render:function(r){return '<strong>'+esc(r.Tail)+'</strong>';}},
@@ -2518,12 +2547,12 @@ function renderFlying(){
     + flyingStudyCards()
     + '<div class="grid cols-2">'
     + card('PPL milestones','Brad\'s path to the certificate.', milestoneHtml, '--sky')
-    + card('Aircraft','', tableEl(acCols, ac, {empty:'Add your aircraft (e.g. Maule N51207) in the Aircraft tab.',editTab:'Aircraft'}), '--sky')
+    + ppl109Card()
     + '</div>' + gap
-    + (renderVehicles('air')?renderVehicles('air')+gap:'')
-    + aircraftPerfCard()
-    + gap
-    + card('Flight log','Most recent flights.', tableEl(logCols, log.slice().reverse(), {empty:'Log flights in the FlightLog tab.',editTab:'FlightLog'}), '--sky');
+    + (renderVehicles('air')
+        ? renderVehicles('air').replace(/<\/div>$/, aircraftPerfCard()+'</div>')+gap      // aircraft card beside its performance card
+        : card('Aircraft','', tableEl(acCols, ac, {empty:'Add your aircraft (e.g. Maule N51207) in the Aircraft tab.',editTab:'Aircraft'}), '--sky')+gap+aircraftPerfCard()+gap)
+    + card('Flight log','Most recent flights.', tableEl(logCols, log.slice().sort(function(a,b){ return String(b.Date).localeCompare(String(a.Date)); }), {empty:'Log flights in the FlightLog tab.',editTab:'FlightLog'}), '--sky');
 }
 function airportsHtml(){
   var aps=arr('Airports').filter(function(a){return has(a.Icao);});
@@ -3296,7 +3325,7 @@ function renderHealth(){
     + '</div>'
     + woCard
     + '<div style="height:22px"></div>'
-    + card('Weight & metrics log','', tableEl(logCols, log.slice().reverse(), {empty:'Log weight & metrics with ✎ Edit.',editTab:'HealthLog'}), '--pink');
+    + card('Weight & metrics log','', tableEl(logCols, log.slice().sort(function(a,b){ return String(b.Date).localeCompare(String(a.Date)); }), {empty:'Log weight & metrics with ✎ Edit.',editTab:'HealthLog'}), '--pink');
 }
 
 /* ============================================================
