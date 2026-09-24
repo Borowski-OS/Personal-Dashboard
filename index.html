@@ -189,6 +189,22 @@
   @media (max-width:640px){ .mit { flex-wrap:wrap; } .mit-r { width:100%; padding-left:68px; } .mit-t { flex:1 1 60%; font-size:15px; } }
   @media (max-width:640px){ .sc-row { grid-template-columns:12px 1fr auto; } .sc-t, .sc-s { display:none; } .hero-h { font-size:24px; } .bchip { min-width:0; flex:1 1 45%; } }
   .agenda-h { font-size:11.5px; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:var(--text-dim); margin-bottom:4px; }
+  /* ---- deal cards ---- */
+  .deals { display:grid; grid-template-columns:repeat(auto-fill,minmax(min(340px,100%),1fr)); gap:14px; }
+  @media (max-width:640px){ .card { padding:18px 16px; } .header .updated { text-align:left; } }
+  @media (max-width:640px){ .grid.cols-4 { grid-template-columns:1fr 1fr !important; gap:10px; } .grid.cols-4 .stat { padding:14px; } .grid.cols-4 .stat .value { font-size:20px; } .deal { padding:14px; } }
+  .deal { border:1px solid var(--card-border); border-radius:12px; padding:16px 18px; background:rgba(255,255,255,.02); display:flex; flex-direction:column; gap:12px; }
+  .deal-h { display:flex; justify-content:space-between; gap:12px; align-items:flex-start; }
+  .deal-n { font-size:16px; font-weight:700; line-height:1.3; } .deal-n a { color:inherit; text-decoration:none; } .deal-n a:hover { color:#a5b4fc; }
+  .deal-s { font-size:13px; color:var(--text-dim); margin-top:2px; }
+  .deal-k { display:grid; grid-template-columns:repeat(auto-fit,minmax(88px,1fr)); gap:8px; padding:10px 0; border-top:1px solid #2a2f37; border-bottom:1px solid #2a2f37; }
+  .dk-l { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--text-dim); } .dk-v { font-size:15.5px; font-weight:700; margin-top:2px; }
+  .deal-o { font-size:13.5px; color:var(--text-muted); } .deal-notes { font-size:14px; line-height:1.55; color:var(--text-muted); }
+  .deal-notes a { color:#a5b4fc; text-decoration:none; font-weight:600; }
+  .deal-f { display:flex; justify-content:space-between; align-items:center; gap:10px; margin-top:auto; }
+  .vbadge { font-size:12px; font-weight:600; color:var(--text-dim); } .vbadge.ok { color:var(--green); }
+  .refbox { border:1px solid var(--card-border); border-radius:14px; padding:16px 20px; background:var(--card-bg); }
+  .refbox summary { cursor:pointer; font-weight:700; font-size:16px; } .refbox summary span { font-weight:500; font-size:13px; color:var(--text-dim); margin-left:8px; }
   .num { text-align:right; font-family:inherit; font-weight:600; font-variant-numeric:tabular-nums; white-space:nowrap; }
   .tag { display:inline-block; font-size:12px; line-height:1.35; font-weight:600; padding:2px 8px; border-radius:20px;
     letter-spacing:.03em; background:#2a2f37; color:var(--text-muted); }
@@ -1383,14 +1399,15 @@ function btcScenarioCard(){
   var spot=LIVE.btc;
   var rungs=[250000,1000000];
   var rowsBody=rungs.map(function(p){
-    var proj = spot? Math.round(crypto*(p/spot)) : null;
+    var q=num(kv('Config').btc_qty), rest=spot&&q?Math.max(0,crypto-q*spot):0;   // non-BTC crypto (SOL) held flat
+    var proj = q ? Math.round(q*p+rest) : (spot? Math.round(crypto*(p/spot)) : null);
     var trim = proj? Math.round(proj*0.5) : null;   // illustrative: trim ~half at the rung
     return '<div class="kv-row"><span class="k">At $'+ (p/1000>=1000?(p/1e6)+'M':(p/1000)+'k') +'/BTC</span><span class="v mono">'+(proj!=null?money(proj)+' <span class="foot" style="color:var(--text-dim)">· trim ~'+money(trim)+'</span>':'—')+'</span></div>';
   }).join('');
   var head='<div class="kv-row"><span class="k">Crypto position now</span><span class="v mono">'+money(crypto)+'</span></div>'
     +'<div class="kv-row"><span class="k">BTC spot (live)</span><span class="v mono" '+(spot?'':'data-live="btc"')+'>'+(spot?'$'+Math.round(spot).toLocaleString():'…')+'</span></div>';
   return card('BTC → acquisition capital','If your position tracks BTC, what each rung could free (trim ≈ half, illustrative).', head+rowsBody
-    +'<p class="foot" style="margin:12px 0 0;color:var(--text-dim)">Assumes the whole crypto position moves with BTC. Add a <span class="mono">btc_qty</span> in Config for exact math.</p>','--gold');
+    +'<p class="foot" style="margin:12px 0 0;color:var(--text-dim)">'+(num(kv('Config').btc_qty)?'Uses your '+kv('Config').btc_qty+' BTC'+(num(kv('Config').sol_qty)?' (+ '+kv('Config').sol_qty+' SOL held at today’s price)':'')+'.':'Assumes the whole crypto position moves with BTC. Add btc_qty in Config for exact math.')+'</p>','--gold');
 }
 /* ---------- Side-income funnel: church web + coaching toward MRR goals ---------- */
 function sideIncomeFunnelCard(){
@@ -2802,8 +2819,34 @@ function grpKv(obj, accentVar){
       +'</div></div>';
   }).join('');
 }
+function stageTone(st){ st=String(st||''); return /(pass|dead)/i.test(st)?'blocked':(/(offer|dilig|loi|clos|call)/i.test(st)?'active':'planning'); }
+function splitVerified(notes){ var n=String(notes||''), m=n.match(/\s*\[(Verified live[^\]]*|Couldn't verify[^\]]*)\]/), badge='';
+  if(m){ n=n.replace(m[0],''); badge=/^Verified/.test(m[1])?'<span class="vbadge ok">✓ '+esc(m[1])+'</span>':'<span class="vbadge">? '+esc(m[1].replace(/: site blocks.*$/,''))+'</span>'; }
+  return {text:n.trim(), badge:badge}; }
+function dealCardHtml(r){
+  var sv=splitVerified(r.Notes), mult=(num(r.Price)&&num(r.SDE))?(num(r.Price)/num(r.SDE)).toFixed(1)+'×':'';
+  function k(l,v){ return '<div class="dk"><div class="dk-l">'+l+'</div><div class="dk-v">'+v+'</div></div>'; }
+  return '<div class="deal">'
+    +'<div class="deal-h"><div><div class="deal-n">'+esc(r.Name)+'</div><div class="deal-s">'+esc([r.Sector,r.Location].filter(has).join(' · '))+'</div></div>'
+    +(has(r.Stage)?'<span class="tag '+stageTone(r.Stage)+'">'+esc(r.Stage)+'</span>':'')+'</div>'
+    +'<div class="deal-k">'+k('Price',money(r.Price))+k('SDE',has(r.SDE)?money(r.SDE):'—')+k('Multiple',mult||'—')+k('Cash in',money(r.CashNeeded))+k('~Net / mo',has(r.MonthlyNet)?money(r.MonthlyNet):'—')+'</div>'
+    +(has(r.OwnerHrs)?'<div class="deal-o">👤 '+esc(r.OwnerHrs)+'</div>':'')
+    +'<div class="deal-notes">'+linkify(sv.text)+'</div>'
+    +'<div class="deal-f">'+sv.badge+(EDIT?editBtn('Deals',r.__row):'')+'</div></div>'; }
+function propCardHtml(r){
+  var sv=splitVerified(r.Notes);
+  function k(l,v){ return '<div class="dk"><div class="dk-l">'+l+'</div><div class="dk-v">'+v+'</div></div>'; }
+  var cf=num(r.CashFlowMo);
+  return '<div class="deal">'
+    +'<div class="deal-h"><div><div class="deal-n">'+(has(r.URL)?'<a href="'+esc(r.URL)+'" target="_blank" rel="noopener">'+esc(r.Address)+' ↗</a>':esc(r.Address))+'</div><div class="deal-s">'+esc([r.Area,r.Units].filter(has).join(' · '))+'</div></div>'
+    +(has(r.Stage)?'<span class="tag '+stageTone(r.Stage)+'">'+esc(r.Stage)+'</span>':'')+'</div>'
+    +'<div class="deal-k">'+k('List',money(r.Price))+k('Cash flow',isNaN(cf)?'—':'<span style="color:'+(cf>0?'var(--green)':'var(--red)')+'">'+money(cf)+'/mo</span>')+k('Cap',esc(r.CapRate||'—'))+k('Cash in',money(r.CashNeeded))+k('5-yr equity',esc(r.Appreciation5yr||'—'))+'</div>'
+    +'<div class="deal-notes">'+linkify(sv.text)+'</div>'
+    +'<div class="deal-f">'+sv.badge+(EDIT?editBtn('Properties',r.__row):'')+'</div></div>'; }
 function renderVentures(){
-  var v=kv('Ventures'), deals=arr('Deals');
+  var v=kv('Ventures');
+  var live=function(r){ return !/(pass|dead)/i.test(String(r.Stage||'')); };
+  var deals=arr('Deals').filter(live), props=arr('Properties').filter(live);
   // live capital sources
   var cash=arr('Accounts').reduce(function(s,a){var n=num(a.Balance);var t=String(a.Type||'').toLowerCase();return s+(isNaN(n)||t.indexOf('credit')>=0?0:n);},0);
   var crypto=arr('Investments').filter(function(i){return /crypto|btc|bitcoin/i.test(String(i.Type)+' '+String(i.Name));}).reduce(function(s,i){return s+(num(i.Value)||0);},0);
@@ -2817,47 +2860,21 @@ function renderVentures(){
     + '<div class="stat"><div class="label">Bitcoin (live)</div><div class="value mono" data-live="btc">…</div><div class="foot">watch vs. your $250k target</div></div>'
     + '</div>';
 
-  var box=grpKv(v, '--indigo');
-  var boxCard = box ? '<div class="grid cols-2" style="margin-bottom:22px">'+box+'</div>'
-    : card('Ventures','', '<div class="empty">Add your buy-box & capital plan with ✎ Edit — use keys like <span class="mono">Buy-box|Price</span> or <span class="mono">Capital plan|At $250K</span>.</div>','--indigo');
-
-  var dcols=[
-    {label:'Business',render:function(r){return '<strong>'+esc(r.Name)+'</strong>'+(has(r.Location)?'<div class="foot" style="color:var(--text-dim)">'+esc(r.Location)+'</div>':'');}},
-    {label:'Sector',render:function(r){return has(r.Sector)?'<span class="chip">'+esc(r.Sector)+'</span>':'';}},
-    {label:'Price',num:true,render:function(r){return money(r.Price);}},
-    {label:'SDE',num:true,render:function(r){return money(r.SDE);}},
-    {label:'Cash in',num:true,render:function(r){return money(r.CashNeeded);}},
-    {label:'~$/mo net',num:true,render:function(r){return has(r.MonthlyNet)?money(r.MonthlyNet):'';}},
-    {label:'Owner hrs',key:'OwnerHrs'},
-    {label:'Stage',render:function(r){return has(r.Stage)?'<span class="tag '+(/(pass|dead)/i.test(r.Stage)?'blocked':(/(offer|dilig|loi|close)/i.test(r.Stage)?'active':'planning'))+'">'+esc(r.Stage)+'</span>':'';}},
-    {label:'Notes',key:'Notes'}
-  ];
-
-  var pcols=[
-    {label:'Property',render:function(r){return '<strong>'+(has(r.URL)?'<a href="'+esc(r.URL)+'" target="_blank" rel="noopener">'+esc(r.Address)+'</a>':esc(r.Address))+'</strong>'+(has(r.Area)?'<div class="foot" style="color:var(--text-dim)">'+esc(r.Area)+'</div>':'');}},
-    {label:'Units',key:'Units'},
-    {label:'Price',num:true,render:function(r){return money(r.Price);}},
-    {label:'Rent/mo',num:true,render:function(r){return money(r.GrossRentMo);}},
-    {label:'NOI',num:true,render:function(r){return money(r.NOI);}},
-    {label:'Cap',num:true,key:'CapRate'},
-    {label:'Cash in',num:true,render:function(r){return money(r.CashNeeded);}},
-    {label:'Cash flow/mo',num:true,render:function(r){return has(r.CashFlowMo)?money(r.CashFlowMo):'';}},
-    {label:'CoC',num:true,key:'CashOnCash'},
-    {label:'DSCR',num:true,key:'DSCR'},
-    {label:'5-yr apprec.',key:'Appreciation5yr'},
-    {label:'Stage',render:function(r){return has(r.Stage)?'<span class="tag '+(/(pass|dead)/i.test(r.Stage)?'blocked':(/(offer|dilig|loi|close)/i.test(r.Stage)?'active':'planning'))+'">'+esc(r.Stage)+'</span>':'';}},
-    {label:'Notes',key:'Notes'}
-  ];
+  // reference: buy boxes + capital plan (the Funnel/Side-income groups already drive the funnel card, so they're not repeated)
+  var refObj={}; Object.keys(v).forEach(function(k){ if(!/^(Funnel|Side income)\|/.test(k)) refObj[k]=v[k]; });
+  var box=grpKv(refObj, '--indigo');
+  var dealsHtml = deals.length ? '<div class="deals">'+deals.map(dealCardHtml).join('')+'</div>' : '<div class="empty">No live deals right now — the Monday search adds verified listings automatically.</div>';
+  var propsHtml = props.length ? '<div class="deals">'+props.map(propCardHtml).join('')+'</div>' : '<div class="empty">Nothing cash-flows at today’s rates within an hour of Carson. The Monday search keeps looking and adds anything that does.</div>';
   return tiles
-    + (EDIT?'<div class="editbar">'+kvEditBtn('Ventures')+'</div>':'')
+    + (EDIT?'<div class="editbar">'+kvEditBtn('Ventures')+addBtn('Deals','deal')+addBtn('Properties','property')+'</div>':'')
+    + card('Deal pipeline','Businesses for sale that fit your buy box — verified live, refreshed every Monday. Estimates: underwrite before trusting SDE.', dealsHtml, '--indigo')
+    + '<div style="height:22px"></div>'
+    + card('Real Estate Investments','2–4 unit rentals within an hour of Carson that cash-flow at today’s rates (at list or a days-on-market-capped offer).', propsHtml, '--teal')
+    + '<div style="height:22px"></div>'
     + '<div class="grid cols-2" style="margin-bottom:22px">' + acquisitionReadinessCard() + sideIncomeFunnelCard() + '</div>'
     + '<div class="grid cols-2" style="margin-bottom:22px">' + btcScenarioCard() + btcLadderCard() + '</div>'
-    + boxCard
-    + card('Deal pipeline','Screening estimates — underwrite before trusting SDE. Turn on ✎ Edit to add or update deals.',
-        tableEl(dcols, deals.filter(function(r){return !/(pass|dead)/i.test(String(r.Stage||''));}), {empty:'No deals yet. Add candidates with ✎ Edit — price, SDE, cash needed, stage.',editTab:'Deals'}), '--indigo')
-    + '<div style="height:22px"></div>'
-    + card('Real Estate Investments','Reno / Tahoe / Carson rentals that fit the real-estate buy-box. Rents and expenses are screening estimates — verify with a rent roll and T-12.',
-        tableEl(pcols, arr('Properties').filter(function(r){return !/(pass|dead)/i.test(String(r.Stage||''));}), {empty:'No properties yet. Add candidates with ✎ Edit.',editTab:'Properties'}), '--teal');
+    + (box?'<details class="refbox"><summary>Buy boxes &amp; capital plan <span>reference — tap to expand</span></summary><div class="grid cols-2" style="margin-top:16px">'+box+'</div></details>'
+         :card('Ventures','', '<div class="empty">Add your buy-box & capital plan with ✎ Edit.</div>','--indigo'));
 }
 
 /* ============================================================
