@@ -1560,14 +1560,17 @@ function todayHero(){
   if(LIVE.aqi&&LIVE.aqi.now!=null){ var q=LIVE.aqi.now; chips.push(chipHtml('🌫️','Air quality', q+' · '+aqiLabel(q).replace('Unhealthy for sensitive groups','Sensitive'), q>100?'bad':(q<=50?'good':''), '')); }
   var ev=arr('Events').filter(function(e){return String(e.Date).slice(0,10)===today&&has(e.Title);});
   chips.push(chipHtml('📅','Calendar', ev.length?ev.length+' event'+(ev.length===1?'':'s')+' today':'nothing scheduled','', ''));
-  var sk=sickNow(), wo=sk?('Rest — sick day '+sk.day):todayWorkoutPlan(); if(wo) chips.push(chipHtml(sk?'🤒':'💪','Training', esc(wo),'', 'health'));
+  var sk=sickNow(), RI=recoveryInfo(), wo=sk?('Rest — sick day '+sk.day):todayWorkoutPlan();
+  if(!sk&&RI&&RI.age<=1&&RI.zone==='red') wo='Easy day — recovery '+RI.last.rec+'%';
+  if(RI&&RI.age<=1) chips.push(chipHtml('💚','Recovery', RI.last.rec+'% · '+hm(RI.last.sleep)+' sleep', RI.zone==='green'?'good':(RI.zone==='red'?'bad':''), 'health'));
+  if(wo) chips.push(chipHtml(sk?'🤒':'💪','Training', esc(wo),'', 'health'));
   var hb=arr('Habits').filter(function(x){return /daily/i.test(String(x.Cadence||''));}), done=hb.filter(function(x){return String(x.LastDone||'').slice(0,10)===today;}).length;
   chips.push(chipHtml('🙏','Rhythm', done+' / '+hb.length+' kept', done===hb.length&&hb.length?'good':'', ''));
   var quotes=arr('Quotes').filter(function(q){return has(q.Quote);}), qTxt='';
   if(quotes.length){ var doy=Math.floor((Date.now()-new Date(n.getFullYear(),0,0))/864e5), q=quotes[doy%quotes.length];
     qTxt='<div class="hero-q">“'+esc(q.Quote)+'” <span>— '+esc(q.Author||'Unknown')+'</span></div>'; }
   return '<div class="hero"><div class="hero-top"><div><div class="hero-date">'+esc(dateTxt)+'</div><h1 class="hero-h">'+greet+', '+esc(name)+'.</h1></div>'
-    +'<div class="hero-actions"><button class="ebtn pri" onclick="quickAdd()">＋ Quick add</button><button class="ebtn" onclick="printReview()">🖨 Weekly review</button>'+inboxLink()+'</div></div>'
+    +'<div class="hero-actions"><button class="ebtn pri" onclick="quickAdd()">＋ Quick add</button><button class="ebtn" onclick="printReview()">🖨 Weekly review</button>'+inboxLink()+cronoLink()+'</div></div>'
     +'<div class="bchips">'+chips.join('')+'</div>'+qTxt+'</div>';
 }
 async function markActionDone(rownum){
@@ -1611,6 +1614,7 @@ function scorecardRows(){
   var nw=nutritionWeek(); if(nw){ var pLo=Math.round((num(h.weight_goal)||185)*0.9);
     row('health','Protein, daily avg', nw.p+' g', pLo+'+ g', nw.p>=pLo?'g':(nw.p>=pLo*0.85?'a':'r'), nw.cal.toLocaleString('en-US')+' cal avg · '+nw.days+' day'+(nw.days===1?'':'s')+' logged (Cronometer)'); }
   var wu=parseDate(h.weight_updated), wd=wu?Math.floor((Date.now()-wu.getTime())/864e5):null;
+  var RIs=recoveryInfo(); if(RIs&&!isNaN(RIs.avgSleep)) row('health','Sleep, 7-day avg', hm(RIs.avgSleep), '7h 30m+', RIs.avgSleep>=7.5?'g':(RIs.avgSleep>=7?'a':'r'), 'WHOOP · recovery '+RIs.last.rec+'% latest');
   row('health','Days since weigh-in', wd==null?'—':wd, '≤ 7', wd==null?'r':(wd<=7?'g':(wd<=14?'a':'r')));
   var f30=flightHoursSince(30), dsf=daysSinceFlight();
   row('flying','Flight hours, last 30 days', f30.toFixed(1), '8+', f30>=8?'g':(f30>=4?'a':'r'), 'hours logged in your flight log');
@@ -3371,7 +3375,9 @@ function sickPlanCard(){
   var rest = s.fever
     ? '<b>Rest fully while you have a fever</b> — no training at all. Symptoms below the neck or a fever means the body needs every bit of energy for the fight; hard exercise can prolong it or, rarely, inflame the heart.'
     : '<b>Above-the-neck only</b> (sore throat, stuffy nose, mild headache, no fever): an easy 20–30 min walk or Zone 2 spin is okay if you feel up to it. Skip lifting and intervals.';
-  var body='<p style="margin:0 0 10px">'+rest+'</p>'
+  var RI=recoveryInfo(), whoop=(RI&&RI.age<=1)?'<p style="margin:0 0 10px;color:var('+RI.color+')">WHOOP this morning: recovery <b>'+RI.last.rec+'%</b>, resting HR '+Math.round(RI.last.rhr)+', HRV '+Math.round(RI.last.hrv)+' ms'
+      +(RI.zone==='green'?' — your body looks like it\'s winning. Once you\'re 24 hrs fever-free, start the easy days below.':(RI.zone==='red'?' — still fighting it; keep resting.':' — getting there; keep it easy.'))+'</p>':'';
+  var body=whoop+'<p style="margin:0 0 10px">'+rest+'</p>'
     +'<div class="kv-row"><span class="k">Back to training</span><span class="v">24 hrs fever-free (without meds) → 2–3 easy Zone 2 days (≤30 min) → lifting → intervals last</span></div>'
     +'<div class="kv-row"><span class="k">Nutrition</span><span class="v">Pause the deficit — eat at maintenance. Keep protein up, lots of fluids, sleep 8+ hrs.</span></div>'
     +'<div class="kv-row"><span class="k">Flying (IMSAFE)</span><span class="v">No flying while sick — fever, congestion (ear/sinus block on descent) or cold meds like antihistamines all disqualify.</span></div>'
@@ -3393,6 +3399,7 @@ function medicalHistoryCard(){
 }
 /* ---------- Drive inbox (ForeFlight + Cronometer CSV drop) and nutrition from Cronometer ---------- */
 function inboxUrl(){ var u=String(kv('Config').inbox_url||''); return /^https:\/\/drive\.google\.com\//.test(u)?u:'https://drive.google.com/drive/search?q=%22Life%20OS%20Inbox%22'; }
+function cronoLink(label){ return '<a class="ebtn" href="https://cronometer.com/#account" target="_blank" rel="noopener" style="text-decoration:none">'+(label||'🥗 Cronometer export')+'</a>'; }
 function inboxLink(label){ return '<a class="ebtn" href="'+inboxUrl()+'" target="_blank" rel="noopener" style="text-decoration:none">'+(label||'📂 Drive inbox')+'</a>'; }
 function nutritionWeek(){
   var today=ymd(laNow()), cut=ymd(new Date(laNow().getTime()-7*864e5));
@@ -3428,6 +3435,32 @@ function coverageCard(){
     + line('Eye doctor',h.eye_doctor) + line('Member ID',h.vision_member_id,true) + line('Exam',h.vision_exam) + line('Glasses / contacts allowance',h.vision_allowance);
   return card('Insurance & coverage','Your plans, who to call, and what things cost.', med+dental+vision
     +'<p class="foot" style="margin:12px 0 0;color:var(--text-dim)">Tip: urgent care usually costs a fraction of the ER for non-emergencies. Member IDs are blurred — tap to show.</p>', '--pink');
+}
+/* ---------- Recovery & sleep (WHOOP → Cronometer biometrics export → Recovery tab) ---------- */
+function recoveryRows(){ return arr('Recovery').map(function(r){ return {d:String(r.Date||'').slice(0,10), rec:num(r.Recovery), hrv:num(r.HRV), rhr:num(r.RestingHR), sleep:num(r.Sleep), score:num(r.SleepScore)}; })
+  .filter(function(r){ return r.d; }).sort(function(a,b){ return a.d<b.d?-1:1; }); }
+function recoveryInfo(){
+  var rows=recoveryRows(), withRec=rows.filter(function(r){ return !isNaN(r.rec); }); if(!withRec.length) return null;
+  var last=withRec[withRec.length-1], wk=rows.slice(-7), avg=function(k){ var v=wk.map(function(r){return r[k];}).filter(function(x){return !isNaN(x);}); return v.length?v.reduce(function(a,b){return a+b;},0)/v.length:NaN; };
+  var age=Math.round((new Date(ymd(laNow()))-new Date(last.d))/864e5);
+  return {last:last, age:age, avgHrv:avg('hrv'), avgRhr:avg('rhr'), avgSleep:avg('sleep'), series:withRec.slice(-14).map(function(r){return r.rec;}),
+    zone:last.rec>=67?'green':(last.rec>=34?'yellow':'red'), color:last.rec>=67?'--green':(last.rec>=34?'--amber':'--red')};
+}
+function hm(hrs){ if(isNaN(hrs)) return '—'; var m=Math.round(hrs*60); return Math.floor(m/60)+'h '+('0'+(m%60)).slice(-2)+'m'; }
+function recoveryCard(){
+  var R=recoveryInfo(); if(!R) return '';
+  var L=R.last, when=R.age<=0?'today':(R.age===1?'yesterday':R.age+' days ago');
+  var cmp=function(v,avg,lowerBetter){ if(isNaN(v)||isNaN(avg)) return ''; var d=v-avg, good=lowerBetter?d<0:d>0; return Math.abs(d)<0.5?'at your 7-day avg':('<span style="color:var('+(good?'--green':'--amber')+')">'+(d>0?'▲':'▼')+Math.abs(Math.round(d))+'</span> vs 7-day avg'); };
+  var advice={green:'Green — your body is ready. Good day for a hard session or intervals (unless you\'re sick).',
+    yellow:'Yellow — moderate strain: steady Zone 2 or a normal lift, skip max efforts.',
+    red:'Red — recover: rest, walk, or very easy Zone 2. Prioritize sleep tonight.'}[R.zone];
+  var tiles='<div class="grid cols-4" style="margin-bottom:12px">'
+    + '<div class="stat" style="border-top:2px solid var('+R.color+')"><div class="label">Recovery ('+when+')</div><div class="value" style="color:var('+R.color+')">'+L.rec+'%</div>'+sparkline(R.series,R.color)+'</div>'
+    + '<div class="stat"><div class="label">HRV</div><div class="value">'+(isNaN(L.hrv)?'—':Math.round(L.hrv)+' ms')+'</div><div class="foot">'+cmp(L.hrv,R.avgHrv,false)+'</div></div>'
+    + '<div class="stat"><div class="label">Resting HR</div><div class="value">'+(isNaN(L.rhr)?'—':Math.round(L.rhr)+' bpm')+'</div><div class="foot">'+cmp(L.rhr,R.avgRhr,true)+'</div></div>'
+    + '<div class="stat"><div class="label">Sleep</div><div class="value">'+hm(L.sleep)+'</div><div class="foot">'+(isNaN(L.score)?'':'score '+L.score+'% · ')+'7-day avg '+hm(R.avgSleep)+'</div></div>'
+    + '</div>';
+  return card('Recovery & sleep','From your WHOOP (via Cronometer). Green 67%+, yellow 34–66%, red under 34%.', tiles+'<p style="margin:0;font-size:13.5px">'+advice+'</p>', '--pink');
 }
 function trainingTargetsCard(){
   var t=trainingWeek();
@@ -3480,7 +3513,7 @@ function renderHealth(){
         +'<div class="kv-row"><span class="k">Protein avg</span><span class="v" style="color:var('+(nw.p>=proteinLo?'--green':'--amber')+')">'+nw.p+' g</span></div>'
         +'<div class="kv-row"><span class="k">Carbs / fat avg</span><span class="v">'+nw.c+' g / '+nw.f+' g</span></div>'
         +'<div class="section-title" style="margin:16px 0 6px">Targets</div>'
-      : '<div class="foot" style="margin:0 0 10px">Export from Cronometer and drop the CSVs in your '+inboxLink('📂 Drive inbox')+' — actuals show here next morning.</div>')
+      : '<div class="foot" style="margin:0 0 10px">'+cronoLink('🥗 Export from Cronometer')+' (Daily Nutrition + Biometrics) and drop the CSVs in your '+inboxLink('📂 Drive inbox')+' — actuals show here next morning.</div>')
     + nutrition;
 
   var workouts=arr('Workouts');
@@ -3489,10 +3522,10 @@ function renderHealth(){
     +'<button class="ebtn pri" onclick="stravaSync()">↻ Sync Strava</button></div>'
     +'<div class="foot" id="stravaStatus" style="margin-bottom:10px">'+(stravaOn?(workouts.length+' workouts synced from Strava.'):'Connect Strava (see chat) then hit Sync.')+'</div>'
     +'<div class="kv-row"><span class="k">Strava</span><span class="v" style="color:'+(stravaOn?'var(--green)':'var(--text-dim)')+'">'+(stravaOn?'connected — runs & rides':'runs & rides (ready to connect)')+'</span></div>'
-    +'<div class="kv-row"><span class="k">Whoop</span><span class="v" style="color:var(--text-dim)">API is flaky — skipped</span></div>'
+    +'<div class="kv-row"><span class="k">WHOOP</span><span class="v" style="color:'+(recoveryInfo()?'var(--green)':'var(--text-dim)')+'">'+(recoveryInfo()?'via Cronometer — through '+esc(prettyIso(recoveryInfo().last.d)):'syncs into Cronometer → export Biometrics')+'</span></div>'
     +'<div class="kv-row"><span class="k">Apple Health</span><span class="v" style="color:var(--text-dim)">needs a bridge app (Health Auto Export)</span></div>'
     +'<div class="kv-row"><span class="k">Cronometer</span><span class="v" style="color:'+(arr('Nutrition').length?'var(--green)':'var(--text-dim)')+'">'+(arr('Nutrition').length?'imported — through '+esc(prettyIso(String(nutritionWeek()&&nutritionWeek().last||''))):'export CSVs → Drive inbox')+'</span></div>'
-    +'<div style="margin-top:10px">'+inboxLink('📂 Open Drive inbox')+'</div>'
+    +'<div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">'+inboxLink('📂 Open Drive inbox')+cronoLink('🥗 Export from Cronometer')+'</div>'
     +'<p style="font-size:12px;color:var(--text-dim);margin:10px 0 0">Weight isn\'t in Strava — log it here with ✎ Edit (or a smart scale via Apple Health later).</p>';
 
   function woDate(r){ var m=String(r.Date||'').match(/(\d{4})-(\d{2})-(\d{2})/); return m?(MONTHS[+m[2]-1]+' '+(+m[3])):esc(r.Date||''); }
@@ -3508,6 +3541,7 @@ function renderHealth(){
   return '<div class="editbar" style="gap:8px">'+(EDIT?kvEditBtn('Health'):'')+'<button class="ebtn pri" onclick="quickLogWeight()">＋ Log weight</button></div>'
     + (sickNow()?sickPlanCard()+'<div style="height:22px"></div>':'')
     + tiles
+    + (recoveryInfo()?recoveryCard()+'<div style="height:22px"></div>':'')
     + trainingTargetsCard() + '<div style="height:22px"></div>'
     + '<div class="grid cols-2">'
     + card('Training plan','Hybrid: CompTrain strength + Zone-2 endurance.', planHtml, '--pink')
