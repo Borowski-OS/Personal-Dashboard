@@ -3294,7 +3294,7 @@ function renderHealth(){
     + statTile('Current weight', cur+' lb', has(h.weight_updated)?('as of '+esc(prettyIso(h.weight_updated))):'')
     + statTile('Goal weight', goal+' lb', togo+' lb to go')
     + statTile('Protein / day', proteinLo+'–'+proteinHi+' g', 'preserve & build muscle')
-    + statTile('Target pace', '~1 lb/wk', '~'+Math.max(1,Math.round(togo))+' wks at ~500 cal deficit')
+    + statTile('Target pace', '~1 lb/wk', 'goal by ~'+new Date(Date.now()+Math.max(1,togo)*7*864e5).toLocaleDateString('en-US',{month:'short',year:'numeric'})+' at ~500 cal/day deficit')
     + '</div>';
 
   var rows=[['Resting HR',h.resting_hr],['Recovery',h.recovery_note],['Next appointment',h.next_appointment]]
