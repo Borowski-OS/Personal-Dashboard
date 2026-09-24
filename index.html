@@ -65,6 +65,7 @@
   .nav-tab[data-tab="health"].active   { border-bottom-color:var(--pink); }
   .nav-tab[data-tab="faith"].active    { border-bottom-color:var(--gold); }
   .nav-tab[data-tab="travel"].active   { border-bottom-color:var(--cyan); }
+  .nav-tab[data-tab="life"].active     { border-bottom-color:var(--orange); }
   .nav-right { display:flex; align-items:center; gap:14px; flex-shrink:0; }
   .refresh-btn { background:none; border:1px solid var(--card-border-2); color:var(--text-muted);
     border-radius:8px; padding:6px 10px; font-size:12px; cursor:pointer; font-family:inherit; }
@@ -197,6 +198,7 @@
   /* sticky in-page sub-nav for the long Home & Money page */
   .subnav { position:sticky; top:var(--nav-h); z-index:1500; display:flex; gap:8px; flex-wrap:wrap;
     padding:12px 0 14px; margin:-6px 0 8px; background:linear-gradient(var(--bg) 78%, transparent); }
+  .domain-sec { font-size:15px; color:var(--text-muted); border-top:1px solid var(--card-border); padding-top:18px; }
   .subpill { text-decoration:none; font-size:12.5px; font-weight:600; color:var(--text-muted);
     border:1px solid var(--card-border-2); border-radius:20px; padding:6px 15px; transition:all .15s; }
   .subpill:hover { color:var(--text); border-color:#666; background:#2a2a2a; }
@@ -467,14 +469,12 @@
 <nav id="topNav" class="hidden">
   <div class="nav-brand"><div class="nav-logo" id="navLogo">L</div><span class="nav-title" id="navTitle">Life OS</span></div>
   <div class="nav-tabs" id="navTabs">
-    <button class="nav-tab active" data-tab="overview" onclick="navGo('overview')">Overview</button>
-    <button class="nav-tab" data-tab="home" onclick="navGo('home')">Home &amp; Money</button>
+    <button class="nav-tab active" data-tab="overview" onclick="navGo('overview')">Today</button>
+    <button class="nav-tab" data-tab="home" onclick="navGo('home')">Money</button>
     <button class="nav-tab" data-tab="ventures" onclick="navGo('ventures')">Ventures</button>
-    <button class="nav-tab" data-tab="projects" onclick="navGo('projects')">Projects</button>
     <button class="nav-tab" data-tab="flying" onclick="navGo('flying')">Flying</button>
-    <button class="nav-tab" data-tab="hobbies" onclick="navGo('hobbies')">Hobbies</button>
-    <button class="nav-tab" data-tab="vehicles" onclick="navGo('vehicles')">Vehicles</button>
     <button class="nav-tab" data-tab="health" onclick="navGo('health')">Health</button>
+    <button class="nav-tab" data-tab="life" onclick="navGo('life')">Home &amp; Life</button>
     <button class="nav-tab" data-tab="faith" onclick="navGo('faith')">Faith</button>
   </div>
   <div class="nav-right">
@@ -553,18 +553,17 @@ var DATA = null;        // full dataset from the web app
 var CURRENT = 'overview';
 
 var TABS = {
-  overview:{title:'Overview', sub:'Your whole life, one glance.'},
-  home:{title:'Home & Money', sub:'Bills, budget, accounts, household & memberships.'},
-  projects:{title:'Projects', sub:'House & family projects and their next steps.'},
-  flying:{title:'Flying', sub:'Training progress, hours, and your aircraft.'},
-  ventures:{title:'Ventures', sub:'Your buy-box, capital plan, and deal pipeline.'},
-  hobbies:{title:'Hobbies', sub:'The things you love doing.'},
-  vehicles:{title:'Vehicles', sub:'Maintenance, renewals, and service history.'},
-  health:{title:'Health & Fitness', sub:'Training rhythm and health admin.'},
+  overview:{title:'Today', sub:'What matters today — and the numbers that decide it.'},
+  home:{title:'Money', sub:'Net worth, cash flow, budget, accounts, bills and giving.'},
+  ventures:{title:'Ventures', sub:'Buy boxes, capital plan, and the live deal pipeline.'},
+  flying:{title:'Flying', sub:'Weather, go/no-go, training progress, and your aircraft.'},
+  health:{title:'Health & Fitness', sub:'Training rhythm, body metrics, and health admin.'},
+  life:{title:'Home & Life', sub:'Family, household, projects, vehicles, hunting & hobbies, travel.'},
   faith:{title:'Faith & Rhythm', sub:'Rule of life, people to pray for, and decisions made in prayer.'}
 };
-/* old tabs now fold into Home & Money — route any lingering links there */
-var TAB_ALIAS = { bills:'home', family:'home', money:'home', travel:'home' };
+/* old tabs fold into the 7 domains — route lingering links (and jump to the matching section) */
+var TAB_ALIAS = { bills:'home', money:'home', family:'life', travel:'life', projects:'life', vehicles:'life', hobbies:'life', hunting:'life', today:'overview' };
+var TAB_SECTION = { family:'sec-family', travel:'sec-travel', projects:'sec-projects', vehicles:'sec-vehicles', hobbies:'sec-hobbies', hunting:'sec-hobbies' };
 
 function $(id){ return document.getElementById(id); }
 function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
@@ -859,6 +858,7 @@ function signOut(){ sessionStorage.removeItem(SS_PW); location.reload(); }
    Tab routing
    ============================================================ */
 function navGo(tab){
+  var sec = TAB_SECTION[tab];
   tab = TAB_ALIAS[tab] || tab;               // fold old tabs into their new home
   if(!TABS[tab]) tab='overview';
   CURRENT = tab;
@@ -868,6 +868,7 @@ function navGo(tab){
   location.hash = tab;
   render(tab);
   window.scrollTo(0,0);
+  if(sec){ setTimeout(function(){ var el=$(sec); if(el) el.scrollIntoView({behavior:'smooth'}); }, 60); }
 }
 window.addEventListener('hashchange', function(){ var t=(location.hash||'').replace('#',''); t=TAB_ALIAS[t]||t; if(TABS[t]&&t!==CURRENT) navGo(t); });
 
@@ -880,9 +881,8 @@ function render(tab){
   clearCharts();
   var el = $('panels');
   el.innerHTML = ({
-    overview: renderOverview, home: renderHome, projects: renderProjects,
-    flying: renderFlying, ventures: renderVentures, hobbies: renderHobbies,
-    vehicles: renderVehicles, health: renderHealth, faith: renderFaith
+    overview: renderOverview, home: renderHome, life: renderLife,
+    flying: renderFlying, ventures: renderVentures, health: renderHealth, faith: renderFaith
   }[tab] || function(){return '';})();
   if(tab==='home') drawMoneyCharts();
   if(tab==='flying'){ fetchAirports(); fetchNwsFc(); xcMount(); }
@@ -1471,16 +1471,21 @@ function printBinder(){
 /* ============================================================
    HOME & MONEY — consolidated: bills, money, family, memberships
    ============================================================ */
+function secDivider(t,id){ return '<div id="'+id+'" style="height:30px;scroll-margin-top:70px"></div><div class="section-title domain-sec">'+t+'</div>'; }
+function subnavHtml(items){ return '<div class="subnav">'+items.map(function(s){return '<a class="subpill" href="javascript:void(0)" onclick="var e=document.getElementById(\''+s[1]+'\');if(e)e.scrollIntoView({behavior:\'smooth\'})">'+s[0]+'</a>';}).join('')+'</div>'; }
 function renderHome(){
-  function divider(t,id){ return '<div id="'+id+'" style="height:30px"></div><div class="section-title" style="font-size:15px;color:var(--text-muted);border-top:1px solid var(--card-border);padding-top:18px">'+t+'</div>'; }
-  var subnav='<div class="subnav">'
-    +[['Money','sec-money'],['Bills','sec-bills'],['Family','sec-family'],['Travel & points','sec-travel']]
-      .map(function(s){return '<a class="subpill" href="#'+s[1]+'">'+s[0]+'</a>';}).join('')+'</div>';
-  return subnav
+  return subnavHtml([['Net worth & budget','sec-money'],['Bills & contacts','sec-bills']])
     + '<div id="sec-money"></div>' + renderMoney()
-    + divider('Bills & vendor contacts','sec-bills') + renderBills()
-    + divider('Family & household','sec-family') + renderFamily()
-    + divider('Travel & memberships','sec-travel') + renderTravel();
+    + secDivider('Bills & vendor contacts','sec-bills') + renderBills();
+}
+/* Home & Life: everything about the household that isn't money */
+function renderLife(){
+  return subnavHtml([['Family & household','sec-family'],['Projects','sec-projects'],['Vehicles','sec-vehicles'],['Hunting & hobbies','sec-hobbies'],['Travel & points','sec-travel']])
+    + '<div id="sec-family" style="scroll-margin-top:70px"></div>' + renderFamily()
+    + secDivider('Projects','sec-projects') + renderProjects()
+    + secDivider('Vehicles','sec-vehicles') + renderVehicles()
+    + secDivider('Hunting & hobbies','sec-hobbies') + renderHobbies()
+    + secDivider('Travel & points','sec-travel') + renderTravel();
 }
 
 /* ============================================================
@@ -2296,6 +2301,7 @@ function renderFlying(){
     + card('PPL milestones','Brad\'s path to the certificate.', milestoneHtml, '--sky')
     + card('Aircraft','', tableEl(acCols, ac, {empty:'Add your aircraft (e.g. Maule N51207) in the Aircraft tab.',editTab:'Aircraft'}), '--sky')
     + '</div>' + gap
+    + (renderVehicles('air')?renderVehicles('air')+gap:'')
     + aircraftPerfCard()
     + gap
     + card('Flight log','Most recent flights.', tableEl(logCols, log.slice().reverse(), {empty:'Log flights in the FlightLog tab.',editTab:'FlightLog'}), '--sky');
@@ -2596,7 +2602,7 @@ function renderMoney(){
     + '</div><div style="height:22px"></div>'
     + '<div class="grid cols-2">' + givingCard + subCard + '</div>'
     + '<div style="height:22px"></div>'
-    + '<div class="grid cols-2">' + btcLadderCard() + card('Bitcoin thesis','Your stated conviction.', '<div class="kv-row"><span class="k">Near-term</span><span class="v">$250k (1–2 yrs)</span></div><div class="kv-row"><span class="k">Long-term</span><span class="v">$1M+ (within 10 yrs)</span></div><div class="kv-row"><span class="k">Strategy</span><span class="v" style="max-width:60%;text-align:right">Trim at rungs → acquisition capital</span></div>', '--gold') + '</div>'
+    + '' /* Bitcoin ladder + thesis live on the Ventures tab */
     + (rentalCard?'<div style="height:22px"></div>'+rentalCard:'');
 }
 function drawMoneyCharts(){
@@ -2808,11 +2814,12 @@ function renderHobbies(){
 function isAircraft(v){ return /air|plane|aircraft|maule|cessna|piper|cirrus/i.test(String(v.Type||'')+' '+String(v.Make||'')+' '+String(v.Name||'')); }
 function vehName(v){ return [v.Year,v.Make,v.Model].filter(has).join(' ')||v.Name||'Vehicle'; }
 
-function renderVehicles(){
-  var vs=arr('Vehicles');
-  if(!vs.length) return card('Vehicles','', '<div class="empty">Add your vehicles in the Vehicles tab — mileage, registration & insurance renewals, loan.</div>','--rose');
-  window.__vehicles = vs;
-  var cards=vs.map(function(v,idx){
+function renderVehicles(mode){   // mode 'air' = aircraft only (Flying tab); default = cars/trucks only (Home & Life)
+  var all=arr('Vehicles');
+  window.__vehicles = all;
+  var vs=all.map(function(v,i){ return {v:v,i:i}; }).filter(function(o){ return mode==='air'?isAircraft(o.v):!isAircraft(o.v); });
+  if(!vs.length) return mode==='air'?'':card('Vehicles','', '<div class="empty">Add your vehicles in the Vehicles tab — mileage, registration & insurance renewals, loan.</div>','--rose');
+  var cards=vs.map(function(o){ var v=o.v, idx=o.i;
     var air=isAircraft(v);
     var val = has(v.Value)? money(v.Value) : '—';
     var loanTxt = (has(v.LoanBalance)&&num(v.LoanBalance)>0) ? money(v.LoanBalance)+' owed' : 'Paid off';
@@ -2828,7 +2835,7 @@ function renderVehicles(){
       +rows.map(function(r){return '<div class="kv-row"><span class="k">'+esc(r[0])+'</span><span class="v">'+esc(r[1])+'</span></div>';}).join('')
       +'<div style="margin-top:12px;display:flex;justify-content:space-between;align-items:center"><span class="foot" style="color:var(--sky)">View full details &amp; live specs →</span>'+editBtn('Vehicles',v.__row)+'</div></div>';
   }).join('');
-  return addBtn('Vehicles','vehicle')+'<div class="grid cols-2">'+cards+'</div>';
+  return (mode==='air'?'':addBtn('Vehicles','vehicle'))+'<div class="grid cols-2">'+cards+'</div>';
 }
 
 function mkv(label,val){ return has(val)?'<div class="kv-row"><span class="k">'+esc(label)+'</span><span class="v">'+esc(val)+'</span></div>':''; }
@@ -2896,8 +2903,8 @@ function palIndex(){
   add('home','Account',arr('Accounts'),function(r){return r.Name;},function(r){return r.Institution||'';});
   add('home','Debt',arr('Debts'),function(r){return r.Name;},function(r){return r.Lender||'';});
   add('home','Investment',arr('Investments'),function(r){return r.Name;},function(r){return has(r.Value)?money(r.Value):'';});
-  add('home','Points',arr('Points'),function(r){return r.Program;},function(r){return has(r.Balance)?r.Balance+' pts':(r.Number||'');});
-  add('home','Trip',arr('Travel'),function(r){return r.Trip||r.Destination;},function(r){return r.Destination||'';});
+  add('travel','Points',arr('Points'),function(r){return r.Program;},function(r){return has(r.Balance)?r.Balance+' pts':(r.Number||'');});
+  add('travel','Trip',arr('Travel'),function(r){return r.Trip||r.Destination;},function(r){return r.Destination||'';});
   add('projects','Project',arr('Projects'),function(r){return r.Name;},function(r){return r.Area||r.Status||'';});
   add('vehicles','Vehicle',arr('Vehicles'),function(r){return r.Name;},function(r){return [r.Year,r.Make,r.Model].filter(has).join(' ');});
   add('hobbies','Hobby',arr('Hobbies'),function(r){return r.Name;},function(r){return r.Who||'';});
@@ -2952,7 +2959,7 @@ function palKey(e){
   else if(e.key==='Escape'){ closePalette(); }
 }
 function scrollSel(){ var r=$('palResults').children[PAL_SEL]; if(r&&r.scrollIntoView) r.scrollIntoView({block:'nearest'}); }
-var TAB_ORDER=['overview','home','ventures','projects','flying','hobbies','vehicles','health','faith'];
+var TAB_ORDER=['overview','home','ventures','flying','health','life','faith'];
 document.addEventListener('keydown', function(e){
   var appHidden=$('app').classList.contains('hidden');
   if((e.metaKey||e.ctrlKey) && (e.key==='k'||e.key==='K')){ if(!appHidden){ e.preventDefault(); if($('palette').classList.contains('hidden')) openPalette(); else closePalette(); } return; }
