@@ -1299,14 +1299,18 @@ function goalsHtml(){
   out+=goalBar('Cash buffer → $40k', cash/40000*100, money(cash)+' liquid', '--gold');
   return out||'<div class="empty">Set weight & goals to track progress.</div>';
 }
+/* event time: "h:mm AM" text, or a Sheets time value (1899-12-30THH:MM…Z, stored 8h ahead of Pacific) */
+function evMins(t){ t=String(t||''); var m=t.match(/^1899-12-30T(\d\d):(\d\d)/); if(m) return ((+m[1]-8+24)%24)*60+(+m[2]);
+  m=t.match(/(\d+):(\d+)\s*(AM|PM)/i); return m?((+m[1]%12)+(/pm/i.test(m[3])?12:0))*60+(+m[2]):-1; }
+function evTime(t){ var n=evMins(t); if(n<0) return String(t||''); var h=Math.floor(n/60), mm=n%60; return ((h%12)||12)+':'+('0'+mm).slice(-2)+' '+(h<12?'AM':'PM'); }
 function agendaHtml(){
   var ev=arr('Events').filter(function(e){return has(e.Title);})
-    .sort(function(a,b){return (String(a.Date)+String(a.Time)).localeCompare(String(b.Date)+String(b.Time));});
+    .sort(function(a,b){ var da=String(a.Date).slice(0,10), db=String(b.Date).slice(0,10); return da<db?-1:da>db?1:evMins(a.Time)-evMins(b.Time); });
   if(!ev.length) return '<div class="empty">No events in the next 7 days. To see your Apple calendars here: iPhone Calendar app → Calendars → ⓘ next to a calendar → turn on <b>Public Calendar</b> → Share Link, and send Claude the link.</div>';
   var days=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
   return ev.slice(0,10).map(function(e){ var m=String(e.Date).match(/(\d{4})-(\d{2})-(\d{2})/);
     var dl=m?(days[new Date(+m[1],+m[2]-1,+m[3]).getDay()]+' '+(+m[3])):esc(e.Date);
-    return '<div class="kv-row"><span class="k"><span class="mono" style="color:var(--text-dim);font-size:12px">'+dl+'</span> · '+esc(e.Title)+(has(e.Location)?' <span style="color:var(--text-dim)">· '+esc(e.Location)+'</span>':'')+'</span><span class="v" style="color:var(--text-muted);font-size:12.5px">'+esc(e.Time||'')+'</span></div>';
+    return '<div class="kv-row"><span class="k"><span class="mono" style="color:var(--text-dim);font-size:12px">'+dl+'</span> · '+esc(e.Title)+(has(e.Location)?' <span style="color:var(--text-dim)">· '+esc(e.Location)+'</span>':'')+'</span><span class="v" style="color:var(--text-muted);font-size:12.5px">'+esc(evTime(e.Time))+'</span></div>';
   }).join('');
 }
 function snapCard(tab, rowsHtml){ var d=DOMAIN[tab];
