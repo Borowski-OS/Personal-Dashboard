@@ -137,6 +137,11 @@
     table.tbl td.wide::before { display:block; margin-bottom:4px; }
     table.tbl td:last-child { border-bottom:none; }
   }
+  .taf-row { display:grid; grid-template-columns:150px 64px 1fr auto; gap:12px; align-items:center; padding:11px 0; border-bottom:1px solid #383838; font-size:14.5px; }
+  .taf-row:last-of-type { border-bottom:none; }
+  .taf-tempo { padding-left:14px; opacity:.85; font-size:13.5px; }
+  .taf-when { font-weight:600; } .taf-cat { font-weight:800; letter-spacing:.03em; } .taf-wx { color:var(--text-muted); }
+  @media (max-width:640px){ .taf-row { grid-template-columns:1fr auto; } .taf-wx { grid-column:1 / -1; } .taf-go{ grid-row:1; grid-column:2; } .taf-cat{ display:none; } }
   .num { text-align:right; font-family:inherit; font-weight:600; font-variant-numeric:tabular-nums; white-space:nowrap; }
   .tag { display:inline-block; font-size:12px; line-height:1.35; font-weight:600; padding:2px 8px; border-radius:20px;
     letter-spacing:.03em; background:#333; color:var(--text-muted); }
@@ -667,6 +672,7 @@ function fetchLive(){
       .then(function(j){ if(j&&j.bitcoin){ LIVE.btc=j.bitcoin.usd; LIVE.btcChg=j.bitcoin.usd_24h_change; applyLive(); if(CURRENT==='overview'||CURRENT==='home'||CURRENT==='ventures') render(CURRENT); } })
       .catch(function(){});
   }catch(e){}
+  fetchTaf();
   // aviation weather for Minden — fetch KMEV + nearby stations (via server proxy; no CORS on aviationweather.gov)
   var wxIds=['KMEV'].concat((NEAR['KMEV']||[]).map(function(x){return x[0];}));
   wxFetch(wxIds, function(list){ (list||[]).forEach(function(m){ if(m&&m.icaoId) LIVE.metars[m.icaoId]=m; });
@@ -681,6 +687,48 @@ function fetchLive(){
     if(CURRENT==='overview') render('overview');
   });
 }
+/* KMEV TAF (terminal forecast) via the Apps Script proxy — Minden publishes a TAF even when its AWOS isn't on the national feed */
+function fetchTaf(){ if(LIVE.tafFetched) return; var pw=sessionStorage.getItem(SS_PW); if(!pw) return; LIVE.tafFetched=true;
+  jsonp(API_URL+'?pw='+pw+'&action=taf&ids=KMEV,KRNO').then(function(res){
+    if(res&&res.ok){ LIVE.tafs={}; (res.tafs||[]).forEach(function(t){ LIVE.tafs[t.icao]=t; });
+      if(CURRENT==='flying'||CURRENT==='overview') render(CURRENT); } }).catch(function(){ LIVE.tafFetched=false; });
+}
+/* flight category from ceiling (ft AGL) + visibility (sm) */
+function fltCat(ceil, vis){ vis=(vis==null?10:vis); ceil=(ceil==null?99999:ceil);
+  if(ceil<500||vis<1) return 'LIFR'; if(ceil<1000||vis<3) return 'IFR'; if(ceil<=3000||vis<=5) return 'MVFR'; return 'VFR'; }
+/* smallest crosswind across Minden's runways (16/34, 12/30) */
+function kmevXwind(dir, spd){ if(dir==null||dir==='VRB'||!spd) return 0; var best=99;
+  [160,340,120,300].forEach(function(h){ var x=Math.abs(Math.sin((dir-h)*Math.PI/180))*spd; if(x<best) best=x; }); return Math.round(best); }
+function tafPeriods(t){ var now=Date.now()/1000;
+  return (t&&t.fcsts||[]).filter(function(f){ return f.to>now; }).map(function(f){
+    var ceil=null; (f.clouds||[]).forEach(function(c){ if(/BKN|OVC|OVX|VV/.test(c.cover)&&c.base!=null&&(ceil==null||c.base<ceil)) ceil=c.base; });
+    var vis=f.visib==null?null:parseFloat(String(f.visib).replace('+','')), cat=fltCat(ceil,vis);
+    var gust=f.wgst||0, spd=f.wspd||0, xw=kmevXwind(typeof f.wdir==='number'?f.wdir:null, Math.max(spd,gust));
+    var fly = cat==='VFR' && spd<=15 && gust<=20 && xw<=10;   // student tailwheel limits
+    return {f:f, ceil:ceil, vis:vis, cat:cat, spd:spd, gust:gust, xw:xw, fly:fly, tempo:/TEMPO|PROB|BECMG/.test(String(f.change||''))||f.prob}; });
+}
+function hhmm(sec){ return new Date(sec*1000).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',timeZone:'America/Los_Angeles'}).replace(':00',''); }
+function dayLbl(sec){ var d=new Date(sec*1000), t=new Date(); var same=d.toLocaleDateString('en-US',{timeZone:'America/Los_Angeles'})===t.toLocaleDateString('en-US',{timeZone:'America/Los_Angeles'});
+  return same?'Today':d.toLocaleDateString('en-US',{weekday:'short',timeZone:'America/Los_Angeles'}); }
+function tafCard(){
+  var t=(LIVE.tafs||{}).KMEV;
+  if(!LIVE.tafs){ fetchTaf(); return card('KMEV forecast (TAF)','Official terminal forecast for Minden.','<div class="empty">Loading the Minden TAF…</div>','--sky'); }
+  if(!t) return card('KMEV forecast (TAF)','Official terminal forecast for Minden.','<div class="empty">No TAF issued for KMEV right now. Check KRNO or call the AWOS (119.325).</div>','--sky');
+  var catCol={VFR:'var(--green)',MVFR:'var(--sky)',IFR:'var(--red)',LIFR:'var(--pink)'};
+  var rows=tafPeriods(t).map(function(p){
+    var f=p.f, wind=(f.wdir==='VRB'?'Variable':(f.wdir!=null?String(f.wdir).padStart(3,'0')+'°':''))+' '+p.spd+(p.gust?'G'+p.gust:'')+' kt';
+    var sky=(f.clouds||[]).map(function(c){ return c.cover+(c.base!=null?' '+(c.base>=1000?(c.base/1000)+'k':c.base):''); }).join(' ')||'—';
+    return '<div class="taf-row'+(p.tempo?' taf-tempo':'')+'"><div class="taf-when">'+(p.tempo?'<span class="foot">'+esc(f.change||('PROB'+f.prob))+'</span> ':'')+dayLbl(f.from)+' '+hhmm(f.from)+'–'+hhmm(f.to)+'</div>'
+      +'<div class="taf-cat" style="color:'+catCol[p.cat]+'">'+p.cat+'</div>'
+      +'<div class="taf-wx">'+esc(wind)+' · vis '+(f.visib||'—')+' sm · '+esc(sky)+(f.wx?' · '+esc(f.wx):'')+(p.xw?' · <span style="color:'+(p.xw>10?'var(--amber)':'var(--text-dim)')+'">xwind '+p.xw+' kt</span>':'')+'</div>'
+      +'<div class="taf-go">'+(p.fly?'<span class="tag active">Good to fly</span>':'<span class="tag blocked">'+(p.cat!=='VFR'?'Not VFR':'Too windy')+'</span>')+'</div></div>'; }).join('');
+  var issued=new Date(t.issued).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',timeZone:'America/Los_Angeles'});
+  return card('KMEV forecast (TAF)','Official Minden terminal forecast, issued '+issued+' local. "Good to fly" = VFR, wind ≤15 kt, gusts ≤20, crosswind ≤10 on the best runway.',
+    rows+'<details style="margin-top:12px"><summary class="foot" style="cursor:pointer;color:var(--text-dim)">Raw TAF</summary><div class="mono" style="font-size:12.5px;margin-top:6px;color:var(--text-muted);white-space:pre-wrap">'+esc(t.raw)+'</div></details>', '--sky');
+}
+/* next "good to fly" block from the TAF (for Today) */
+function tafNextFly(){ var t=(LIVE.tafs||{}).KMEV; if(!t) return null;
+  var ps=tafPeriods(t).filter(function(p){return !p.tempo;}); for(var i=0;i<ps.length;i++){ if(ps[i].fly) return ps[i]; } return {none:true}; }
 /* pull METARs through the Apps Script proxy (JSONP), pw-gated */
 function wxFetch(ids, cb){
   var pw=sessionStorage.getItem(SS_PW); if(!pw) return;
@@ -2233,6 +2281,8 @@ function renderFlying(){
   // Top: go/no-go, live airport weather (METARs), 7-day outlook — then the cross-country planner
   return (EDIT?'<div class="editbar">'+kvEditBtn('Flying')+'</div>':'')
     + '<div class="grid cols-2">' + goNoGoCard() + vfrWindowCard() + '</div>'
+    + gap
+    + tafCard()
     + gap
     + '<div class="section-title" style="display:flex;justify-content:space-between"><span>Live airport weather (AWOS / ATIS)</span>'+(EDIT?'<button class="ebtn pri" onclick="openEditor(\'Airports\')" style="text-transform:none;letter-spacing:0">＋ Add airport</button>':'')+'</div>'
     + airportsHtml()
