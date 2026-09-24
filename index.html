@@ -805,7 +805,12 @@ function tafCard(){
 }
 /* next "good to fly" block from the TAF (for Today) */
 function tafNextFly(){ var t=(LIVE.tafs||{}).KMEV; if(!t) return null;
-  var ps=tafPeriods(t).filter(function(p){return !p.tempo;}); for(var i=0;i<ps.length;i++){ if(ps[i].fly) return ps[i]; } return {none:true}; }
+  var ps=tafPeriods(t).filter(function(p){return !p.tempo;}), now=Date.now()/1000;
+  for(var i=0;i<ps.length;i++){ if(!ps[i].fly) continue; var f=ps[i].f;
+    // daylight only: first hour between 7 AM and 7 PM Pacific inside this period
+    for(var s=Math.max(f.from,now); s<f.to; s+=3600){ var hr=+new Date(s*1000).toLocaleString('en-US',{hour:'numeric',hour12:false,timeZone:'America/Los_Angeles'});
+      if(hr>=7&&hr<19){ var e=Math.min(f.to, s+(19-hr)*3600); return {f:{from:s,to:e}, fly:true}; } } }
+  return {none:true}; }
 /* pull METARs through the Apps Script proxy (JSONP), pw-gated */
 function wxFetch(ids, cb){
   var pw=sessionStorage.getItem(SS_PW); if(!pw) return;
@@ -1479,7 +1484,7 @@ function todayHero(){
   var nf=tafNextFly();
   if(!LIVE.tafs) chips.push(chipHtml('✈️','Flying','checking TAF…','', 'flying'));
   else if(!nf||nf.none) chips.push(chipHtml('✈️','Flying','no good window in TAF','bad','flying'));
-  else chips.push(chipHtml('✈️','Good to fly', (nf.f.from*1000<=Date.now()?'now':dayLbl(nf.f.from)+' '+hhmm(nf.f.from))+' – '+hhmm(nf.f.to),'good','flying'));
+  else chips.push(chipHtml('✈️','Good to fly', (nf.f.from*1000<=Date.now()+60000?'now':dayLbl(nf.f.from)+' '+hhmm(nf.f.from))+' – '+hhmm(nf.f.to),'good','flying'));
   if(LIVE.kmevNws){ var w=LIVE.kmevNws; chips.push(chipHtml('🌤️','Minden', w.temp+'° · '+esc(w.sky||''),'', 'flying')); }
   if(LIVE.aqi&&LIVE.aqi.now!=null){ var q=LIVE.aqi.now; chips.push(chipHtml('🌫️','Air quality', q+' · '+aqiLabel(q).replace('Unhealthy for sensitive groups','Sensitive'), q>100?'bad':(q<=50?'good':''), '')); }
   var ev=arr('Events').filter(function(e){return String(e.Date).slice(0,10)===today&&has(e.Title);});
