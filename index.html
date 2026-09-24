@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover" />
 <title>Life OS</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#161616">
@@ -584,7 +584,7 @@
     --gold:#7ba1bb; --orange:#7ba1bb;
     --teal:#7ba1bb; --emerald:#7ba1bb; --sky:#0093e7; --cyan:#0093e7; --indigo:#7ba1bb; --violet:#7ba1bb; --rose:#7ba1bb; --pink:#7ba1bb;
   }
-  html, body { overflow-x:hidden; overflow-x:clip; overscroll-behavior-x:none; max-width:100%; touch-action:pan-y pinch-zoom; }
+  html, body { overflow-x:hidden; overflow-x:clip; overscroll-behavior-x:none; max-width:100%; }
   #app, .dashboard { overflow-x:clip; max-width:100%; }
   /* fixed bars can widen the page on iPhone if anything inside them overflows — clamp them */
   #topNav, #navTabs, #syncBar { max-width:100vw; overflow:hidden; }
@@ -668,6 +668,12 @@
     .header h1 { font-size:20px; } .header .subtitle { font-size:12px; }
     .domain-sec { font-size:13px; } .subpill { font-size:11px; } .refbox summary { font-size:14px; }
     .rd-sub { font-size:11.5px; }
+  }
+
+  /* iPhone Safari zooms the whole page in when you tap a text box under 16px — and stays zoomed after the gate closes.
+     16px inputs on touch screens stop that (this was the "content runs off the right edge" bug). */
+  @media (pointer:coarse), (max-width:640px){
+    input, textarea, select, #gate input, .efield input, .efield textarea, .efield select, .xc-f input, .xc-f select, .xc-pf input, #palette input { font-size:16px !important; }
   }
 </style>
 </head>
@@ -1032,6 +1038,7 @@ function debugWide(){
     box.onclick=function(){ box.remove(); }; document.body.appendChild(box); }, 2500);
 }
 function showApp(res){
+  try{ if(document.activeElement && document.activeElement.blur) document.activeElement.blur(); }catch(e){}
   DATA = res.data || {};
   try{ localStorage.setItem(LS_DATA, JSON.stringify({data:DATA, updated:res.updated})); }catch(e){}
   $('gate').classList.add('hidden');
