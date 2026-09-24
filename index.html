@@ -158,6 +158,14 @@
     table.tbl td.wide { display:block; text-align:left; min-width:0; max-width:none; }
     table.tbl td.wide::before { display:block; margin-bottom:4px; }
     table.tbl td:last-child { border-bottom:none; }
+    /* compact: fields sit in a two-column grid under the row's title instead of one per line */
+    table.tbl tr { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); }
+    table.tbl tr td[data-empty] { display:none; }
+    table.tbl tbody tr td:first-child, table.tbl td.wide { grid-column:1 / -1; }
+    table.tbl td:not(:first-child) { display:block; text-align:left; border-bottom:none; padding:9px 14px 7px; overflow-wrap:anywhere; }
+    table.tbl td:not(:first-child)::before { display:block; font-size:11px; margin-bottom:2px; }
+    table.tbl td.wide { border-top:1px solid #2a2f37; }
+    table.tbl a { white-space:normal; overflow-wrap:anywhere; }
   }
   .taf-row { display:grid; grid-template-columns:190px 64px 1fr auto; gap:12px; align-items:center; padding:11px 0; border-bottom:1px solid #2c323a; font-size:14.5px; }
   .taf-row:last-of-type { border-bottom:none; }
