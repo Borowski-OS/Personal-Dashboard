@@ -195,6 +195,7 @@
   .ap-card { padding:16px 18px; }
   .ap-raw summary { cursor:pointer; font-size:12px; color:var(--text-dim); margin-top:10px; }
   .ap-raw .code { font-size:11.5px; color:var(--text-dim); margin-top:6px; word-break:break-word; }
+  .secret { filter:blur(6px); cursor:pointer; transition:filter .15s; user-select:none; } .secret.show { filter:none; user-select:auto; }
   .bud-alert { margin:8px 0 6px; padding:10px 14px; border-radius:10px; background:rgba(239,68,68,.08); border:1px solid rgba(239,68,68,.3); font-size:14px; color:var(--text-muted); }
   .bud-alert b { color:#fca5a5; }
   .bud-more summary { cursor:pointer; font-size:13px; font-weight:600; color:var(--text-dim); padding:8px 0; }
@@ -1205,6 +1206,8 @@ function smartSteps(){
   var today=(function(){var n=new Date();return n.getFullYear()+'-'+('0'+(n.getMonth()+1)).slice(-2)+'-'+('0'+n.getDate()).slice(-2);})();
   arr('Habits').filter(function(hb){return /daily/i.test(String(hb.Cadence||''))&&String(hb.LastDone||'').slice(0,10)!==today;}).slice(0,3).forEach(function(hb){
     var st=parseInt(hb.Streak,10)||0; out.push({t:'Keep your '+hb.Practice+(st>1?' streak ('+st+'d)':''), tab:'faith', d:0, sort:12}); });
+  // estate essentials Chelsea would need
+  var bm=binderMissing(); if(bm.length>=3) out.push({t:'Emergency binder: '+bm.length+' essentials missing — start with '+bm.slice(0,2).join(' + ').toLowerCase(), tab:'family', d:null, sort:60});
   // de-dupe by first 24 chars
   var seen={}; out=out.filter(function(s){var k=s.t.toLowerCase().slice(0,24); if(seen[k])return false; seen[k]=1; return true;});
   out.sort(function(a,b){return a.sort-b.sort;});
@@ -1712,6 +1715,18 @@ function renderBills(){
 /* ============================================================
    FAMILY & HOUSEHOLD
    ============================================================ */
+function binderFromOtherTabs(item){
+  if(item==='Life insurance'){
+    var c=arr('Contacts').filter(function(x){return /life insurance/i.test(String(x.Category||'')+' '+String(x.Notes||''));})[0];
+    var b=arr('Bills').filter(function(x){return /life/i.test(String(x.Vendor||''))&&/insur/i.test(String(x.Vendor||'')+String(x.Category||''));})[0];
+    if(c) return c.Name+(has(c.Notes)?' — '+c.Notes:'')+(c.Phone?' · '+c.Phone:'');
+    if(b) return b.Vendor;
+  }
+  return '';
+}
+function binderMissing(){ var f=kv('Family');
+  var want=[['Will / trust',/\bwill\b|living trust|estate/i],['Beneficiaries',/beneficiar/i],['Power of attorney',/power of attorney|\bpoa\b/i],['Advance directive',/advance directive|health.?care proxy|living will/i],['Executor / trustee',/executor|trustee/i],['Password manager',/password manager|1password|bitwarden|lastpass/i],['Key accounts access',/account access|emergency access|master list/i]];
+  return want.filter(function(w){ return !Object.keys(f).some(function(k){ return w[1].test(k)&&has(f[k]); }); }).map(function(w){return w[0];}); }
 function emergencyBinderCard(){
   var f=kv('Family');
   // Curated "if something happens to me" essentials — pull from Family keys by meaning
@@ -1730,10 +1745,14 @@ function emergencyBinderCard(){
     var hit=Object.keys(f).filter(function(k){var label=k.split('|').pop(); return w[1].test(label)||w[1].test(k);})
       .filter(function(k){return has(f[k]);});
     if(hit.length){ var v=hit.map(function(k){return String(f[k]);}).join(' · ');
-      return '<div class="kv-row"><span class="k">✓ '+esc(w[0])+'</span><span class="v mono" style="max-width:60%;text-align:right">'+esc(v)+'</span></div>'; }
+      var vh=/safe|password|account/i.test(w[0])?'<span class="secret" title="Tap to show" onclick="this.classList.toggle(\'show\')">'+esc(v)+'</span>':esc(v);
+      return '<div class="kv-row"><span class="k">✓ '+esc(w[0])+'</span><span class="v mono" style="max-width:60%;text-align:right">'+vh+'</span></div>'; }
+    // also look in Contacts / Bills (e.g. the life-insurance policy is recorded there)
+    var other=binderFromOtherTabs(w[0]);
+    if(other) return '<div class="kv-row"><span class="k">✓ '+esc(w[0])+'</span><span class="v" style="max-width:60%;text-align:right">'+esc(other)+'</span></div>';
     return '<div class="kv-row"><span class="k" style="color:var(--text-dim)">○ '+esc(w[0])+'</span><span class="v" style="color:var(--rose)">not documented</span></div>';
   }).join('');
-  var have=want.filter(function(w){return Object.keys(f).some(function(k){var label=k.split('|').pop();return (w[1].test(label)||w[1].test(k))&&has(f[k]);});}).length;
+  var have=want.filter(function(w){return Object.keys(f).some(function(k){var label=k.split('|').pop();return (w[1].test(label)||w[1].test(k))&&has(f[k]);})||!!binderFromOtherTabs(w[0]);}).length;
   var head='<div class="sub">If something happens to you, Chelsea can find everything here. '+have+' of '+want.length+' essentials documented. '
     +(EDIT?'Use keys like <span class="mono">Emergency|Life insurance</span> in Family to fill gaps.':'Turn on ✎ Edit → Family to fill any gaps.')+'</div>';
   return '<div class="card" style="border-top:3px solid var(--rose)"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><h2>🗂️ Emergency binder</h2><span style="display:flex;gap:8px">'+(EDIT?kvEditBtn('Family'):'')+'<button class="ebtn" onclick="printBinder()" style="text-transform:none;letter-spacing:0">🖨 Print for Chelsea</button></span></div>'+head+'<div style="margin-top:8px">'+rows+'</div></div>';
@@ -1754,7 +1773,9 @@ function renderFamily(){
     var rows=groups[g].map(function(r){
       var mono=codeRe.test(r.label)||/^[\d\s#-]+$/.test(String(r.val));
       var val=String(r.val);
+      var secret = /(door|safe|code|pin|combo|password|precheck|spid|draw|dr form|ssn|passport)/i.test(r.label+' '+g) && !/^\d{3}[-.\s]?\d{3}[-.\s]?\d{4}$/.test(val.trim());
       var vhtml = /^\d{3}[-.\s]?\d{3}[-.\s]?\d{4}$/.test(val.trim()) ? '<a class="tel" href="'+telHref(val)+'">'+esc(val)+'</a>' : (mono?'<span class="mono">'+esc(val)+'</span>':esc(val));
+      if(secret) vhtml='<span class="secret" title="Tap to show" onclick="this.classList.toggle(\'show\')">'+vhtml+'</span>';
       return '<div class="kv-row"><span class="k">'+esc(r.label)+'</span><span class="v">'+vhtml+'</span></div>';
     }).join('');
     return '<div class="card" style="border-top:3px solid var(--amber)"><h2>'+esc(g)+'</h2><div style="margin-top:6px">'+rows+'</div></div>';
