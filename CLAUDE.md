@@ -17,3 +17,4 @@
 - Brad doesn't code: work autonomously, explain in plain English, and only ask for things only he can do.
 - CFI balance: Flying kv `cfi_rate`, `cfi_aircraft` (tail), `cfi_paid_through` (date). Owed = hours in that tail after the date × rate; "Mark paid" advances the date.
 - Medical tab (Start, End, Kind, What, Symptoms, Treatment, Notes). An Illness row with no End = "sick mode": training targets paused, recovery plan on Health, IMSAFE grounding on Today/Flying.
+- Drive inbox ("Life OS Inbox", link in Config `inbox_url`, set by running `setupDriveInbox` once): importInbox_ reads ForeFlight + Cronometer CSVs (daily nutrition/servings → Nutrition tab; biometrics weight → HealthLog + Health weight).
