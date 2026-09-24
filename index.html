@@ -110,7 +110,7 @@
   .cols-3 { grid-template-columns:repeat(3,minmax(0,1fr)); }
   .cols-4 { grid-template-columns:repeat(4,minmax(0,1fr)); }
   @media (max-width:1000px){ .cols-3,.cols-4{grid-template-columns:repeat(2,minmax(0,1fr));} }
-  @media (max-width:640px){ .cols-2,.cols-3,.cols-4{grid-template-columns:1fr;} }
+  @media (max-width:640px){ .cols-2,.cols-3,.cols-4{grid-template-columns:minmax(0,1fr);} }
 
   .card { background:var(--card-bg); border:1px solid var(--card-border); border-radius:12px;
     padding:22px 24px; overflow:hidden; }
@@ -233,7 +233,7 @@
   /* ---- deal cards ---- */
   .deals { display:grid; grid-template-columns:repeat(auto-fill,minmax(min(340px,100%),1fr)); gap:14px; }
   @media (max-width:640px){ .card { padding:18px 16px; } .header .updated { text-align:left; } }
-  @media (max-width:640px){ .grid.cols-4 { grid-template-columns:1fr 1fr !important; gap:10px; } .grid.cols-4 .stat { padding:14px; } .grid.cols-4 .stat .value { font-size:20px; } .deal { padding:14px; } }
+  @media (max-width:640px){ .grid.cols-4 { grid-template-columns:minmax(0,1fr) minmax(0,1fr) !important; gap:10px; } .grid.cols-4 .stat { padding:14px; } .grid.cols-4 .stat .value { font-size:20px; } .deal { padding:14px; } }
   .deal { border:1px solid var(--card-border); border-radius:12px; padding:16px 18px; background:rgba(255,255,255,.02); display:flex; flex-direction:column; gap:12px; }
   .deal-h { display:flex; justify-content:space-between; gap:12px; align-items:flex-start; }
   .deal-n { font-size:16px; font-weight:700; line-height:1.3; } .deal-n a { color:inherit; text-decoration:none; } .deal-n a:hover { color:#a5b4fc; }
@@ -570,8 +570,8 @@
     .xc-stat .v { font-size:20px; }
     .xc-tl-leg span { display:none; }
   }
-.rd-sub{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;color:var(--text-dim);font-size:13px;margin-top:3px;cursor:zoom-in}
-.rd-sub.open{display:block;-webkit-line-clamp:unset;cursor:zoom-out}
+.rd-sub{display:block;max-height:2.9em;line-height:1.45;overflow:hidden;color:var(--text-dim);font-size:13px;margin-top:3px;cursor:zoom-in;overflow-wrap:anywhere}
+.rd-sub.open{max-height:none;cursor:zoom-out}
 
   /* ================= WHOOP-style theme: near-black, dark-gray cards, one teal accent; vertical scrolling only ================= */
   :root {
@@ -635,6 +635,13 @@
     transition:width .25s ease, opacity .4s ease; opacity:0; pointer-events:none; }
   #syncBar.on { opacity:1; }
   #gate #syncBar { top:0; }
+
+  /* Safari: never let content's natural width stretch a column past the screen */
+  .dashboard, #app, .panel, section { min-width:0; max-width:100%; }
+  .grid > *, .card, .card > *, .kv-row > *, .bchips > *, .hero, .hero > *, .hero-top > * { min-width:0; max-width:100%; }
+  .card, .hero, .kv-row .k, .kv-row .v, .bchip-v, h1, h2 { overflow-wrap:anywhere; word-break:normal; }
+  .kv-row .k { flex:1 1 auto; }
+  img, svg, canvas, table, pre { max-width:100%; }
 </style>
 </head>
 <body>
@@ -986,6 +993,17 @@ async function readData(url){
   }
   throw lastErr||new Error('failed');
 }
+
+/* ?debug=wide → lists anything wider than the screen, right on the device (Safari-only layout issues) */
+function debugWide(){
+  if(!/debug=wide/.test(location.search)) return;
+  setTimeout(function(){ var W=document.documentElement.clientWidth, out=[];
+    document.querySelectorAll('body *').forEach(function(el){ var r=el.getBoundingClientRect(); if(r.width>0&&r.right>W+1){
+      var c=el.closest('.card'), h=c&&c.querySelector('h2'); out.push((el.tagName.toLowerCase()+'.'+String(el.className||'').split(' ')[0])+' → '+Math.round(r.right)+'px'+(h?' in "'+h.textContent.slice(0,24)+'"':'')); } });
+    var box=document.createElement('div'); box.style.cssText='position:fixed;left:8px;right:8px;top:80px;z-index:9999;background:#000;color:#0f0;font:12px monospace;padding:10px;border-radius:8px;max-height:60vh;overflow:auto;white-space:pre-wrap';
+    box.textContent='screen '+W+'px · page '+document.documentElement.scrollWidth+'px\n'+(out.length?Array.from(new Set(out)).slice(0,25).join('\n'):'nothing wider than the screen ✓');
+    box.onclick=function(){ box.remove(); }; document.body.appendChild(box); }, 2500);
+}
 function showApp(res){
   DATA = res.data || {};
   try{ localStorage.setItem(LS_DATA, JSON.stringify({data:DATA, updated:res.updated})); }catch(e){}
@@ -998,7 +1016,7 @@ function showApp(res){
   $('loading').classList.add('hidden');
   if(!CURRENT || CURRENT==='overview'){ var hashTab=(location.hash||'').replace('#',''); navGo(TABS[hashTab]?hashTab:'overview'); }
   else render(CURRENT);
-  fetchLive();
+  fetchLive(); debugWide();
 }
 async function submitGate(){
   $('gateErr').textContent='';
@@ -1322,6 +1340,7 @@ function smartSteps(){
   else if(wk<5) out.push({t:'Train — '+wk+' workout'+(wk===1?'':'s')+' logged this week so far (aim 5)', tab:'health', d:0, sort:8});
   if(!isNaN(cur)&&!isNaN(goal)&&cur>goal) out.push({t:'Log today’s weight ('+Math.round(cur-goal)+' lb to your '+goal+' goal)', tab:'health', d:null, sort:40, act:'quickLogWeight()'});
   if(has(kv('Health').ins_medical)&&!has(kv('Health').pcp)) out.push({t:'Pick a primary care doctor — your '+kv('Health').ins_medical+' plan needs one on file for referrals', tab:'health', d:null, sort:35});
+  var lp=parseDate(kv('Health').last_physical); if(has(kv('Health').copay_preventive)&&(!lp||(Date.now()-lp)>330*864e5)) out.push({t:'Book your free annual physical'+(has(kv('Health').pcp)?' with '+String(kv('Health').pcp).split(',')[0]:'')+' (covered 100%, 1/yr)', tab:'health', d:null, sort:48});
   if(has(kv('Health').ins_dental)&&!has(kv('Health').dentist)) out.push({t:'Find an in-network dentist and book a cleaning (usually covered 100%, 2×/yr)', tab:'health', d:null, sort:50});
   // CFI balance due
   var co=cfiOwed(); if(co&&co.amt>0) out.push({t:'Pay '+co.first+' '+cfiUsd(co.amt)+' for '+co.hrs+' hr in the '+co.tail+' (last flight '+prettyIso(String(co.flights[co.flights.length-1].Date))+')', tab:'flying', d:null, sort:6});
@@ -3512,8 +3531,9 @@ function coverageCard(){
         : todo('Deductible / out-of-pocket max','add from your plan summary (SBC)'))
     + (['copay_pcp','copay_specialist','copay_urgent','copay_er','copay_rx','copay_lab'].some(function(k){return has(h[k]);})
         ? '<div class="section-title" style="margin:14px 0 6px">What a visit costs you</div>'
-          + line('Primary care visit',h.copay_pcp)+line('Specialist',h.copay_specialist)+line('Urgent care',h.copay_urgent)
-          + line('Emergency room',h.copay_er)+line('Lab / X-ray',h.copay_lab)+line('Prescriptions',h.copay_rx)+line('Preventive / annual physical',h.copay_preventive||'$0 (ACA preventive care)')
+          + line('Annual physical & vaccines',h.copay_preventive||'$0 (ACA preventive care)')+line('Primary care visit',h.copay_pcp)+line('Specialist',h.copay_specialist)+line('Urgent care',h.copay_urgent)
+          + line('Emergency room',h.copay_er)+line('Lab / X-ray / imaging',h.copay_lab)+line('Therapy / mental health',h.copay_mental)+line('Chiropractor',h.copay_chiro)
+          + line('Surgery / hospital stay',h.copay_surgery)+line('Prescriptions',h.copay_rx)
         : todo('Copays (PCP, specialist, urgent care, ER)','not on your card — MyChart → Benefits'));
   var dental='<div class="section-title" style="margin:14px 0 6px">Dental'+(has(h.ins_dental)?' · '+esc(h.ins_dental):'')+'</div>'
     + (has(h.dentist)?line('Dentist',h.dentist):'<div class="kv-row"><span class="k">Dentist</span><span class="v" style="color:var(--amber);font-weight:600">none yet — pick an in-network one</span></div>') + line('Member ID',h.dental_member_id,true) + line('Annual max',h.dental_annual_max) + line('Cleanings',h.dental_cleanings||'usually 2/yr covered 100%');
