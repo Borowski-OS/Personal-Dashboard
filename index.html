@@ -723,7 +723,7 @@ function fetchLive(){
       .then(function(j){ if(j&&j.bitcoin){ LIVE.btc=j.bitcoin.usd; LIVE.btcChg=j.bitcoin.usd_24h_change; applyLive(); if(CURRENT==='overview'||CURRENT==='home'||CURRENT==='ventures') render(CURRENT); } })
       .catch(function(){});
   }catch(e){}
-  fetchTaf();
+  fetchTaf(); fetchAqi();
   // aviation weather for Minden — fetch KMEV + nearby stations (via server proxy; no CORS on aviationweather.gov)
   var wxIds=['KMEV'].concat((NEAR['KMEV']||[]).map(function(x){return x[0];}));
   wxFetch(wxIds, function(list){ (list||[]).forEach(function(m){ if(m&&m.icaoId) LIVE.metars[m.icaoId]=m; });
@@ -744,6 +744,16 @@ function fetchTaf(){ if(LIVE.tafFetched) return; var pw=sessionStorage.getItem(S
     if(res&&res.ok){ LIVE.tafs={}; (res.tafs||[]).forEach(function(t){ LIVE.tafs[t.icao]=t; });
       if(CURRENT==='flying'||CURRENT==='overview') render(CURRENT); } }).catch(function(){ LIVE.tafFetched=false; });
 }
+/* Air quality (wildfire smoke) for Carson/Minden — Open-Meteo, keyless */
+function fetchAqi(){ if(LIVE.aqiFetched) return; LIVE.aqiFetched=true;
+  fetch('https://air-quality-api.open-meteo.com/v1/air-quality?latitude=39.08&longitude=-119.77&current=us_aqi,pm2_5&hourly=us_aqi&forecast_days=2&timezone=America/Los_Angeles')
+    .then(function(r){return r.json();}).then(function(j){
+      var hrs=(j.hourly&&j.hourly.us_aqi)||[], now=new Date(), idx=now.getHours(), next=hrs.slice(idx, idx+24).filter(function(v){return v!=null;});
+      LIVE.aqi={ now:j.current?j.current.us_aqi:null, pm25:j.current?j.current.pm2_5:null, max24:next.length?Math.max.apply(null,next):null };
+      if(CURRENT==='overview') render('overview'); })
+    .catch(function(){ LIVE.aqiFetched=false; });
+}
+function aqiLabel(v){ return v==null?'—':v<=50?'Good':v<=100?'Moderate':v<=150?'Unhealthy for sensitive groups':v<=200?'Unhealthy':'Very unhealthy'; }
 /* flight category from ceiling (ft AGL) + visibility (sm) */
 function fltCat(ceil, vis){ vis=(vis==null?10:vis); ceil=(ceil==null?99999:ceil);
   if(ceil<500||vis<1) return 'LIFR'; if(ceil<1000||vis<3) return 'IFR'; if(ceil<=3000||vis<=5) return 'MVFR'; return 'VFR'; }
@@ -1255,6 +1265,8 @@ function radarHtml(){
     var fm={good:['good',loc+' looks flyable'],marginal:['watch',loc+' marginal for VFR'],ifr:['bad',loc+' below VFR']}[LIVE.metarFlag];
     var m=LIVE.metar||{}, det=(m.wind!=null?('wind '+Math.round(m.wind)+(m.gust?'G'+Math.round(m.gust):'')+'kt'):'')+(m.vis!=null?' · vis '+m.vis+'sm':'')+(m.ceil!=null?' · ceil '+m.ceil+'ft':'')+(LIVE.metarProxy?' · via '+LIVE.metarProxy:'');
     out.push({sev:fm[0],icon:'🛩️',t:fm[1],sub:det||'live METAR',tab:'flying'}); }
+  // wildfire smoke: forecast AQI over 100 in the next 24h
+  if(LIVE.aqi&&LIVE.aqi.max24!=null&&LIVE.aqi.max24>100) out.push({sev:LIVE.aqi.max24>150?'bad':'watch',icon:'🌫️',t:'Smoke: air quality forecast to reach '+LIVE.aqi.max24+' (US AQI)',sub:aqiLabel(LIVE.aqi.max24)+' — move runs indoors, expect reduced visibility for flying',tab:'health'});
   // curated signals (from the Signals tab)
   var seenKind={};
   arr('Signals').filter(function(s){return has(s.Headline);})
@@ -1419,6 +1431,24 @@ function todayWorkoutPlan(){ var shape=String(kv('Health').weekly_shape||''); if
   shape.split('·').forEach(function(p){ p=p.trim(); if(!new RegExp('\\b'+dn+'\\b','i').test(p)) return;
     hit=/^rest\b/i.test(p)?'Rest day':p.replace(new RegExp('\\b'+dn+'\\b\\s*','i'),'').trim(); });
   return hit; }
+function workoutMins(r){ var d=String(r.Duration||'');
+  var m=d.match(/^1899-12-30T(\d\d):(\d\d)/); if(m) return ((+m[1]-8+24)%24)*60+(+m[2]);
+  var h=d.match(/(\d+)\s*h/), mm=d.match(/(\d+)\s*m/); if(h||mm) return (h?+h[1]*60:0)+(mm?+mm[1]:0);
+  var c=d.match(/^(\d+):(\d\d)(?::(\d\d))?$/); if(c) return c[3]!=null?(+c[1]*60+ +c[2]):(+c[1]);   // h:mm:ss or mm:ss
+  var n=parseFloat(d); return isNaN(n)?0:n; }
+function fmtMins(n){ n=Math.round(n); var h=Math.floor(n/60), m=n%60; return (h?h+'h ':'')+m+'m'; }
+/* Attia-style weekly training targets from Strava: Zone 2 minutes, strength sessions, one hard (VO2) effort */
+function hrMax(){ var a=num(kv('Health').age)||37; return num(kv('Health').max_hr)||(220-a); }
+function trainingWeek(){ var mx=hrMax(), z2lo=Math.round(mx*0.65), z2hi=Math.round(mx*0.76), now=laNow(), dow=(now.getDay()+6)%7;
+  var start=new Date(now.getFullYear(),now.getMonth(),now.getDate()-dow).getTime();
+  var out={z2:0, strength:0, hard:0, total:0, sessions:0, z2lo:z2lo, z2hi:z2hi};
+  arr('Workouts').forEach(function(w){ var m=String(w.Date||'').match(/(\d{4})-(\d{2})-(\d{2})/); if(!m) return;
+    var t=new Date(+m[1],+m[2]-1,+m[3]).getTime(); if(t<start) return;
+    var mins=workoutMins(w), hr=num(w.AvgHR), type=String(w.Type||''); out.total+=mins; out.sessions++;
+    if(/weight|strength|crossfit|workout/i.test(type)) out.strength++;
+    else if(!isNaN(hr)&&hr>=z2lo&&hr<=z2hi) out.z2+=mins;
+    else if(!isNaN(hr)&&hr>z2hi) out.hard++; });
+  return out; }
 function liquidCash(){ return arr('Accounts').reduce(function(s,a){var n=num(a.Balance);var t=String(a.Type||'').toLowerCase();return s+(isNaN(n)||t.indexOf('credit')>=0?0:n);},0); }
 function flightHoursSince(days){ var cut=Date.now()-days*864e5; return arr('FlightLog').reduce(function(s,f){ var d=parseDate(f.Date); return s+(d&&d.getTime()>=cut?(num(f.Hours)||0):0); },0); }
 function daysSinceFlight(){ var ds=arr('FlightLog').map(function(f){return parseDate(f.Date);}).filter(Boolean).sort(function(a,b){return b-a;}); return ds.length?Math.floor((Date.now()-ds[0].getTime())/864e5):null; }
@@ -1434,6 +1464,7 @@ function todayHero(){
   else if(!nf||nf.none) chips.push(chipHtml('✈️','Flying','no good window in TAF','bad','flying'));
   else chips.push(chipHtml('✈️','Good to fly', (nf.f.from*1000<=Date.now()?'now':dayLbl(nf.f.from)+' '+hhmm(nf.f.from))+' – '+hhmm(nf.f.to),'good','flying'));
   if(LIVE.kmevNws){ var w=LIVE.kmevNws; chips.push(chipHtml('🌤️','Minden', w.temp+'° · '+esc(w.sky||''),'', 'flying')); }
+  if(LIVE.aqi&&LIVE.aqi.now!=null){ var q=LIVE.aqi.now; chips.push(chipHtml('🌫️','Air quality', q+' · '+aqiLabel(q).replace('Unhealthy for sensitive groups','Sensitive'), q>100?'bad':(q<=50?'good':''), '')); }
   var ev=arr('Events').filter(function(e){return String(e.Date).slice(0,10)===today&&has(e.Title);});
   chips.push(chipHtml('📅','Calendar', ev.length?ev.length+' event'+(ev.length===1?'':'s')+' today':'nothing scheduled','', ''));
   var wo=todayWorkoutPlan(); if(wo) chips.push(chipHtml('💪','Training', esc(wo),'', 'health'));
@@ -1468,7 +1499,7 @@ function rhythmCard(){
   if(!hb.length) return card('Daily rhythm','','<div class="empty">Add practices on the Faith tab.</div>','--gold');
   var rows=hb.map(function(h){ var done=String(h.LastDone||'').slice(0,10)===today, st=parseInt(h.Streak,10)||0;
     return '<div class="rh'+(done?' rh-done':'')+'"><button class="chk'+(done?' on':'')+'" '+(done?'disabled':'onclick="this.disabled=true;this.classList.add(\'on\');this.textContent=\'✓\';habitDidToday('+h.__row+')"')+'>'+(done?'✓':'')+'</button>'
-      +'<span class="rh-t">'+esc(h.Practice)+'<span class="rh-c">'+esc(h.Cadence||'')+'</span></span><span class="rh-s">'+(st?'🔥 '+st+'d':'')+'</span></div>'; }).join('');
+      +'<span class="rh-t">'+esc(h.Practice)+'<span class="rh-c">'+(/scripture|bible/i.test(h.Practice)?(function(){var r=todaysReading(); return '<a href="'+r.url+'" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="color:var(--gold);text-decoration:none">'+esc(r.ot+' · '+r.nt)+' ↗</a>';})():esc(h.Cadence||''))+'</span></span><span class="rh-s">'+(st?'🔥 '+st+'d':'')+'</span></div>'; }).join('');
   return card('Daily rhythm','Small, repeatable, non-negotiable. Tap to log.', rows, '--gold');
 }
 /* weekly scorecard — a handful of lead measures, each with a target and a traffic light */
@@ -1476,8 +1507,10 @@ function scorecardCard(){
   var n=laNow(), dow=(n.getDay()+6)%7;               // Mon=0
   var rows=[];
   function row(tab, label, now, target, status, note){ rows.push({tab:tab,label:label,now:now,target:target,status:status,note:note||''}); }
-  var wk=weekWorkouts(), pace=Math.ceil(5*(dow+1)/7);
-  row('health','Workouts this week', wk, '5 / wk', wk>=5?'g':(wk>=pace?'g':(wk>=pace-1?'a':'r')), 'on pace = '+pace+' by today');
+  var tw=trainingWeek(), wk=tw.sessions, pace=Math.ceil(5*(dow+1)/7), z2pace=Math.round(150*(dow+1)/7);
+  row('health','Workouts this week', wk, '5 / wk', wk>=5?'g':(wk>=pace?'g':(wk>=pace-1?'a':'r')), 'Mon–today · on pace = '+pace+' by today');
+  row('health','Zone 2 minutes', Math.round(tw.z2), '150 / wk', tw.z2>=150?'g':(tw.z2>=z2pace*0.8?'a':'r'), 'easy cardio at '+tw.z2lo+'–'+tw.z2hi+' bpm');
+  row('health','Strength sessions', tw.strength, '2 / wk', tw.strength>=2?'g':(dow>=4&&tw.strength===0?'r':'a'));
   var h=kv('Health'), cur=num(h.weight), goal=num(h.weight_goal), ws=weightSeries();
   if(!isNaN(cur)){ var ch=ws.length>=2?ws[ws.length-1]-ws[Math.max(0,ws.length-5)]:null;
     row('health','Weight', cur+' lb', (isNaN(goal)?'':goal+' lb'), (ch==null||ch===0)?'a':(ch<0?'g':'r'), (ch==null||ch===0)?'log a weigh-in weekly to see the trend':((ch<0?'':'+')+ch.toFixed(1)+' lb recent')); }
@@ -3091,6 +3124,13 @@ function decodeVin(vin){
 /* ============================================================
    HEALTH & FITNESS
    ============================================================ */
+function trainingTargetsCard(){
+  var t=trainingWeek();
+  var bars = goalBar('Zone 2 cardio → 150 min', t.z2/150*100, fmtMins(t.z2)+' this week at '+t.z2lo+'–'+t.z2hi+' bpm avg HR', '--sky')
+    + goalBar('Strength sessions → 2', t.strength/2*100, t.strength+' this week', '--pink')
+    + goalBar('Hard effort (VO₂ max) → 1', t.hard/1*100, t.hard+' this week (avg HR above '+t.z2hi+')', '--amber');
+  return card('This week vs. your longevity targets', 'Peter Attia’s framework: lots of easy Zone 2, 2+ strength days, one hard interval session. Auto-computed from Strava ('+t.sessions+' sessions, '+fmtMins(t.total)+').', bars+'<p class="foot" style="margin:10px 0 0;color:var(--text-dim)">Zones estimated from max HR '+hrMax()+' (220 − age). Add <span class="mono">max_hr</span> to Health settings for a tested number.</p>', '--pink');
+}
 function renderHealth(){
   var h=kv('Health'), log=arr('HealthLog');
   var cur=num(h.weight)||208, goal=num(h.weight_goal)||185, togo=Math.max(0,Math.round(cur-goal));
@@ -3139,7 +3179,7 @@ function renderHealth(){
     +'<p style="font-size:12px;color:var(--text-dim);margin:10px 0 0">Weight isn\'t in Strava — log it here with ✎ Edit (or a smart scale via Apple Health later).</p>';
 
   function woDate(r){ var m=String(r.Date||'').match(/(\d{4})-(\d{2})-(\d{2})/); return m?(MONTHS[+m[2]-1]+' '+(+m[3])):esc(r.Date||''); }
-  function woDur(r){ var d=String(r.Duration||''); var m=d.match(/T(\d\d):(\d\d)/); if(m){ var h=+m[1]; return (h?h+'h ':'')+(+m[2])+'m'; } return esc(d); }
+  function woDur(r){ var n=workoutMins(r); return n?fmtMins(n):esc(r.Duration||''); }
   var woCols=[{label:'Date',render:woDate},{label:'Type',render:function(r){return has(r.Type)?'<span class="chip">'+esc(String(r.Type).replace(/([a-z])([A-Z])/g,'$1 $2'))+'</span>':'';}},
     {label:'Workout',key:'Name'},{label:'Dist',num:true,key:'Distance'},{label:'Time',num:true,render:woDur},
     {label:'Avg HR',num:true,key:'AvgHR'},{label:'Elev',num:true,key:'Elevation'}];
@@ -3150,6 +3190,7 @@ function renderHealth(){
   var logCols=[{label:'Date',key:'Date'},{label:'Metric',key:'Metric'},{label:'Value',num:true,key:'Value'},{label:'Notes',key:'Notes'}];
   return '<div class="editbar" style="gap:8px">'+(EDIT?kvEditBtn('Health'):'')+'<button class="ebtn pri" onclick="quickLogWeight()">＋ Log weight</button></div>'
     + tiles
+    + trainingTargetsCard() + '<div style="height:22px"></div>'
     + '<div class="grid cols-2">'
     + card('Training plan','Hybrid: CompTrain strength + Zone-2 endurance.', planHtml, '--pink')
     + card('Nutrition — lose fat, keep muscle', 'Targets for 208 → 185.', nutrition, '--pink')
@@ -3178,6 +3219,24 @@ async function habitDidToday(rownum){
   await apiWrite({action:'upsert',tab:'Habits',rownum:rownum,row:JSON.stringify({Practice:row.Practice,Cadence:row.Cadence,Streak:streak,LastDone:today,Notes:row.Notes||''})});
   await afterWrite();
 }
+/* Bible in a year: OT (929 ch) + NT (260 ch) spread evenly across the calendar year — no API needed */
+var BIBLE_OT=[['Genesis',50],['Exodus',40],['Leviticus',27],['Numbers',36],['Deuteronomy',34],['Joshua',24],['Judges',21],['Ruth',4],['1 Samuel',31],['2 Samuel',24],['1 Kings',22],['2 Kings',25],['1 Chronicles',29],['2 Chronicles',36],['Ezra',10],['Nehemiah',13],['Esther',10],['Job',42],['Psalms',150],['Proverbs',31],['Ecclesiastes',12],['Song of Songs',8],['Isaiah',66],['Jeremiah',52],['Lamentations',5],['Ezekiel',48],['Daniel',12],['Hosea',14],['Joel',3],['Amos',9],['Obadiah',1],['Jonah',4],['Micah',7],['Nahum',3],['Habakkuk',3],['Zephaniah',3],['Haggai',2],['Zechariah',14],['Malachi',4]];
+var BIBLE_NT=[['Matthew',28],['Mark',16],['Luke',24],['John',21],['Acts',28],['Romans',16],['1 Corinthians',16],['2 Corinthians',13],['Galatians',6],['Ephesians',6],['Philippians',4],['Colossians',4],['1 Thessalonians',5],['2 Thessalonians',3],['1 Timothy',6],['2 Timothy',4],['Titus',3],['Philemon',1],['Hebrews',13],['James',5],['1 Peter',5],['2 Peter',3],['1 John',5],['2 John',1],['3 John',1],['Jude',1],['Revelation',22]];
+function biblePortion(books, day, days){
+  var flat=[]; books.forEach(function(b){ for(var c=1;c<=b[1];c++) flat.push([b[0],c]); });
+  var a=Math.floor(flat.length*(day-1)/days), z=Math.max(a, Math.floor(flat.length*day/days)-1), parts=[], cur=null;
+  for(var i=a;i<=z;i++){ var f=flat[i]; if(cur&&cur.b===f[0]) cur.e=f[1]; else { cur={b:f[0],s:f[1],e:f[1]}; parts.push(cur); } }
+  return parts.map(function(p){ return p.b+' '+p.s+(p.e!==p.s?'–'+p.e:''); }).join('; ');
+}
+function todaysReading(){ var n=laNow(), y=n.getFullYear(), days=((y%4===0&&y%100!==0)||y%400===0)?366:365;
+  var day=Math.floor((new Date(y,n.getMonth(),n.getDate())-new Date(y,0,0))/864e5);
+  var ot=biblePortion(BIBLE_OT, day, days), nt=biblePortion(BIBLE_NT, day, days);
+  return {ot:ot, nt:nt, day:day, days:days, url:'https://www.biblegateway.com/passage/?search='+encodeURIComponent(ot+'; '+nt)+'&version=ESV'}; }
+function readingCard(){ var r=todaysReading();
+  return card('Today’s reading','Bible in a year — day '+r.day+' of '+r.days+'. Old and New Testament every day.',
+    '<div class="kv-row"><span class="k">Old Testament</span><span class="v">'+esc(r.ot)+'</span></div>'
+    +'<div class="kv-row"><span class="k">New Testament</span><span class="v">'+esc(r.nt)+'</span></div>'
+    +'<div style="margin-top:12px"><a class="ebtn pri" style="text-decoration:none" href="'+r.url+'" target="_blank" rel="noopener">Open today’s passages ↗</a></div>', '--gold'); }
 function renderFaith(){
   var habits=arr('Habits'), prayer=arr('Prayer'), journal=arr('Journal');
   var today=ymd();
@@ -3233,8 +3292,7 @@ function renderFaith(){
 
   return '<div class="editbar">'+(EDIT?'':'<span style="font-size:12.5px;color:var(--text-dim)">Tip: turn on ✎ Edit to add practices, people, or decisions.</span>')+'</div>'
     + tiles
-    + habitCard
-    + '<div style="height:22px"></div>'
+    + '<div class="grid cols-2" style="margin-bottom:22px">' + habitCard + readingCard() + '</div>'
     + prayerCard
     + '<div style="height:22px"></div>'
     + journalCard;
