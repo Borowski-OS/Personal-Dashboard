@@ -1555,17 +1555,33 @@ function goNoGoCard(){
   if(!da) return card('Go / no-go — takeoff','Live density-altitude performance check.','<div class="empty">Waiting on live weather. Once Minden-area conditions load, this estimates takeoff roll & climb.</div>','--sky');
   // rough ground-roll factor: ~10% longer per 1000 ft DA over a ~600ft sea-level roll (Maule M4, solo/mid weight)
   var baseRoll=600; var roll=Math.round(baseRoll*Math.pow(1.10, da.da/1000));
+  // Verdict = weather + runway only. DA just drives the ground-roll estimate; it only matters if the roll gets long (3,000+ ft).
+  var issues=[], bad=false;
+  // worst forecast conditions over the next 3 hours (the window that matters if you head to the airport now)
+  var tp=(function(){ var t=(LIVE.tafs||{}).KMEV; if(!t) return null; var now=Date.now()/1000;
+    var ps=tafPeriods(t).filter(function(p){ return !p.tempo && p.f.from<now+3*3600 && p.f.to>now; }); if(!ps.length) return null;
+    var rank={VFR:0,MVFR:1,IFR:2,LIFR:3}, w={cat:'VFR',spd:0,gust:0,xw:0};
+    ps.forEach(function(p){ if((rank[p.cat]||0)>(rank[w.cat]||0)) w.cat=p.cat; w.spd=Math.max(w.spd,p.spd); w.gust=Math.max(w.gust,p.gust); w.xw=Math.max(w.xw,p.xw); });
+    return w; })();
+  if(tp){
+    if(tp.cat!=='VFR'){ issues.push(tp.cat+' forecast next 3 hrs'); if(tp.cat==='IFR'||tp.cat==='LIFR') bad=true; }
+    if(tp.gust>20) issues.push('gusts to '+tp.gust+' kt next 3 hrs'); else if(tp.spd>15) issues.push('wind '+tp.spd+' kt next 3 hrs');
+    if(tp.xw>10) issues.push('crosswind ~'+tp.xw+' kt');
+  }
+  if(LIVE.metarFlag==='ifr'){ issues.push('observed below VFR nearby'); bad=true; }
+  else if(LIVE.metarFlag==='marginal') issues.push('observed marginal VFR nearby');
+  if(roll>=3000) issues.push('long ground roll (~'+roll.toLocaleString()+' ft)');
   var level, lcol, advice;
-  if(da.da<5000){ level='GO'; lcol='--green'; advice='Good performance. Normal short-field technique.'; }
-  else if(da.da<7500){ level='CAUTION'; lcol='--amber'; advice='Reduced climb — lean the mixture for peak power on takeoff, expect a longer roll, and plan a shallow climb gradient off the departure end.'; }
-  else { level='HIGH DA'; lcol='--rose'; advice='Marginal climb performance. Consider early-morning departure, reduce weight/fuel, and lean aggressively. Know your obstacle clearance.'; }
+  if(bad){ level='NO-GO'; lcol='--red'; advice='Weather is below VFR: '+issues.join(' · ')+'.'; }
+  else if(issues.length){ level='CAUTION'; lcol='--amber'; advice='Watch: '+issues.join(' · ')+'.'+(roll>=3000?' Lean for best power, lighten the load, or go early while it\'s cool.':''); }
+  else { level='GO'; lcol='--green'; advice='Weather is VFR within your limits (wind ≤15, gusts ≤20, crosswind ≤10) and the runway is plenty long for today\'s density altitude.'+(tp?'':' (TAF still loading.)'); }
   var rows='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><span class="foot">Verdict</span><span class="tag" style="color:var('+lcol+');border:1px solid var('+lcol+');background:transparent;font-weight:700">'+level+'</span></div>'
-    +'<div class="kv-row"><span class="k">Density altitude</span><span class="v mono" style="color:var('+lcol+')">'+da.da.toLocaleString()+' ft</span></div>'
-    +'<div class="kv-row"><span class="k">Est. ground roll</span><span class="v mono">~'+roll.toLocaleString()+' ft</span></div>'
+    +'<div class="kv-row"><span class="k">Density altitude</span><span class="v mono">'+da.da.toLocaleString()+' ft</span></div>'
+    +'<div class="kv-row"><span class="k">Est. ground roll</span><span class="v mono" style="color:var('+(roll>=3000?'--amber':'--text')+')">~'+roll.toLocaleString()+' ft</span></div>'
     +'<div class="kv-row"><span class="k">Runway 16/34 available</span><span class="v mono">7,400 ft</span></div>';
   var sk=sickNow();
   if(sk) rows='<div style="border:1px solid var(--amber);border-radius:10px;padding:10px 12px;margin-bottom:10px;color:var(--amber);font-weight:600">🤒 IMSAFE — you\'re logged as sick (day '+sk.day+'). Don\'t fly until you\'re symptom-free and off cold meds.</div>'+rows;
-  return card('Go / no-go — takeoff @ KMEV','Live density-altitude performance ('+da.src+', '+da.tempC+'°C).',
+  return card('Go / no-go — takeoff @ KMEV','Weather (KMEV TAF + nearest observation) and runway performance ('+da.src+', '+da.tempC+'°C).',
     rows+'<p style="font-size:12.5px;color:var(--text-muted);margin:12px 0 0">'+advice+'</p>'
     +'<p class="foot" style="margin:8px 0 0;color:var(--text-dim)">Rough estimate for planning only — not a substitute for the POH performance charts and your own weight & balance.</p>','--sky');
 }
