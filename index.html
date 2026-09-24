@@ -1148,7 +1148,7 @@ function upcomingAlerts(){
   arr('Travel').forEach(function(t){ if(String(t.Status||'').toLowerCase()==='past'||!has(t.StartDate)) return; var d=daysUntilDate(t.StartDate);
     if(d!=null&&d>=0&&d<=90) out.push({d:d, label:esc(t.Trip||t.Destination), sub:'trip · '+esc(String(t.StartDate)), tab:'travel'}); });
   arr('ProjectTasks').forEach(function(t){ if(truthy(t.Done)||!has(t.Due)) return; var d=daysUntilDate(t.Due);
-    if(d!=null&&d<=21) out.push({d:d, label:esc(t.Task), sub:esc(t.Project||'')+' task', tab:'projects'}); });
+    if(d!=null&&d<=21) out.push({d:d, label:esc(t.Task), sub:esc(t.Project||'')+' task', tab:(arr('Projects').some(function(p){return p.Name===t.Project&&isFlyingProject(p);})?'flying':'projects')}); });
   out.sort(function(a,b){return a.d-b.d;});
   return out;
 }
@@ -1733,8 +1733,10 @@ function renderFamily(){
 /* ============================================================
    PROJECTS
    ============================================================ */
+function isFlyingProject(p){ return /^(flying|aviation)$/i.test(String(p.Area||'').trim()); }
 function renderProjects(){
-  var ps = arr('Projects'), tasks=arr('ProjectTasks');
+  var flyNames={}; arr('Projects').filter(isFlyingProject).forEach(function(p){ flyNames[p.Name]=1; });
+  var ps = arr('Projects').filter(function(p){ return !isFlyingProject(p); }), tasks=arr('ProjectTasks').filter(function(t){ return !flyNames[t.Project]; });   // flight training lives on Flying
   if(!ps.length) return card('Projects','House & family projects', '<div class="empty">No projects yet. Add them in the Projects tab — name, area, status, budget, target date.</div>','--orange');
   var order={active:0,planning:1,blocked:2,idea:3,done:9};
   ps=ps.slice().sort(function(a,b){return (order[String(a.Status||'').toLowerCase()]||5)-(order[String(b.Status||'').toLowerCase()]||5);});
@@ -2388,6 +2390,21 @@ function xcLayer(k){ xcApplyLayer(k, true); }
 function xcMapHint(){ var h=XC.el&&XC.el.querySelector('.xc-maphint'); if(!h||!XC.map) return;
   h.hidden=!(XC.el.querySelector('.xc-maptog button.on[data-l=sect]') && XC.map.getZoom()<7); }
 
+async function taskDoneToggle(rownum){
+  var t=arr('ProjectTasks').filter(function(r){return String(r.__row)===String(rownum);})[0]; if(!t) return;
+  await apiWrite({action:'upsert',tab:'ProjectTasks',rownum:rownum,row:JSON.stringify({Project:t.Project,Task:t.Task,Done:truthy(t.Done)?'':'TRUE',Due:t.Due||'',Notes:t.Notes||''})});
+  await afterWrite();
+}
+/* flight-training study plans (Projects with Area = Flying), e.g. the FAA written exam */
+function flyingStudyCards(){
+  return arr('Projects').filter(isFlyingProject).map(function(p){
+    var ts=arr('ProjectTasks').filter(function(t){return t.Project===p.Name&&has(t.Task);}).sort(function(a,b){return String(a.Due).localeCompare(String(b.Due));});
+    var done=ts.filter(function(t){return truthy(t.Done);}).length;
+    var rows=ts.map(function(t){ var d=daysUntilDate(t.Due), dn=truthy(t.Done);
+      return '<div class="rh'+(dn?' rh-done':'')+'"><button class="chk'+(dn?' on':'')+'" onclick="this.disabled=true;taskDoneToggle('+t.__row+')">'+(dn?'✓':'')+'</button><span class="rh-t">'+esc(t.Task)+'</span><span class="'+(dn?'':dueClass(d))+'" style="font-size:13px;white-space:nowrap">'+(dn?'done':fmtDue(d))+'</span></div>'; }).join('');
+    return card(p.Name, done+' of '+ts.length+' steps done'+(has(p.Notes)?' · '+p.Notes:'')+'.', goalBar('Progress', ts.length?done/ts.length*100:0, '', '--sky')+rows, '--sky') + '<div style="height:22px"></div>';
+  }).join('');
+}
 function renderFlying(){
   var f=kv('Flying'), ac=arr('Aircraft'), log=arr('FlightLog');
 
@@ -2445,6 +2462,7 @@ function renderFlying(){
     + '<div id="xcHost"></div>'
     + gap
     + pilots
+    + flyingStudyCards()
     + '<div class="grid cols-2">'
     + card('PPL milestones','Brad\'s path to the certificate.', milestoneHtml, '--sky')
     + card('Aircraft','', tableEl(acCols, ac, {empty:'Add your aircraft (e.g. Maule N51207) in the Aircraft tab.',editTab:'Aircraft'}), '--sky')
