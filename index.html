@@ -1258,6 +1258,23 @@ async function saveKv(tab,n){
   var res=await apiWrite({action:'setkv',tab:tab,row:JSON.stringify(obj)});
   if(res&&res.ok){ await afterWrite(); } else { $('esaved').textContent='Error'; }
 }
+/* Optimistic save: change the row on screen immediately, write to the sheet in the background.
+   If the write fails, put the old values back and say so. Used by every one-tap check-off. */
+function saveRowNow(tab, rownum, full){
+  var list=arr(tab), row=list.filter(function(r){return String(r.__row)===String(rownum);})[0]; if(!row) return;
+  var before={}; Object.keys(full).forEach(function(k){ before[k]=row[k]; row[k]=full[k]; });
+  try{ localStorage.setItem(LS_DATA, JSON.stringify({data:DATA, updated:new Date().toISOString()})); }catch(e){}
+  render(CURRENT);
+  apiWrite({action:'upsert',tab:tab,rownum:rownum,row:JSON.stringify(full)}).then(function(res){
+    if(!res||res.ok===false) throw new Error('save failed');
+  }).catch(function(){
+    Object.keys(before).forEach(function(k){ row[k]=before[k]; }); render(CURRENT);
+    toast('Couldn’t save that — check your connection and tap again.');
+  });
+}
+function toast(msg){ var t=document.createElement('div'); t.textContent=msg;
+  t.style.cssText='position:fixed;left:50%;transform:translateX(-50%);bottom:calc(90px + env(safe-area-inset-bottom));z-index:3000;background:#2b343b;color:#fff;padding:10px 14px;border-radius:12px;font-size:13px;box-shadow:0 6px 20px rgba(0,0,0,.4);max-width:90vw';
+  document.body.appendChild(t); setTimeout(function(){ t.remove(); },3500); }
 async function afterWrite(){
   var api=localStorage.getItem(LS_API), pw=sessionStorage.getItem(SS_PW);
   try{ var res=await jsonp(api+'?pw='+pw); if(res&&res.ok){ DATA=res.data||{}; $('stamp').textContent=fmtStamp(res.updated); } }catch(e){}
@@ -1729,8 +1746,7 @@ function todayHero(){
 }
 async function markActionDone(rownum){
   var a=arr('NextActions').filter(function(r){return String(r.__row)===String(rownum);})[0]; if(!a) return;
-  await apiWrite({action:'upsert',tab:'NextActions',rownum:rownum,row:JSON.stringify({Action:a.Action,Tab:a.Tab||'',Due:a.Due||'',Done:'TRUE'})});
-  await afterWrite();
+  saveRowNow('NextActions', rownum, {Action:a.Action,Tab:a.Tab||'',Due:a.Due||'',Done:'TRUE'});
 }
 function big3Card(){
   var steps=smartSteps().filter(function(s){ return !/^Keep your /.test(s.t); });   // habits live in Daily rhythm
@@ -2703,8 +2719,7 @@ function xcMapHint(){ var h=XC.el&&XC.el.querySelector('.xc-maphint'); if(!h||!X
 
 async function taskDoneToggle(rownum){
   var t=arr('ProjectTasks').filter(function(r){return String(r.__row)===String(rownum);})[0]; if(!t) return;
-  await apiWrite({action:'upsert',tab:'ProjectTasks',rownum:rownum,row:JSON.stringify({Project:t.Project,Task:t.Task,Done:truthy(t.Done)?'':'TRUE',Due:t.Due||'',Notes:t.Notes||''})});
-  await afterWrite();
+  saveRowNow('ProjectTasks', rownum, {Project:t.Project,Task:t.Task,Done:truthy(t.Done)?'':'TRUE',Due:t.Due||'',Notes:t.Notes||''});
 }
 /* flight-training study plans (Projects with Area = Flying), e.g. the FAA written exam */
 function flyingStudyCards(){
@@ -3764,8 +3779,7 @@ async function habitDidToday(rownum){
   var gap=has(last)?daysBetween(last,new Date()):null;
   if(gap===0){ return; }                       // already logged today
   if(gap===1||streak===0||gap==null){ streak=streak+1; } else { streak=1; }  // consecutive day continues; a break resets
-  await apiWrite({action:'upsert',tab:'Habits',rownum:rownum,row:JSON.stringify({Practice:row.Practice,Cadence:row.Cadence,Streak:streak,LastDone:today,Notes:row.Notes||''})});
-  await afterWrite();
+  saveRowNow('Habits', rownum, {Practice:row.Practice,Cadence:row.Cadence,Streak:streak,LastDone:today,Notes:row.Notes||''});
 }
 /* Bible in a year: OT (929 ch) + NT (260 ch) spread evenly across the calendar year — no API needed */
 var BIBLE_OT=[['Genesis',50],['Exodus',40],['Leviticus',27],['Numbers',36],['Deuteronomy',34],['Joshua',24],['Judges',21],['Ruth',4],['1 Samuel',31],['2 Samuel',24],['1 Kings',22],['2 Kings',25],['1 Chronicles',29],['2 Chronicles',36],['Ezra',10],['Nehemiah',13],['Esther',10],['Job',42],['Psalms',150],['Proverbs',31],['Ecclesiastes',12],['Song of Songs',8],['Isaiah',66],['Jeremiah',52],['Lamentations',5],['Ezekiel',48],['Daniel',12],['Hosea',14],['Joel',3],['Amos',9],['Obadiah',1],['Jonah',4],['Micah',7],['Nahum',3],['Habakkuk',3],['Zephaniah',3],['Haggai',2],['Zechariah',14],['Malachi',4]];
