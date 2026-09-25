@@ -2399,12 +2399,20 @@ function xcDensityAlt(ap, m){ if(!ap||!m||m.temp==null||ap.elevFt==null) return 
 function xcApi(qs){ var pw=sessionStorage.getItem(SS_PW); if(!pw) return Promise.reject(new Error('Unlock the dashboard first.'));
   return jsonp(API_URL+'?pw='+pw+'&'+qs, 45000).then(function(r){ if(!r||r.ok===false) throw new Error((r&&r.error)||'lookup failed'); return r; }); }
 function xcAirports(ids){
-  var ask=[]; ids.forEach(function(id){ ask.push(id); if(/^[A-Z]{3}$/.test(id)) ask.push('K'+id); });
-  return xcApi('action=apt&ids='+encodeURIComponent(ask.join(','))).then(function(r){ var map={};
-    (r.airports||[]).forEach(function(a){ if(a&&a.lat!=null){ map[a.icao]=a; if(a.faa) map[a.faa]=a; } }); return map; }); }
+  var toMap=function(r){ var map={}; (r.airports||[]).forEach(function(a){ if(a&&a.lat!=null){ map[a.icao]=a; if(a.faa) map[a.faa]=a; } }); return map; };
+  var ask=function(list){ var q=[]; list.forEach(function(id){ q.push(id); if(/^[A-Z]{3}$/.test(id)) q.push('K'+id); });
+    return xcApi('action=apt&ids='+encodeURIComponent(q.join(','))).then(toMap); };
+  // The backend can fail a whole batch when some codes aren't airports (VORs, GPS waypoints).
+  // Then look short lists up one code at a time so the real airports still resolve.
+  return ask(ids).catch(function(e){
+    if(ids.length<2||ids.length>12) throw e;
+    return Promise.all(ids.map(function(id){ return ask([id]).catch(function(){ return {}; }); }))
+      .then(function(maps){ return maps.reduce(function(all,m){ Object.keys(m).forEach(function(k){ all[k]=m[k]; }); return all; }, {}); });
+  }); }
 function xcMetars(ids){ return xcApi('action=wx&ids='+encodeURIComponent(ids.join(','))).then(function(r){ var map={};
   (r.metars||[]).forEach(function(m){ if(m&&m.icaoId) map[m.icaoId]=m; }); return map; }).catch(function(){ return {}; }); }
-function xcSplit(s){ return String(s||'').toUpperCase().split(/[\s,>\-]+/).map(function(x){return x.trim();}).filter(Boolean); }
+var XC_FILLER={VIA:1,VOR:1,VORTAC:1,VORDME:1,NDB:1,DCT:1,DIRECT:1,TO:1,THEN:1,AND:1,OVER:1,FIX:1,WAYPOINT:1,THE:1};
+function xcSplit(s){ return String(s||'').toUpperCase().split(/[\s,>\-]+/).map(function(x){return x.trim();}).filter(function(x){ return x&&!XC_FILLER[x]; }); }
 
 /* ---------- plan ---------- */
 function xcStatus(msg, cls){ var s=XC.el&&XC.el.querySelector('#xcStatus'); if(s){ s.className='xc-status'+(cls?' '+cls:''); s.innerHTML=msg||''; } }
@@ -2419,7 +2427,9 @@ async function xcPlan(){
     var t0=new Date(inp.dep).getTime(); if(isNaN(t0)) t0=Date.now();
     xcStatus('<span class="xc-spin"></span>Looking up airports…');
     var apMap=await xcAirports(ids);
-    var route=ids.map(function(id){ var a=apMap[id]||apMap['K'+id]; if(!a) throw new Error('Couldn\'t find '+id+' — try its ICAO code (e.g. KRNO).'); return a; });
+    var missing=ids.filter(function(id){ return !(apMap[id]||apMap['K'+id]); });
+    if(missing.length) throw new Error('Couldn\'t find '+missing.join(', ')+' as '+(missing.length>1?'airports':'an airport')+'. The planner routes airport to airport, so for "To" and "Via" use airport codes (e.g. KRNO), not VORs or GPS waypoints.');
+    var route=ids.map(function(id){ return apMap[id]||apMap['K'+id]; });
 
     // fuel load: 'full' is limited by max gross if the cabin is heavy
     var people=(+inp.pilot||0)+(+inp.front||0)+(+inp.rear||0), bag=+inp.bag||0;
