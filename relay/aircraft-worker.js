@@ -7,16 +7,18 @@
 //   GET /aircraft?tails=N51207,N6058A  ->  { ok, now, budget, capped, planes: [...] }
 //
 // Cost control:
-//   - flight status per plane at most every 5 min; position only for planes in the air, at most every 60 s
+//   - flight status per plane at most every 5 min; position for planes in the air at most every 60 s
+//   - a parked plane's last reported spot is looked up once per finished flight (airport location as fallback)
 //   - answers are shared through KV, so several open screens cost the same as one
 //   - a monthly spending cap (MONTHLY_CAP_USD); past it the Worker only serves what it already has
 //   - nothing runs unless the Flying tab is open somewhere
 // Secrets: AEROAPI_KEY (wrangler secret). Storage: STATE (KV).
 
 const AERO = "https://aeroapi.flightaware.com/aeroapi";
-const PRICE = { status: 0.005, position: 0.01 };   // USD per call, rounded up from FlightAware's list
+const PRICE = { status: 0.005, position: 0.01, airport: 0.015 };   // USD per call, rounded up from FlightAware's list
 const STATUS_TTL = 300;
 const POSITION_TTL = 60;
+const FOREVER = 365 * 86400;   // a finished flight's last spot and an airport's location never change
 
 const ALLOWED_ORIGINS = [
   /^https:\/\/borowski-os\.github\.io$/i,
@@ -123,7 +125,7 @@ export default {
       try { raw = await aero(path, kind); } catch (e) { errors.push(e.message); }
       if (raw === undefined) return hit ? hit.v : null;
       const v = trim(raw);
-      ctx.waitUntil(env.STATE.put(key, JSON.stringify({ at: now, v }), { expirationTtl: 7 * 86400 }));
+      ctx.waitUntil(env.STATE.put(key, JSON.stringify({ at: now, v }), { expirationTtl: Math.max(7 * 86400, ttl) }));
       return v;
     }
 
@@ -131,11 +133,21 @@ export default {
       const flight = await cached("status:" + tail, STATUS_TTL, "/flights/" + tail + "?max_pages=1", "status",
         (d) => trimFlight(pickFlight((d && d.flights) || [])));
       let pos = null;
+      let last = null;
       if (flight && flight.enroute && flight.id) {
         pos = await cached("pos:" + flight.id, POSITION_TTL, "/flights/" + encodeURIComponent(flight.id) + "/position", "position",
           trimPosition);
+      } else if (flight && flight.id && flight.departed) {
+        // Parked: where the last flight ended. One lookup per finished flight, kept for good.
+        last = await cached("last:" + flight.id, FOREVER, "/flights/" + encodeURIComponent(flight.id) + "/position", "position",
+          trimPosition);
+        if (!last && /^[A-Z0-9]{3,4}$/.test(flight.destination || "")) {
+          const ap = await cached("apt:" + flight.destination, FOREVER, "/airports/" + flight.destination, "airport",
+            (d) => (d && typeof d.latitude === "number" ? { lat: d.latitude, lon: d.longitude } : null));
+          if (ap) last = { lat: ap.lat, lon: ap.lon, alt: 0, gs: 0, track: 0, ts: flight.landed, airport: true };
+        }
       }
-      return { tail, flight, pos };
+      return { tail, flight, pos, last };
     }));
 
     if (spentNow > 0) ctx.waitUntil(env.STATE.put(monthKey, String(Math.round((spentBefore + spentNow) * 1000) / 1000)));

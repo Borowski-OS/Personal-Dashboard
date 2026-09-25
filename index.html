@@ -515,7 +515,10 @@
   .xc-map .leaflet-bar a { background:#14171b; color:#ddd; border-bottom-color:#2a2f37; }
   /* ---- Who's flying (live aircraft map) ---- */
   .at-head { display:flex; justify-content:space-between; align-items:flex-start; gap:14px; flex-wrap:wrap; }
-  .at-sum { display:flex; gap:8px; flex-wrap:wrap; }
+  .at-sum { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  .at-names { appearance:none; cursor:pointer; background:none; border:1px solid var(--card-border-2); color:var(--text-muted); font:600 12px 'Inter',sans-serif; padding:5px 10px; border-radius:8px; }
+  .at-names:hover { color:var(--text); border-color:#555; }
+  .at-pill.park { color:#c3cad3; background:#2a2f37; }
   .at-sum span { font:700 11px 'Inter',sans-serif; letter-spacing:.06em; text-transform:uppercase; padding:5px 10px; border-radius:20px; background:#22262d; color:var(--text-muted); }
   .at-sum span.air { background:rgba(56,189,248,.16); color:var(--sky); }
   .at-sum span.gnd { background:rgba(52,211,153,.14); color:var(--emerald); }
@@ -560,6 +563,7 @@
   .at-ac svg path { fill:var(--sky); stroke:#0b0d10; stroke-width:1.1; }
   .at-ac.gnd svg path { fill:var(--emerald); }
   .at-ac.off svg path { fill:none; stroke:#8a929e; stroke-width:1.6; }
+  .at-ac.park svg path { fill:#aab4c0; }
   .at-ac.crit svg path { fill:var(--red); }
   .at-ac .tag { position:absolute; left:34px; top:5px; white-space:nowrap; background:rgba(10,10,10,.9); border:1px solid #4b525d; color:#fff;
     font:800 11.5px 'Inter',sans-serif; letter-spacing:.02em; padding:2px 7px; border-radius:6px; }
@@ -2830,23 +2834,22 @@ function atAlt(v){ if(v==='ground') return 'GND'; if(typeof v!=='number') return
 function atVs(c){ return c==='C'?'↑ climbing':c==='D'?'↓ descending':'level'; }
 function atAgo(sec){ if(sec<90) return 'just now'; var m=Math.round(sec/60); if(m<60) return m+' min ago'; var h=Math.round(m/60); if(h<48) return h+' hr ago'; return Math.round(h/24)+' days ago'; }
 function atTime(t){ return new Date(t*1000).toLocaleTimeString([], {hour:'numeric', minute:'2-digit'}); }
+var AT_TYPES={BE58:'Beech Baron 58',BE55:'Beech Baron 55',BE36:'Beech Bonanza',C170:'Cessna 170',C172:'Cessna 172',C180:'Cessna 180',C182:'Cessna 182',C185:'Cessna 185',C206:'Cessna 206',M4:'Maule M-4',M5:'Maule M-5',M7:'Maule M-7',PA28:'Piper Cherokee',PA18:'Piper Super Cub',SR20:'Cirrus SR20',SR22:'Cirrus SR22'};
 function atCode(c){ c=String(c||''); return /^[A-Z0-9]{3,4}$/i.test(c)?c.toUpperCase():(c?'off-airport':''); }
 function atApt(code){ var c=String(code||'').toUpperCase(); return AT_APTS.filter(function(a){ return a[0]===c; })[0]||null; }
 
 /* ---- last-seen memory (this device only) ---- */
 function atLastAll(){ try{ return JSON.parse(localStorage.getItem('lifeos_at_last')||'{}')||{}; }catch(e){ return {}; } }
 function atRemember(tail,s){ try{ var all=atLastAll(); all[tail]=s; localStorage.setItem('lifeos_at_last',JSON.stringify(all)); }catch(e){} }
-/* air = FlightAware has a recent position on a flight that's under way; gnd = landed in the last 12 h */
+/* air = FlightAware has a recent position on a flight under way; gnd = landed in the last 12 h; park = older.
+   Every plane keeps a map spot: live position, else where its last flight ended, else this device's memory. */
 function atStatus(p){
   var st=AT.state[p.tail]||{}, live=st.live, fl=st.fl||null, now=Date.now()/1000;
   if(live&&now-live.ts<900) return {k:'air', s:live, fl:fl};
-  var last=atLastAll()[p.tail]||null;
-  if(fl&&fl.landed&&!fl.enroute&&now-fl.landed<12*3600){
-    var ap=atApt(fl.destination);   // parked at a field we know: pin it there
-    if(ap) last={lat:ap[1], lon:ap[2], track:0, ts:fl.landed, gnd:true};
-    return {k:'gnd', s:last, fl:fl};
-  }
-  return {k:last?'off':'none', s:last, fl:fl};
+  var spot=st.last||atLastAll()[p.tail]||null;
+  if(!spot&&fl&&fl.landed){ var ap=atApt(fl.destination); if(ap) spot={lat:ap[1], lon:ap[2], track:0, ts:fl.landed}; }
+  if(fl&&fl.landed&&!fl.enroute&&now-fl.landed<12*3600) return {k:'gnd', s:spot, fl:fl};
+  return {k:spot?'park':'none', s:spot, fl:fl};
 }
 
 /* ---- polling ---- */
@@ -2867,7 +2870,9 @@ function atPoll(){
           var tr=AT.trails[x.tail]||(AT.trails[x.tail]=[]), q=tr[tr.length-1];
           if(!q||q[0]!==s.lat||q[1]!==s.lon){ tr.push([s.lat,s.lon]); if(tr.length>240) tr.shift(); }
         } else AT.trails[x.tail]=[];
-        AT.state[x.tail]={live:s, fl:fl};
+        var last=x.last&&typeof x.last.lat==='number'?{lat:x.last.lat, lon:x.last.lon, track:x.last.track||0, ts:x.last.ts||(fl&&fl.landed)||d.now}:null;
+        if(last) atRemember(x.tail,last);
+        AT.state[x.tail]={live:s, fl:fl, last:last};
       });
       AT.err=''; AT.src=d.source||''; AT.updated=Date.now(); AT.budget=d.budget||null; AT.capped=!!d.capped;
     })
@@ -2909,8 +2914,9 @@ function atPaint(){
     if(st.k==='air') n.air++; if(st.k==='gnd') n.gnd++;
     var pill=st.k==='air'?'<span class="at-pill air">Airborne</span>'
       :st.k==='gnd'?'<span class="at-pill gnd">Landed</span>'
-      :'<span class="at-pill">Not flying</span>';
-    var meta=[p.model||(fl&&fl.type)||'', p.who].filter(Boolean).join(' · ');
+      :st.k==='park'?'<span class="at-pill park">Parked</span>'
+      :'<span class="at-pill">No recent flights</span>';
+    var meta=[p.model||(fl&&(AT_TYPES[fl.type]||fl.type))||'', p.who].filter(Boolean).join(' · ');
     var line='', route='';
     if(st.k==='air') line='<div class="at-r3"><span><b>'+atAlt(s.alt)+'</b></span><span><b>'+(typeof s.gs==='number'?Math.round(s.gs):'—')+'</b> kt</span><span>'+
       (typeof s.track==='number'?String(Math.round(s.track)).padStart(3,'0')+'°':'')+'</span><span>'+atVs(s.climb)+'</span></div>';
@@ -2920,11 +2926,10 @@ function atPaint(){
       else if(fl.landed&&!fl.enroute) route='Last flight '+o+' → '+dst+' · landed '+(now-fl.landed<20*3600?atTime(fl.landed):atAgo(now-fl.landed));
       else if(!fl.departed&&fl.etd&&fl.etd>now) route='Next: '+o+' → '+dst+' · departs <b>'+atTime(fl.etd)+'</b>';
     }
-    var where=s&&st.k!=='gnd'?atNear(s.lat,s.lon):'';
+    var where=s?atNear(s.lat,s.lon):'';
     var foot=st.k==='air' ? (where?'Now '+where:'')
-      : st.k==='off' ? 'Last seen here '+atAgo(now-s.ts)+(where?' · '+where:'')
-      : st.k==='gnd' ? (fl.destination?'On the ground at '+atCode(fl.destination):'On the ground')
-      : (fl?'':'No recent flights');
+      : (st.k==='gnd'||st.k==='park') ? (fl&&/^[A-Z0-9]{3,4}$/i.test(fl.destination||'')?'At '+atCode(fl.destination):(where?'Near '+where.replace(/^at /,''):'Last spot on the map'))
+      : 'No flights on FlightAware in the last two weeks';
     return '<div class="at-row'+(AT.sel===p.tail?' sel':'')+'" role="button" tabindex="0" data-tail="'+esc(p.tail)+'" aria-pressed="'+(AT.sel===p.tail)+'">'
       +'<div class="at-r1"><b>'+esc(p.tail)+'</b>'+pill+'</div>'
       +(meta?'<div class="at-r2">'+esc(meta)+'</div>':'')+line
@@ -2934,7 +2939,8 @@ function atPaint(){
   var q=function(id){ return AT.el.querySelector('#'+id); };
   q('atList').innerHTML=rows||'<div class="empty">Add tail numbers to <b>tracked_aircraft</b> in the Flying sheet.</div>';
   q('atSum').innerHTML=(n.air?'<span class="air">'+n.air+' airborne</span>':'')+(n.gnd?'<span class="gnd">'+n.gnd+' landed today</span>':'')
-    +(!n.air&&!n.gnd?'<span>Nobody up right now</span>':'');
+    +(!n.air&&!n.gnd?'<span>Nobody up right now</span>':'')
+    +(atCanSave()?'<button class="at-names" type="button" onclick="atNamesOpen()">✎ Who flies these</button>':'');
   var feed='', when='', b=AT.budget;
   var budget=b?' · $'+Number(b.spent).toFixed(2)+' of $'+Number(b.cap).toFixed(2)+' used this month':'';
   if(!relay) feed='Live positions aren\'t connected yet.';
@@ -2946,8 +2952,30 @@ function atPaint(){
   if(AT.updated) when='Updated '+new Date(AT.updated).toLocaleTimeString([], {hour:'numeric',minute:'2-digit',second:'2-digit'});
   q('atFeed').textContent=feed; q('atWhen').textContent=when;
   var ban=q('atBanner');
-  if(!n.air){ ban.hidden=false; ban.textContent='No one airborne · showing Reno to Minden'; } else ban.hidden=true;
+  if(!n.air){ ban.hidden=false; ban.textContent='No one in the air · showing where everyone last landed'; } else ban.hidden=true;
   atDraw(planes);
+}
+
+/* ---- "Who flies these": names live in the private sheet (Flying kv tracked_aircraft), never in this public page ---- */
+function atCanSave(){ try{ return typeof apiWrite==='function'&&!!sessionStorage.getItem(SS_PW); }catch(e){ return false; } }
+function atNamesOpen(){
+  var planes=atPlanes();
+  var rows=planes.map(function(p,i){ var st=AT.state[p.tail]||{}, fl=st.fl, model=p.model||(fl&&(AT_TYPES[fl.type]||fl.type))||'';
+    return '<div class="efield"><label>'+esc(p.tail)+(model?' · '+esc(model):'')+'</label><input id="atn_'+i+'" data-t="'+esc(p.tail)+'" type="text" value="'+esc(p.who)+'" placeholder="Who flies it"></div>'; }).join('');
+  $('modalSheet').innerHTML='<button class="mclose" onclick="closeModal()">×</button><div class="mhead"><h2>Who flies these</h2></div>'
+    +'<div id="eform">'+rows
+    +'<div class="efield"><label>Add a plane (tail number)</label><input id="atn_new" type="text" placeholder="N12345 = Name" autocapitalize="characters"></div></div>'
+    +'<div class="eactions"><span class="spacer"></span><span class="esaved" id="esaved"></span>'
+    +'<button class="ebtn" onclick="closeModal()">Cancel</button><button class="ebtn pri" onclick="atNamesSave('+planes.length+')">Save</button></div>';
+  $('modal').classList.remove('hidden');
+}
+async function atNamesSave(n){
+  var parts=[];
+  for(var i=0;i<n;i++){ var el=$('atn_'+i); if(!el) continue; var who=el.value.replace(/[;=]/g,' ').trim(); parts.push(el.getAttribute('data-t')+(who?' = '+who:'')); }
+  var nw=($('atn_new')&&$('atn_new').value||'').trim(); if(/^N[0-9A-Z]{1,5}\b/i.test(nw)) parts.push(nw.replace(/;/g,' '));
+  $('esaved').textContent='Saving…';
+  var res=await apiWrite({action:'setkv',tab:'Flying',row:JSON.stringify({tracked_aircraft:parts.join('; ')})});
+  if(res&&res.ok){ await afterWrite(); AT.fitKey=''; atPaint(); } else { $('esaved').textContent='Couldn\u2019t save. Check your connection and try again.'; }
 }
 
 /* ---- map ---- */
@@ -2993,7 +3021,8 @@ function atSelect(tail){
   AT.sel=AT.sel===tail?null:tail;
   var p=atPlanes().filter(function(x){ return x.tail===tail; })[0], st=p?atStatus(p):null;
   if(AT.sel&&st&&st.s&&AT.map){ AT.follow=false; AT.el.querySelector('#atFollow').classList.remove('on'); AT.prog=true;
-    AT.map.flyTo([st.s.lat,st.s.lon], Math.max(AT.map.getZoom(), st.k==='air'?9:11), {duration:0.8}); }
+    AT.map.flyTo([st.s.lat,st.s.lon], st.k==='air'?9:12, {duration:0.8});
+    if(window.innerWidth<900){ var mw=AT.el.querySelector('.at-mapwrap'); if(mw) mw.scrollIntoView({behavior:'smooth', block:'center'}); } }
   atPaint();
 }
 function atDraw(planes){
@@ -3008,8 +3037,8 @@ function atDraw(planes){
     if(s&&dap){ mk.dest.setLatLngs([[s.lat,s.lon],[dap[1],dap[2]]]); if(!map.hasLayer(mk.dest)) mk.dest.addTo(map); airPts.push([dap[1],dap[2]]); }
     else if(map.hasLayer(mk.dest)) map.removeLayer(mk.dest);
     if(!s){ [mk.m,mk.trail,mk.vec].forEach(function(l){ if(map.hasLayer(l)) map.removeLayer(l); }); return; }
-    var cls=(st.k==='off'?'off':st.k)+(AT.sel===p.tail?' sel':'');
-    var sub=st.k==='air'?atAlt(s.alt):st.k==='gnd'?'GND':atAgo(now-s.ts);
+    var cls=st.k+(AT.sel===p.tail?' sel':'');
+    var sub=st.k==='air'?atAlt(s.alt):st.k==='gnd'?'landed '+atAgo(now-s.ts):'';
     var rot=Math.round(s.track||0), key=cls+'|'+sub+'|'+rot;
     if(key!==mk.key){ mk.m.setIcon(L.divIcon({className:'at-ac-icon', iconSize:[32,32], iconAnchor:[16,16],
       html:'<div class="at-ac '+cls+'">'+AT_PLANE.replace('<svg ','<svg style="transform:rotate('+rot+'deg)" ')+'<div class="tag">'+esc(p.tail)+'<em>'+esc(sub)+'</em></div></div>'})); mk.key=key; }
@@ -3019,13 +3048,13 @@ function atDraw(planes){
     if(st.k==='air'&&tr.length>1){ mk.trail.setLatLngs(tr); if(!map.hasLayer(mk.trail)) mk.trail.addTo(map); } else if(map.hasLayer(mk.trail)) map.removeLayer(mk.trail);
     if(st.k==='air'&&s.gs>40&&typeof s.track==='number'){ var tip=atProj(s.lat,s.lon,s.track,s.gs*10/60); mk.vec.setLatLngs([[s.lat,s.lon],tip]); if(!map.hasLayer(mk.vec)) mk.vec.addTo(map); airPts.push(tip); }
     else if(map.hasLayer(mk.vec)) map.removeLayer(mk.vec);
-    if(st.k==='air'){ airPts.push([s.lat,s.lon]); airKey.push(p.tail); }
+    airPts.push([s.lat,s.lon]); airKey.push(p.tail+':'+st.k);
   });
   if(!AT.follow) return;
   var key=airKey.join(','), b=airPts.length?L.latLngBounds(airPts):L.latLngBounds(AT_HOME);
   if(key!==AT.fitKey||!map.getBounds().pad(-0.08).contains(b)){
     AT.prog=true; AT.fitKey=key;
-    map.flyToBounds(b,{padding:[50,50], maxZoom:airPts.length?10:10, duration:1});
+    map.flyToBounds(b,{padding:[50,50], maxZoom:10, duration:1});
   }
 }
 
