@@ -2,3 +2,13 @@ name = "lifeos-aircraft"
 main = "aircraft-worker.js"
 compatibility_date = "2026-09-01"
 workers_dev = true
+
+# Spending counter + short-lived FlightAware answers (so several open screens share one lookup)
+[[kv_namespaces]]
+binding = "STATE"
+id = "e26eb15c70f2439d91a7d440cacb4784"
+
+[vars]
+MONTHLY_CAP_USD = "5"
+
+# FlightAware key: set once with `npx wrangler@4 secret put AEROAPI_KEY` (never committed)

@@ -15,8 +15,9 @@
   investor rate (at list or a days-on-market-capped offer) and be within ~1 hr of Carson City; only verified-live listings.
 - This repo is PUBLIC. Never commit data.js, Code.js or other backend files, .clasprc.json, passwords, or personal financial data.
 - Brad doesn't code: work autonomously, explain in plain English, and only ask for things only he can do.
-- Who's flying (Flying tab, below go/no-go): live ADS-B map of the planes Brad, Chelsea and friends fly. Positions come
-  through the Cloudflare Worker in `relay/` (feeds have no CORS); URL in `AT_RELAY` or Config `aircraft_relay_url`.
+- Who's flying (Flying tab, below go/no-go): live map of the planes Brad, Chelsea and friends fly. Data from FlightAware
+  AeroAPI (Personal plan) via the Cloudflare Worker in `relay/` (Brad's Cloudflare account; key is a Worker secret; KV-cached;
+  $5/month cap). Free ADS-B feeds block Cloudflare, so don't switch back. URL in `AT_RELAY` or Config `aircraft_relay_url`.
   Planes from Flying kv `tracked_aircraft` ("N51207 = Brad & Chelsea; N6058A = …"), else `AT_DEFAULT_TAILS`.
 - CFI balance: Flying kv `cfi_rate`, `cfi_aircraft` (tail), `cfi_paid_through` (date). Owed = hours in that tail after the date × rate; "Mark paid" advances the date.
 - Medical tab (Start, End, Kind, What, Symptoms, Treatment, Notes). An Illness row with no End = "sick mode": training targets paused, recovery plan on Health, IMSAFE grounding on Today/Flying.

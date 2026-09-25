@@ -1,32 +1,28 @@
-// Aircraft position relay for the Life OS Flying tab ("Who's flying").
+// Aircraft relay for the Life OS Flying tab ("Who's flying").
 //
-// The free ADS-B feeds don't allow browser pages to call them directly (no CORS),
-// so the dashboard asks this Cloudflare Worker, which fetches the feed and hands
-// back only the fields the map needs. No keys, no personal data: the page sends
-// the transponder (ICAO hex) codes it wants, at most 20 at a time.
+// The dashboard asks this Cloudflare Worker about a few tail numbers; the Worker asks
+// FlightAware AeroAPI (Personal plan) and hands back where each plane is, where it's
+// headed and when it lands. (The free ADS-B feeds block Cloudflare's servers.)
 //
-//   GET /aircraft?hex=a66b55,a7dd43  ->  { ok, source, now, ac: [...] }
+//   GET /aircraft?tails=N51207,N6058A  ->  { ok, now, budget, capped, planes: [...] }
 //
-// Responses are cached for a few seconds so several open tabs share one upstream call.
+// Cost control:
+//   - flight status per plane at most every 5 min; position only for planes in the air, at most every 60 s
+//   - answers are shared through KV, so several open screens cost the same as one
+//   - a monthly spending cap (MONTHLY_CAP_USD); past it the Worker only serves what it already has
+//   - nothing runs unless the Flying tab is open somewhere
+// Secrets: AEROAPI_KEY (wrangler secret). Storage: STATE (KV).
 
-const FEEDS = [
-  "https://opendata.adsb.fi/api/v2/hex/",
-  "https://api.adsb.lol/v2/hex/",
-];
+const AERO = "https://aeroapi.flightaware.com/aeroapi";
+const PRICE = { status: 0.005, position: 0.01 };   // USD per call, rounded up from FlightAware's list
+const STATUS_TTL = 300;
+const POSITION_TTL = 60;
 
 const ALLOWED_ORIGINS = [
   /^https:\/\/borowski-os\.github\.io$/i,
   /^http:\/\/localhost(:\d+)?$/,
   /^http:\/\/127\.0\.0\.1(:\d+)?$/,
 ];
-
-const KEEP = [
-  "hex", "r", "t", "desc", "flight", "alt_baro", "alt_geom", "gs", "track",
-  "baro_rate", "geom_rate", "squawk", "emergency", "lat", "lon", "seen", "seen_pos",
-  "nav_altitude_mcp", "category",
-];
-
-const CACHE_SECONDS = 8;
 
 function corsHeaders(req) {
   const origin = req.headers.get("Origin") || "";
@@ -36,10 +32,54 @@ function corsHeaders(req) {
 }
 
 function json(body, status, extra) {
-  return new Response(typeof body === "string" ? body : JSON.stringify(body), {
+  return new Response(JSON.stringify(body), {
     status,
     headers: { "Content-Type": "application/json", "Cache-Control": "no-store", ...extra },
   });
+}
+
+const code = (ap) => (ap && (ap.code_icao || ap.code || ap.code_lid)) || null;
+const ts = (s) => (s ? Date.parse(s) / 1000 : null);
+
+// The flight that matters now: in the air > most recent departure > next scheduled.
+function pickFlight(flights) {
+  const live = flights.filter((f) => f.actual_off && !f.actual_on && !f.cancelled);
+  if (live.length) return live[0];
+  const done = flights.filter((f) => f.actual_off);
+  if (done.length) return done.reduce((a, b) => ((a.actual_off || "") > (b.actual_off || "") ? a : b));
+  const next = flights.filter((f) => !f.cancelled);
+  return next.length
+    ? next.reduce((a, b) => ((a.scheduled_out || a.scheduled_off || "~") < (b.scheduled_out || b.scheduled_off || "~") ? a : b))
+    : null;
+}
+
+function trimFlight(f) {
+  if (!f) return null;
+  const departed = ts(f.actual_off || f.actual_out);
+  const landed = ts(f.actual_on || f.actual_in);
+  return {
+    id: f.fa_flight_id,
+    status: f.status || "",
+    progress: f.progress_percent,
+    origin: code(f.origin), originName: f.origin && f.origin.name,
+    destination: code(f.destination), destinationName: f.destination && f.destination.name,
+    departed, landed,
+    eta: ts(f.estimated_on || f.estimated_in),
+    etd: ts(f.estimated_off || f.scheduled_off || f.estimated_out || f.scheduled_out),
+    type: f.aircraft_type || "",
+    enroute: !!(departed && !landed && !f.cancelled),
+    diverted: !!f.diverted,
+  };
+}
+
+function trimPosition(d) {
+  const p = d && d.last_position;
+  if (!p || typeof p.latitude !== "number") return null;
+  return {
+    lat: p.latitude, lon: p.longitude,
+    alt: (p.altitude || 0) * 100, gs: p.groundspeed, track: p.heading,
+    climb: p.altitude_change, ts: ts(p.timestamp), update: p.update_type,
+  };
 }
 
 export default {
@@ -52,57 +92,62 @@ export default {
       });
     }
     const url = new URL(req.url);
-    if (req.method !== "GET" || url.pathname !== "/aircraft") {
-      return json({ ok: false, error: "not_found" }, 404, cors);
+    if (req.method !== "GET" || url.pathname !== "/aircraft") return json({ ok: false, error: "not_found" }, 404, cors);
+
+    const tails = [...new Set((url.searchParams.get("tails") || "").toUpperCase().split(",")
+      .map((t) => t.trim()).filter((t) => /^N[0-9A-Z]{1,5}$/.test(t)))].slice(0, 10);
+    if (!tails.length) return json({ ok: false, error: "no_tails" }, 400, cors);
+    if (!env.AEROAPI_KEY) return json({ ok: false, error: "no_key" }, 503, cors);
+
+    const cap = Number(env.MONTHLY_CAP_USD) || 5;
+    const monthKey = "spend:" + new Date().toISOString().slice(0, 7);
+    const spentBefore = Number(await env.STATE.get(monthKey)) || 0;
+    let spentNow = 0;
+    let capped = false;
+    const errors = [];
+
+    async function aero(path, kind) {
+      if (spentBefore + spentNow + PRICE[kind] > cap) { capped = true; return undefined; }
+      spentNow += PRICE[kind];   // counted before the await so parallel lookups respect the cap
+      const r = await fetch(AERO + path, { headers: { "x-apikey": env.AEROAPI_KEY, Accept: "application/json" } });
+      if (!r.ok) throw new Error("FlightAware HTTP " + r.status);
+      return r.json();
     }
 
-    const hexes = [...new Set(
-      (url.searchParams.get("hex") || "").toLowerCase().split(",")
-        .map((h) => h.trim())
-        .filter((h) => /^[0-9a-f]{6}$/.test(h)),
-    )].sort().slice(0, 20);
-    if (!hexes.length) return json({ ok: false, error: "no_hex" }, 400, cors);
+    // Serve from KV while fresh; otherwise ask FlightAware (if the budget allows) and store the trimmed answer.
+    async function cached(key, ttl, path, kind, trim) {
+      const hit = await env.STATE.get(key, "json");
+      const now = Date.now() / 1000;
+      if (hit && now - hit.at < ttl) return hit.v;
+      let raw;
+      try { raw = await aero(path, kind); } catch (e) { errors.push(e.message); }
+      if (raw === undefined) return hit ? hit.v : null;
+      const v = trim(raw);
+      ctx.waitUntil(env.STATE.put(key, JSON.stringify({ at: now, v }), { expirationTtl: 7 * 86400 }));
+      return v;
+    }
 
-    const cache = caches.default;
-    const cacheKey = new Request("https://lifeos-aircraft.cache/aircraft?hex=" + hexes.join(","));
-    const hit = await cache.match(cacheKey);
-    if (hit) return json(await hit.text(), 200, { ...cors, "X-Relay-Cache": "hit" });
-
-    // Ask every feed at once: they use different receiver networks, so together they see more.
-    const results = await Promise.allSettled(FEEDS.map(async (base) => {
-      const r = await fetch(base + hexes.join(","), {
-        headers: { "User-Agent": "LifeOS-aircraft-relay/1.0", Accept: "application/json" },
-      });
-      if (!r.ok) throw new Error(new URL(base).host + ": HTTP " + r.status);
-      const d = await r.json();
-      return { host: new URL(base).host, ac: d.ac || d.aircraft || [] };
+    const planes = await Promise.all(tails.map(async (tail) => {
+      const flight = await cached("status:" + tail, STATUS_TTL, "/flights/" + tail + "?max_pages=1", "status",
+        (d) => trimFlight(pickFlight((d && d.flights) || [])));
+      let pos = null;
+      if (flight && flight.enroute && flight.id) {
+        pos = await cached("pos:" + flight.id, POSITION_TTL, "/flights/" + encodeURIComponent(flight.id) + "/position", "position",
+          trimPosition);
+      }
+      return { tail, flight, pos };
     }));
 
-    const best = new Map();   // hex -> freshest position report across feeds
-    const sources = [];
-    const errors = [];
-    for (const res of results) {
-      if (res.status !== "fulfilled") { errors.push(String(res.reason && res.reason.message || res.reason)); continue; }
-      sources.push(res.value.host);
-      for (const a of res.value.ac) {
-        if (typeof a.lat !== "number") continue;
-        const hex = String(a.hex || "").toLowerCase().replace("~", "");
-        const prev = best.get(hex);
-        if (!prev || (+a.seen_pos || 0) < (+prev.seen_pos || 0)) best.set(hex, a);
-      }
-    }
-    if (sources.length) {
-      const ac = [...best.values()].map((a) => {
-        const o = {};
-        for (const k of KEEP) if (k in a) o[k] = a[k];
-        return o;
-      });
-      const body = JSON.stringify({ ok: true, source: sources.join(" + "), now: Date.now() / 1000, ac });
-      ctx.waitUntil(cache.put(cacheKey, new Response(body, {
-        headers: { "Content-Type": "application/json", "Cache-Control": "max-age=" + CACHE_SECONDS },
-      })));
-      return json(body, 200, cors);
-    }
-    return json({ ok: false, error: "feeds_unavailable", detail: errors }, 502, cors);
+    if (spentNow > 0) ctx.waitUntil(env.STATE.put(monthKey, String(Math.round((spentBefore + spentNow) * 1000) / 1000)));
+
+    return json({
+      ok: true,
+      source: "FlightAware",
+      now: Date.now() / 1000,
+      capped,
+      budget: { spent: Math.round((spentBefore + spentNow) * 100) / 100, cap },
+      errors: errors.slice(0, 3),
+      planes,
+    }, 200, cors);
   },
 };

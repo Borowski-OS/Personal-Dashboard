@@ -570,6 +570,7 @@
   .at-apt i { width:7px; height:7px; border-radius:50%; border:1.5px solid #9fb3c8; flex:none; }
   path.at-trail { stroke:var(--sky); }
   path.at-vec { stroke:var(--sky); }
+  path.at-dest { stroke:#e6e9ee; }
   @media (prefers-reduced-motion: reduce){ .at-pill.air::before { animation:none; } .at-ac svg { transition:none; } }
   .xc-sec { margin:24px 0 10px; font-size:12px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--text); }
   .xc-sec span { display:block; font-size:12px; font-weight:500; letter-spacing:0; text-transform:none; color:var(--text-dim); margin-top:3px; }
@@ -2777,17 +2778,19 @@ function xcMapHint(){ var h=XC.el&&XC.el.querySelector('.xc-maphint'); if(!h||!X
 
 /* ============================================================
    WHO'S FLYING — live map of the planes Brad, Chelsea and friends fly.
-   Positions come from the free ADS-B feeds through the Cloudflare Worker in relay/
-   (the feeds don't allow direct browser calls). Planes: Flying kv `tracked_aircraft`
-   ("N51207 = Brad & Chelsea; N6058A = Mike"), else AT_DEFAULT_TAILS. Relay URL:
-   Config kv `aircraft_relay_url`, else AT_RELAY. Polls every 15 s only while the
-   Flying tab is open and visible. Last-seen spots are remembered on this device.
+   Data: FlightAware AeroAPI (Personal plan) through the Cloudflare Worker in relay/,
+   which holds the key, caches answers and enforces a monthly spending cap.
+   Planes: Flying kv `tracked_aircraft` ("N51207 = Brad & Chelsea; N6058A = Mike"),
+   else AT_DEFAULT_TAILS. Relay URL: Config kv `aircraft_relay_url`, else AT_RELAY.
+   Polls every 30 s only while the Flying tab is open and visible (FlightAware is
+   asked at most every 5 min per plane, and every 60 s for planes in the air).
+   Last-seen spots are remembered on this device.
    ============================================================ */
-var AT_RELAY='';
+var AT_RELAY='https://lifeos-aircraft.brad-5a1.workers.dev/aircraft';
 var AT_DEFAULT_TAILS=['N51207','N6058A','N3207A','N6489X'];
 var AT_HOME=[[38.93,-120.08],[39.56,-119.60]];   // Reno to Minden, Tahoe on the west edge
-var AT_POLL_MS=15000;
-var AT={el:null,map:null,tiles:null,layer:'dark',marks:{},trails:{},state:{},timer:null,busy:false,err:'',src:'',updated:0,follow:true,fitKey:'',sel:null,prog:false};
+var AT_POLL_MS=30000;
+var AT={el:null,map:null,tiles:null,layer:'dark',marks:{},trails:{},state:{},timer:null,busy:false,err:'',src:'',updated:0,budget:null,capped:false,follow:true,fitKey:'',sel:null,prog:false};
 var AT_APTS=[ // [ident, lat, lon, local]
   ['KMEV',39.0003,-119.7508,1],['KCXP',39.1922,-119.7344,1],['KRNO',39.4991,-119.7681,1],['KTVL',38.8939,-119.9953,1],
   ['KTRK',39.3200,-120.1396,1],['KRTS',39.6682,-119.8764,1],['O02',39.7939,-120.3533,0],['KBAN',38.3616,-119.5157,0],
@@ -2798,21 +2801,6 @@ var AT_APTS=[ // [ident, lat, lon, local]
   ['KWMC',40.8966,-117.8059,0],['KLAX',33.9425,-118.4081,0],['KPHX',33.4343,-112.0116,0],['KPDX',45.5887,-122.5975,0],
   ['KSEA',47.4502,-122.3088,0],['KDEN',39.8561,-104.6737,0],['KRDD',40.5090,-122.2934,0],['KMFR',42.3742,-122.8735,0]];
 
-/* FAA N-number -> ICAO 24-bit transponder address (the key the ADS-B feeds use) */
-function atIcao(tail){
-  var LET='ABCDEFGHJKLMNPQRSTUVWXYZ', SUF=601, B4=35, B3=10*B4+SUF, B2=10*B3+SUF, B1=10*B2+SUF, bk=[0,B2,B3,B4];
-  var n=String(tail||'').trim().toUpperCase().replace(/^N/,'');
-  if(!/^[1-9][0-9A-HJ-NP-Z]{0,4}$/.test(n)) return null;
-  var suf=function(x){ var o=LET.indexOf(x[0])*25+1; if(x.length===2) o+=LET.indexOf(x[1])+1; return o; };
-  var out=0xA00001+(+n[0]-1)*B1;
-  for(var i=1;i<=3;i++){
-    if(n.length===i) return out.toString(16);
-    if(LET.indexOf(n[i])>=0){ if(!/^[A-HJ-NP-Z]{1,2}$/.test(n.slice(i))) return null; return (out+suf(n.slice(i))).toString(16); }
-    out+=SUF+(+n[i])*bk[i];
-  }
-  if(n.length===4) return out.toString(16);
-  return (out+1+(LET.indexOf(n[4])>=0?LET.indexOf(n[4]):24+(+n[4]))).toString(16);
-}
 function atRelay(){ return String(kv('Config').aircraft_relay_url||AT_RELAY||'').trim(); }
 function atPlanes(){
   var raw=String(kv('Flying').tracked_aircraft||'').trim(), list=[];
@@ -2821,8 +2809,7 @@ function atPlanes(){
   if(!list.length) list=AT_DEFAULT_TAILS.map(function(t){ return {tail:t, who:''}; });
   return list.map(function(p){
     var a=arr('Aircraft').filter(function(r){ return String(r.Tail||'').trim().toUpperCase()===p.tail; })[0];
-    p.hex=atIcao(p.tail); p.model=a&&has(a.MakeModel)?String(a.MakeModel):''; return p; })
-    .filter(function(p){ return p.hex; });
+    p.model=a&&has(a.MakeModel)?String(a.MakeModel):''; return p; });
 }
 
 /* ---- geometry + formatting ---- */
@@ -2840,18 +2827,26 @@ function atNear(lat,lon){ var best=null;
   return Math.round(best.d)+' nm '+dir+' of '+best.a[0]; }
 function atAlt(v){ if(v==='ground') return 'GND'; if(typeof v!=='number') return '—';
   return v>=18000?'FL'+String(Math.round(v/100)).padStart(3,'0'):Math.round(v).toLocaleString()+' ft'; }
-function atVs(v){ if(typeof v!=='number'||Math.abs(v)<150) return 'level'; return (v>0?'↑ ':'↓ ')+Math.abs(Math.round(v/50)*50).toLocaleString()+' fpm'; }
+function atVs(c){ return c==='C'?'↑ climbing':c==='D'?'↓ descending':'level'; }
 function atAgo(sec){ if(sec<90) return 'just now'; var m=Math.round(sec/60); if(m<60) return m+' min ago'; var h=Math.round(m/60); if(h<48) return h+' hr ago'; return Math.round(h/24)+' days ago'; }
-var AT_EMERG={'7500':'Hijack 7500','7600':'Radio out 7600','7700':'Emergency 7700'};
+function atTime(t){ return new Date(t*1000).toLocaleTimeString([], {hour:'numeric', minute:'2-digit'}); }
+function atCode(c){ c=String(c||''); return /^[A-Z0-9]{3,4}$/i.test(c)?c.toUpperCase():(c?'off-airport':''); }
+function atApt(code){ var c=String(code||'').toUpperCase(); return AT_APTS.filter(function(a){ return a[0]===c; })[0]||null; }
 
 /* ---- last-seen memory (this device only) ---- */
 function atLastAll(){ try{ return JSON.parse(localStorage.getItem('lifeos_at_last')||'{}')||{}; }catch(e){ return {}; } }
 function atRemember(tail,s){ try{ var all=atLastAll(); all[tail]=s; localStorage.setItem('lifeos_at_last',JSON.stringify(all)); }catch(e){} }
+/* air = FlightAware has a recent position on a flight that's under way; gnd = landed in the last 12 h */
 function atStatus(p){
-  var st=AT.state[p.tail], live=st&&st.live, now=Date.now()/1000;
-  if(live&&now-live.ts<120) return {k:live.gnd?'gnd':'air', s:live};
-  var last=live||atLastAll()[p.tail]||null;
-  return {k:last?'off':'none', s:last};
+  var st=AT.state[p.tail]||{}, live=st.live, fl=st.fl||null, now=Date.now()/1000;
+  if(live&&now-live.ts<900) return {k:'air', s:live, fl:fl};
+  var last=atLastAll()[p.tail]||null;
+  if(fl&&fl.landed&&!fl.enroute&&now-fl.landed<12*3600){
+    var ap=atApt(fl.destination);   // parked at a field we know: pin it there
+    if(ap) last={lat:ap[1], lon:ap[2], track:0, ts:fl.landed, gnd:true};
+    return {k:'gnd', s:last, fl:fl};
+  }
+  return {k:last?'off':'none', s:last, fl:fl};
 }
 
 /* ---- polling ---- */
@@ -2860,23 +2855,21 @@ function atPoll(){
   var relay=atRelay(), planes=atPlanes();
   if(!relay||!planes.length||AT.busy){ atPaint(); return; }
   AT.busy=true;
-  fetch(relay+(relay.indexOf('?')>=0?'&':'?')+'hex='+planes.map(function(p){ return p.hex; }).join(','),{cache:'no-store'})
+  fetch(relay+(relay.indexOf('?')>=0?'&':'?')+'tails='+planes.map(function(p){ return p.tail; }).join(','),{cache:'no-store'})
     .then(function(r){ return r.json(); })
     .then(function(d){
       if(!d||d.ok===false) throw new Error((d&&d.error)||'relay error');
-      var byHex={}, now=+d.now||Date.now()/1000;
-      (d.ac||[]).forEach(function(a){ byHex[String(a.hex||'').toLowerCase().replace('~','')]=a; });
-      planes.forEach(function(p){ var a=byHex[p.hex];
-        if(a&&typeof a.lat==='number'){
-          var s={lat:a.lat, lon:a.lon, alt:a.alt_baro, gs:a.gs, track:a.track, vs:(a.baro_rate!=null?a.baro_rate:a.geom_rate),
-            squawk:a.squawk||'', flight:String(a.flight||'').trim(), type:a.desc||a.t||'', ts:now-(+a.seen_pos||0), gnd:a.alt_baro==='ground'};
-          AT.state[p.tail]={live:s}; atRemember(p.tail,s);
-          var tr=AT.trails[p.tail]||(AT.trails[p.tail]=[]), q=tr[tr.length-1];
-          if(!s.gnd&&(!q||q[0]!==s.lat||q[1]!==s.lon)){ tr.push([s.lat,s.lon]); if(tr.length>240) tr.shift(); }
-          if(s.gnd) AT.trails[p.tail]=[];
-        } else AT.state[p.tail]={live:null};
+      (d.planes||[]).forEach(function(x){
+        var fl=x.flight||null, pos=x.pos, s=null;
+        if(fl&&fl.enroute&&pos&&typeof pos.lat==='number'){
+          s={lat:pos.lat, lon:pos.lon, alt:pos.alt, gs:pos.gs, track:pos.track, climb:pos.climb, ts:pos.ts||d.now, gnd:false};
+          atRemember(x.tail,s);
+          var tr=AT.trails[x.tail]||(AT.trails[x.tail]=[]), q=tr[tr.length-1];
+          if(!q||q[0]!==s.lat||q[1]!==s.lon){ tr.push([s.lat,s.lon]); if(tr.length>240) tr.shift(); }
+        } else AT.trails[x.tail]=[];
+        AT.state[x.tail]={live:s, fl:fl};
       });
-      AT.err=''; AT.src=d.source||''; AT.updated=Date.now();
+      AT.err=''; AT.src=d.source||''; AT.updated=Date.now(); AT.budget=d.budget||null; AT.capped=!!d.capped;
     })
     .catch(function(e){ AT.err=(e&&e.message)||String(e); })
     .then(function(){ AT.busy=false; atPaint(); });
@@ -2894,7 +2887,7 @@ function atMount(){ var host=document.getElementById('atHost'); if(!host) return
 function atBuild(){
   var el=document.createElement('div');
   el.innerHTML='<div class="card" style="border-top:3px solid var(--sky)">'
-    +'<div class="at-head"><div><h2>Who\'s flying</h2><div class="sub" id="atSub">Live positions for the planes you, Chelsea and friends fly.</div></div><div class="at-sum" id="atSum"></div></div>'
+    +'<div class="at-head"><div><h2>Who\'s flying</h2><div class="sub" id="atSub">Where the planes you, Chelsea and friends fly are right now, and where they\'re headed.</div></div><div class="at-sum" id="atSum"></div></div>'
     +'<div class="at-body"><div class="at-mapwrap"><div class="at-map" id="atMap"></div>'
     +'<button class="at-follow on" id="atFollow" type="button" title="Keep the map framed on whoever is flying" onclick="atFollowOn()">Follow</button>'
     +'<div class="xc-maptog at-tog"><button type="button" data-l="dark" class="on" onclick="atLayer(\'dark\')">Map</button><button type="button" data-l="sect" onclick="atLayer(\'sect\')">Sectional</button></div>'
@@ -2912,38 +2905,48 @@ function atPaint(){
   if(!AT.el) return;
   var planes=atPlanes(), now=Date.now()/1000, relay=atRelay(), n={air:0,gnd:0};
   var rows=planes.map(function(p){
-    var st=atStatus(p), s=st.s, em=s&&st.k!=='off'?AT_EMERG[s.squawk]:'';
+    var st=atStatus(p), s=st.s, fl=st.fl;
     if(st.k==='air') n.air++; if(st.k==='gnd') n.gnd++;
-    var pill=em?'<span class="at-pill crit">'+esc(em)+'</span>'
-      :st.k==='air'?'<span class="at-pill air">Airborne</span>'
-      :st.k==='gnd'?'<span class="at-pill gnd">On ground</span>'
-      :'<span class="at-pill">Not reporting</span>';
-    var meta=[p.model||(s&&s.type)||'', p.who].filter(Boolean).join(' · ');
-    var line='';
+    var pill=st.k==='air'?'<span class="at-pill air">Airborne</span>'
+      :st.k==='gnd'?'<span class="at-pill gnd">Landed</span>'
+      :'<span class="at-pill">Not flying</span>';
+    var meta=[p.model||(fl&&fl.type)||'', p.who].filter(Boolean).join(' · ');
+    var line='', route='';
     if(st.k==='air') line='<div class="at-r3"><span><b>'+atAlt(s.alt)+'</b></span><span><b>'+(typeof s.gs==='number'?Math.round(s.gs):'—')+'</b> kt</span><span>'+
-      (typeof s.track==='number'?String(Math.round(s.track)).padStart(3,'0')+'°':'')+'</span><span>'+atVs(s.vs)+'</span></div>';
-    var where=s?atNear(s.lat,s.lon):'';
-    var foot=st.k==='air'||st.k==='gnd' ? (where?'Now '+where:'')
-      : st.k==='off' ? 'Last seen '+atAgo(now-s.ts)+(where?' · '+where:'')
-      : 'Not seen yet on this device';
+      (typeof s.track==='number'?String(Math.round(s.track)).padStart(3,'0')+'°':'')+'</span><span>'+atVs(s.climb)+'</span></div>';
+    if(fl&&(fl.origin||fl.destination)){
+      var o=esc(atCode(fl.origin)||'—'), dst=fl.destination?esc(atCode(fl.destination)):'no destination filed';
+      if(st.k==='air') route=o+' → '+dst+(fl.eta&&fl.destination?' · ETA <b>'+atTime(fl.eta)+'</b>':'')+(fl.departed?' · off '+atTime(fl.departed):'');
+      else if(fl.landed&&!fl.enroute) route='Last flight '+o+' → '+dst+' · landed '+(now-fl.landed<20*3600?atTime(fl.landed):atAgo(now-fl.landed));
+      else if(!fl.departed&&fl.etd&&fl.etd>now) route='Next: '+o+' → '+dst+' · departs <b>'+atTime(fl.etd)+'</b>';
+    }
+    var where=s&&st.k!=='gnd'?atNear(s.lat,s.lon):'';
+    var foot=st.k==='air' ? (where?'Now '+where:'')
+      : st.k==='off' ? 'Last seen here '+atAgo(now-s.ts)+(where?' · '+where:'')
+      : st.k==='gnd' ? (fl.destination?'On the ground at '+atCode(fl.destination):'On the ground')
+      : (fl?'':'No recent flights');
     return '<div class="at-row'+(AT.sel===p.tail?' sel':'')+'" role="button" tabindex="0" data-tail="'+esc(p.tail)+'" aria-pressed="'+(AT.sel===p.tail)+'">'
       +'<div class="at-r1"><b>'+esc(p.tail)+'</b>'+pill+'</div>'
       +(meta?'<div class="at-r2">'+esc(meta)+'</div>':'')+line
+      +(route?'<div class="at-r3">'+route+'</div>':'')
       +'<div class="at-r4"><span>'+esc(foot)+'</span><a href="https://www.flightaware.com/live/flight/'+encodeURIComponent(p.tail)+'" target="_blank" rel="noopener">FlightAware ↗</a></div></div>';
   }).join('');
   var q=function(id){ return AT.el.querySelector('#'+id); };
   q('atList').innerHTML=rows||'<div class="empty">Add tail numbers to <b>tracked_aircraft</b> in the Flying sheet.</div>';
-  q('atSum').innerHTML=(n.air?'<span class="air">'+n.air+' airborne</span>':'')+(n.gnd?'<span class="gnd">'+n.gnd+' on ground</span>':'')
+  q('atSum').innerHTML=(n.air?'<span class="air">'+n.air+' airborne</span>':'')+(n.gnd?'<span class="gnd">'+n.gnd+' landed today</span>':'')
     +(!n.air&&!n.gnd?'<span>Nobody up right now</span>':'');
-  var feed='', when='';
-  if(!relay) feed='Live positions aren\'t connected yet (aircraft relay not set up).';
-  else if(AT.err) feed='Can\'t reach live positions right now. Retrying every 15 seconds.';
-  else if(AT.updated) feed='Live ADS-B · '+esc(AT.src)+' · rural areas can drop out, so use FlightAware for gaps';
-  else feed='Connecting to live positions…';
+  var feed='', when='', b=AT.budget;
+  var budget=b?' · $'+Number(b.spent).toFixed(2)+' of $'+Number(b.cap).toFixed(2)+' used this month':'';
+  if(!relay) feed='Live positions aren\'t connected yet.';
+  else if(AT.err==='no_key') feed='Waiting for the FlightAware key to be added to the relay.';
+  else if(AT.err) feed='Can\'t reach FlightAware right now. Retrying every 30 seconds.';
+  else if(AT.capped) feed='This month\'s FlightAware budget is used up, so positions may be stale until the 1st'+budget+'.';
+  else if(AT.updated) feed='Live via FlightAware'+budget;
+  else feed='Connecting to FlightAware…';
   if(AT.updated) when='Updated '+new Date(AT.updated).toLocaleTimeString([], {hour:'numeric',minute:'2-digit',second:'2-digit'});
-  q('atFeed').textContent=feed.replace(/&amp;/g,'&'); q('atWhen').textContent=when;
-  var b=q('atBanner');
-  if(!n.air){ b.hidden=false; b.textContent='No one airborne · showing Reno to Minden'; } else b.hidden=true;
+  q('atFeed').textContent=feed; q('atWhen').textContent=when;
+  var ban=q('atBanner');
+  if(!n.air){ ban.hidden=false; ban.textContent='No one airborne · showing Reno to Minden'; } else ban.hidden=true;
   atDraw(planes);
 }
 
@@ -2959,9 +2962,9 @@ function atMap(){
     L.control.zoom({position:'bottomright'}).addTo(map);
     var esri='https://server.arcgisonline.com/ArcGIS/rest/services/';
     AT.tiles={
-      dark:L.tileLayer(esri+'Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',{maxNativeZoom:16, maxZoom:18, attribution:'Tiles &copy; Esri · ADS-B via adsb.fi / adsb.lol'}),
+      dark:L.tileLayer(esri+'Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',{maxNativeZoom:16, maxZoom:18, attribution:'Tiles &copy; Esri · Flight data: FlightAware'}),
       labels:L.tileLayer(esri+'Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}',{maxNativeZoom:16, maxZoom:18}),
-      sect:L.tileLayer('https://tiles.arcgis.com/tiles/ssFJjBXIUyZDrSYZ/arcgis/rest/services/VFR_Sectional/MapServer/tile/{z}/{y}/{x}',{minNativeZoom:8, maxNativeZoom:12, maxZoom:14, attribution:'FAA VFR Sectional · ADS-B via adsb.fi / adsb.lol'})
+      sect:L.tileLayer('https://tiles.arcgis.com/tiles/ssFJjBXIUyZDrSYZ/arcgis/rest/services/VFR_Sectional/MapServer/tile/{z}/{y}/{x}',{minNativeZoom:8, maxNativeZoom:12, maxZoom:14, attribution:'FAA VFR Sectional · Flight data: FlightAware'})
     };
     AT.apts=L.layerGroup();
     AT_APTS.filter(function(a){ return a[3]; }).forEach(function(a){
@@ -2999,9 +3002,13 @@ function atDraw(planes){
   planes.forEach(function(p){
     var st=atStatus(p), s=st.s, mk=AT.marks[p.tail];
     if(!mk) mk=AT.marks[p.tail]={m:L.marker([0,0],{keyboard:false}), trail:L.polyline([],{className:'at-trail', weight:2.5, opacity:.55, interactive:false}),
-      vec:L.polyline([],{className:'at-vec', weight:2, opacity:.9, dashArray:'2 7', interactive:false}), key:''};
+      vec:L.polyline([],{className:'at-vec', weight:2, opacity:.9, dashArray:'2 7', interactive:false}),
+      dest:L.polyline([],{className:'at-dest', weight:1.5, opacity:.6, dashArray:'6 6', interactive:false}), key:''};
+    var dap=st.k==='air'&&st.fl?atApt(st.fl.destination):null;
+    if(s&&dap){ mk.dest.setLatLngs([[s.lat,s.lon],[dap[1],dap[2]]]); if(!map.hasLayer(mk.dest)) mk.dest.addTo(map); airPts.push([dap[1],dap[2]]); }
+    else if(map.hasLayer(mk.dest)) map.removeLayer(mk.dest);
     if(!s){ [mk.m,mk.trail,mk.vec].forEach(function(l){ if(map.hasLayer(l)) map.removeLayer(l); }); return; }
-    var em=st.k!=='off'&&AT_EMERG[s.squawk], cls=(em?'crit':st.k==='off'?'off':st.k)+(AT.sel===p.tail?' sel':'');
+    var cls=(st.k==='off'?'off':st.k)+(AT.sel===p.tail?' sel':'');
     var sub=st.k==='air'?atAlt(s.alt):st.k==='gnd'?'GND':atAgo(now-s.ts);
     var rot=Math.round(s.track||0), key=cls+'|'+sub+'|'+rot;
     if(key!==mk.key){ mk.m.setIcon(L.divIcon({className:'at-ac-icon', iconSize:[32,32], iconAnchor:[16,16],

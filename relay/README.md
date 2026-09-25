@@ -1,38 +1,36 @@
 # Aircraft relay (Who's flying)
 
-The Flying tab's **Who's flying** map gets live positions from the free ADS-B feeds
-(adsb.fi and adsb.lol). Those feeds don't let web pages call them directly, so this tiny
-Cloudflare Worker fetches them for the page. It holds no keys and no personal data: the
-page sends the transponder codes it wants, and the Worker returns only position fields.
-It only answers pages on `borowski-os.github.io` (and localhost for testing).
+The Flying tab's **Who's flying** card asks this Cloudflare Worker about a few tail numbers.
+The Worker asks **FlightAware AeroAPI** (Personal plan) and returns where each plane is,
+where it's headed, ETA and when it landed. It holds the FlightAware key so the public page
+never sees it, and it only answers pages on `borowski-os.github.io` (and localhost).
 
-Free Cloudflare plan: 100,000 requests/day. One open Flying tab uses about 240/hour.
+(The free ADS-B feeds — adsb.fi, adsb.lol, airplanes.live, OpenSky — all refuse requests
+from Cloudflare's servers, which is why this uses FlightAware.)
+
+## Cost control
+
+- Flight status per plane at most every 5 min; position only for planes in the air, at most every 60 s.
+- Answers are shared through Workers KV (`STATE`), so several open screens cost the same as one.
+- Monthly spending cap `MONTHLY_CAP_USD` (wrangler.toml, $5 = FlightAware's free Personal credit).
+  Past the cap it only serves what it already has. The page shows "$x of $5 used this month".
+- Nothing is looked up unless the Flying tab is open and visible somewhere.
+
+Rough cost: ~$0.25 per hour the tab is open with nobody flying, plus ~$0.60/hour per plane in the air.
 
 ## Deploy / update
 
 ```bash
 cd relay
-npx wrangler@4 login     # once: opens the browser to approve access to your Cloudflare account
+npx wrangler@4 login                   # once
+npx wrangler@4 secret put AEROAPI_KEY  # once; paste the key from flightaware.com/aeroapi/portal → API Keys
 npx wrangler@4 deploy
 ```
 
-`deploy` prints the Worker URL (`https://lifeos-aircraft.<your-subdomain>.workers.dev`).
-The dashboard uses `<that URL>/aircraft`, set as `AT_RELAY` in `index.html`
-(or override it with Config key `aircraft_relay_url` in the sheet).
+Worker URL: https://lifeos-aircraft.brad-5a1.workers.dev/aircraft (`AT_RELAY` in index.html,
+or override with Config key `aircraft_relay_url` in the sheet).
 
 ## Which planes
 
-Flying sheet key `tracked_aircraft`, e.g.
-
-```
-N51207 = Brad & Chelsea; N6058A = Mike; N3207A; N6489X
-```
-
-Tail numbers only (US N-numbers). Without that key the page tracks `AT_DEFAULT_TAILS`.
-
-## Test locally
-
-```bash
-npx wrangler@4 dev --port 8787
-curl "http://localhost:8787/aircraft?hex=a66b55"
-```
+Flying sheet key `tracked_aircraft`, e.g. `N51207 = Brad & Chelsea; N6058A = Mike; N3207A; N6489X`.
+Without it the page tracks `AT_DEFAULT_TAILS`.
