@@ -995,7 +995,7 @@ function tafPeriods(t){ var now=Date.now()/1000;
     var ceil=null; (f.clouds||[]).forEach(function(c){ if(/BKN|OVC|OVX|VV/.test(c.cover)&&c.base!=null&&(ceil==null||c.base<ceil)) ceil=c.base; });
     var vis=f.visib==null?null:parseFloat(String(f.visib).replace('+','')), cat=fltCat(ceil,vis);
     var gust=f.wgst||0, spd=f.wspd||0, xw=kmevXwind(typeof f.wdir==='number'?f.wdir:null, Math.max(spd,gust));
-    var fly = cat==='VFR' && spd<=15 && gust<=20 && xw<=10;   // student tailwheel limits
+    var peak=Math.max(spd,gust), fly = cat==='VFR' && peak<=15 && xw<=10;   // student limits: wind/gusts over 15 kt = no-go (10–15 = caution)
     return {f:f, ceil:ceil, vis:vis, cat:cat, spd:spd, gust:gust, xw:xw, fly:fly, tempo:/TEMPO|PROB|BECMG/.test(String(f.change||''))||f.prob}; });
 }
 function hhmm(sec){ return new Date(sec*1000).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',timeZone:'America/Los_Angeles'}).replace(':00',''); }
@@ -1014,9 +1014,9 @@ function tafCard(){
     return '<div class="taf-row'+(p.tempo?' taf-tempo':'')+'"><div class="taf-when">'+(p.tempo?'<span class="foot">'+esc(f.change||('PROB'+f.prob))+'</span> ':'')+dayLbl(f.from)+' '+hhmm(f.from)+' – '+(dayLbl(f.to)!==dayLbl(f.from)?dayLbl(f.to)+' ':'')+hhmm(f.to)+'</div>'
       +'<div class="taf-cat" style="color:'+catCol[p.cat]+'">'+p.cat+'</div>'
       +'<div class="taf-wx">'+esc(wind)+' · vis '+(f.visib||'—')+' sm · '+esc(sky)+(f.wx?' · '+esc(f.wx):'')+(p.xw?' · <span style="color:'+(p.xw>10?'var(--amber)':'var(--text-dim)')+'">xwind '+p.xw+' kt</span>':'')+'</div>'
-      +'<div class="taf-go">'+(p.fly?(dayHours(f.from,f.to)?'<span class="tag active">Good to fly</span>':'<span class="tag">Night</span>'):'<span class="tag blocked">'+(p.cat!=='VFR'?'Not VFR':'Too windy')+'</span>')+'</div></div>'; }).join('');
+      +'<div class="taf-go">'+(p.fly?(dayHours(f.from,f.to)?(Math.max(p.spd,p.gust)>=10?'<span class="tag" style="color:var(--amber);background:rgba(255,222,0,.10)">Caution</span>':'<span class="tag active">Good to fly</span>'):'<span class="tag">Night</span>'):'<span class="tag blocked">'+(p.cat!=='VFR'?'Not VFR':'Too windy')+'</span>')+'</div></div>'; }).join('');
   var issued=new Date(t.issued).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',timeZone:'America/Los_Angeles'});
-  return card('KMEV forecast (TAF)','Official Minden terminal forecast, issued '+issued+' local. "Good to fly" = VFR, wind ≤15 kt, gusts ≤20, crosswind ≤10 on the best runway.',
+  return card('KMEV forecast (TAF)','Official Minden terminal forecast, issued '+issued+' local. "Good to fly" = VFR, wind & gusts ≤15 kt (10–15 = use caution), crosswind ≤10 on the best runway.',
     rows+'<details style="margin-top:12px"><summary class="foot" style="cursor:pointer;color:var(--text-dim)">Raw TAF</summary><div class="code" style="font-size:12.5px;margin-top:6px;color:var(--text-muted);white-space:pre-wrap">'+esc(t.raw)+'</div></details>', '--sky');
 }
 /* next "good to fly" block from the TAF (for Today) */
@@ -1645,16 +1645,17 @@ function goNoGoCard(){
     return w; })();
   if(tp){
     if(tp.cat!=='VFR'){ issues.push(tp.cat+' forecast next 3 hrs'); if(tp.cat==='IFR'||tp.cat==='LIFR') bad=true; }
-    if(tp.gust>20) issues.push('gusts to '+tp.gust+' kt next 3 hrs'); else if(tp.spd>15) issues.push('wind '+tp.spd+' kt next 3 hrs');
+    var pk=Math.max(tp.spd,tp.gust), what=(tp.gust>tp.spd?'gusts to ':'wind ')+pk+' kt next 3 hrs';
+    if(pk>15){ issues.push(what+' (over your 15 kt limit)'); bad=true; } else if(pk>=10) issues.push(what+' (10–15 kt caution range)');
     if(tp.xw>10) issues.push('crosswind ~'+tp.xw+' kt');
   }
   if(LIVE.metarFlag==='ifr'){ issues.push('observed below VFR nearby'); bad=true; }
   else if(LIVE.metarFlag==='marginal') issues.push('observed marginal VFR nearby');
   if(roll>=3000) issues.push('long ground roll (~'+roll.toLocaleString()+' ft)');
   var level, lcol, advice;
-  if(bad){ level='NO-GO'; lcol='--red'; advice='Weather is below VFR: '+issues.join(' · ')+'.'; }
+  if(bad){ level='NO-GO'; lcol='--red'; advice='Outside student limits: '+issues.join(' · ')+'.'; }
   else if(issues.length){ level='CAUTION'; lcol='--amber'; advice='Watch: '+issues.join(' · ')+'.'+(roll>=3000?' Lean for best power, lighten the load, or go early while it\'s cool.':''); }
-  else { level='GO'; lcol='--green'; advice='Weather is VFR within your limits (wind ≤15, gusts ≤20, crosswind ≤10) and the runway is plenty long for today\'s density altitude.'+(tp?'':' (TAF still loading.)'); }
+  else { level='GO'; lcol='--green'; advice='Weather is VFR within your student limits (wind & gusts under 10 kt, crosswind ≤10) and the runway is plenty long for today\'s density altitude.'+(tp?'':' (TAF still loading.)'); }
   var rows='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><span class="foot">Verdict</span><span class="tag" style="color:var('+lcol+');border:1px solid var('+lcol+');background:transparent;font-weight:700">'+level+'</span></div>'
     +'<div class="kv-row"><span class="k">Density altitude</span><span class="v mono">'+da.da.toLocaleString()+' ft</span></div>'
     +'<div class="kv-row"><span class="k">Est. ground roll</span><span class="v mono" style="color:var('+(roll>=3000?'--amber':'--text')+')">~'+roll.toLocaleString()+' ft</span></div>'
