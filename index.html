@@ -1456,6 +1456,9 @@ function smartSteps(){
   if(has(kv('Health').ins_medical)&&!has(kv('Health').pcp)) out.push({t:'Pick a primary care doctor — your '+kv('Health').ins_medical+' plan needs one on file for referrals', tab:'health', d:null, sort:35});
   var lp=parseDate(kv('Health').last_physical); if(has(kv('Health').copay_preventive)&&(!lp||(Date.now()-lp)>330*864e5)) out.push({t:'Book your free annual physical'+(has(kv('Health').pcp)?' with '+String(kv('Health').pcp).split(',')[0]:'')+' (covered 100%, 1/yr)', tab:'health', d:null, sort:48});
   if(has(kv('Health').ins_dental)&&!has(kv('Health').dentist)) out.push({t:'Find an in-network dentist and book a cleaning (usually covered 100%, 2×/yr)', tab:'health', d:null, sort:50});
+  // real estate: new listings that cash-flow (daily search)
+  var newProps=arr('Properties').filter(function(r){ if(/(pass|dead)/i.test(String(r.Stage||''))) return false; var fs=String(r.FirstSeen||'').slice(0,10); return fs && (Date.now()-new Date(fs+'T12:00:00'))<2*864e5; });
+  if(newProps.length) out.push({t:'New rental that cash-flows: '+newProps[0].Address+' ('+String(newProps[0].Units||'').split(' (')[0]+', '+money(num(newProps[0].CashFlowMo))+'/mo)'+(newProps.length>1?' + '+(newProps.length-1)+' more':''), tab:'ventures', d:null, sort:30});
   // CFI balance due
   var co=cfiOwed(); if(co&&co.amt>0) out.push({t:'Pay '+co.first+' '+cfiUsd(co.amt)+' for '+co.hrs+' hr in the '+co.tail+' (last flight '+prettyIso(String(co.flights[co.flights.length-1].Date))+')', tab:'flying', d:null, sort:6});
   // flying-driven (only if not already present)
@@ -3606,8 +3609,9 @@ function propCardHtml(r){
     +'<div class="deal-h"><div><div class="deal-n">'+(has(r.URL)?'<a href="'+esc(r.URL)+'" target="_blank" rel="noopener">'+esc(r.Address)+' ↗</a>':esc(r.Address))+'</div><div class="deal-s">'+esc([r.Area,r.Units].filter(has).join(' · '))+'</div></div>'
     +(has(r.Stage)?'<span class="tag '+stageTone(r.Stage)+'">'+esc(r.Stage)+'</span>':'')+'</div>'
     +'<div class="deal-k">'+k('List',money(r.Price))+k('Cash flow',isNaN(cf)?'—':'<span style="color:'+(cf>0?'var(--green)':'var(--red)')+'">'+money(cf)+'/mo</span>')+k('Cap',esc(r.CapRate||'—'))+k('Cash in',money(r.CashNeeded))+k('5-yr equity',esc(r.Appreciation5yr||'—'))+'</div>'
+    +(has(r.Financing)?'<div class="deal-notes" style="margin-bottom:6px"><b>Financing:</b> '+esc(r.Financing)+'</div>':'')
     +'<div class="deal-notes">'+linkify(sv.text)+'</div>'
-    +'<div class="deal-f">'+sv.badge+(EDIT?editBtn('Properties',r.__row):'')+'</div></div>'; }
+    +'<div class="deal-f">'+sv.badge+(has(r.FirstSeen)?'<span class="foot" style="color:var(--text-dim)">first seen '+esc(prettyIso(String(r.FirstSeen)))+'</span>':'')+(EDIT?editBtn('Properties',r.__row):'')+'</div></div>'; }
 function renderVentures(){
   var v=kv('Ventures');
   var live=function(r){ return !/(pass|dead)/i.test(String(r.Stage||'')); };
