@@ -26,3 +26,4 @@
   GPS fixes like BODAD) comes back `ok:false` with "TypeError: (arr || []).forEach is not a function" — likely
   aviationweather.gov answering HTTP 204 (empty) when nothing matches. The page now works around it (per-code retry,
   clear "not an airport" message); the real fix is to treat an empty/204 response as [] in the backend.
+- Maule W&B defaults (XC planner, from AFM/Form 37): empty 1,467 lb @ 11.77"; arms front+bag A 20, fuel 24 (aux 22.2), rear 53, bag B 42 (175 max), bag C 70 (125 max). Envelopes XC_ENV_WHEELS / XC_ENV_FLOATS; Flying kv `gear`=floats switches.

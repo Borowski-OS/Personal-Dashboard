@@ -1634,7 +1634,7 @@ function vfrWindowCard(){
 /* ---------- Go / no-go takeoff performance at current density altitude ---------- */
 function goNoGoCard(){
   var da=kmevDensityAlt();
-  var f=kv('Flying'); var maxGross=num(f.max_gross_weight)||2300; var empty=num(f.empty_weight); if(isNaN(empty)) empty=1500;
+  var f=kv('Flying'); var maxGross=num(f.max_gross_weight)||2300; var empty=num(f.empty_weight); if(isNaN(empty)) empty=XC_POH.emptyWt;
   if(!da) return card('Go / no-go — takeoff','Live density-altitude performance check.','<div class="empty">Waiting on live weather. Once Minden-area conditions load, this estimates takeoff roll & climb.</div>','--sky');
   // rough ground-roll factor: ~10% longer per 1000 ft DA over a ~600ft sea-level roll (Maule M4, solo/mid weight)
   var baseRoll=600; var roll=Math.round(baseRoll*Math.pow(1.10, da.da/1000));
@@ -2197,18 +2197,26 @@ var XC_LS='lifeos_xc_inputs_v1', XC_PROF_LS='lifeos_xc_profile_v1';
    overridden in the planner's Aircraft panel (saved on this device) or in the Flying sheet. */
 var XC_POH={ grossWt:2300, emptyWt:1467, emptyArm:11.77, usableGal:60, taxiGal:1,
   tasKt:130, gph:12.5, climbKt:80, climbFpm:900, climbGph:14, ceilingFt:18000,
-  frontArm:null, rearArm:null, bagArm:null, maxBag:null, fuelArm:null };
-var XC_POH_SRC={ grossWt:'poh', emptyWt:'wb', emptyArm:'wb' };
+  frontArm:20, rearArm:53, bagArm:42, maxBag:175, fuelArm:24 };
+/* Loading stations from the M-4-220C/S AFM loading & structural-capacity charts (datum = wing leading edge):
+   pilot & copilot (seat aft) + baggage area A = sta 20 (A max 100 lb) · main-tank fuel = sta 24 (aux tank usable fuel = sta 22.2)
+   · rear-seat passengers = sta 53 · baggage area B = sta 42 (max 175 lb) · baggage area C = sta 70 (max 125 lb). */
+var XC_POH_SRC={ grossWt:'poh', emptyWt:'wb', emptyArm:'wb', frontArm:'poh', rearArm:'poh', bagArm:'poh', maxBag:'poh', fuelArm:'poh', usableGal:'poh' };
 /* CG envelope, M-4-220C (AFM §I.J / Form 37): inches aft of the wing leading edge,
    straight-line variation between the points. */
-var XC_ENV={ fwd:[[1500,11.1],[2100,14.5],[2300,15.6]], aft:[[1500,20.5],[2100,20.5],[2300,19.0]] };
+/* Wheels (AFM p.5/7): fwd 11.0" at 1,600 lb or less → 15.5" at 2,300 lb (straight line); aft 20.5" up to 2,100 lb → 19.0" at 2,300 lb.
+   Floats (AFM Supplement No. 1, EDO 248A/B2440, STC SA610CE): fwd same line; aft 20.5" at every weight; max 2,300 lb.
+   Set Flying key `gear` = floats to use the float envelope (and enter the float empty weight/CG). */
+var XC_ENV_WHEELS={ fwd:[[1600,11.0],[2300,15.5]], aft:[[1500,20.5],[2100,20.5],[2300,19.0]] };
+var XC_ENV_FLOATS={ fwd:[[1600,11.0],[2300,15.5]], aft:[[1500,20.5],[2300,20.5]] };
+var XC_ENV=XC_ENV_WHEELS;
 function xcEnvAt(tbl, w){ if(w<=tbl[0][0]) return tbl[0][1];
   for(var i=0;i<tbl.length-1;i++){ var a=tbl[i], b=tbl[i+1]; if(w<=b[0]) return a[1]+(b[1]-a[1])*(w-a[0])/(b[0]-a[0]); }
   return tbl[tbl.length-1][1]; }
 var XC_PROF_FIELDS=[
   ['Weights',[['grossWt','Max gross weight','lb'],['emptyWt','Empty weight','lb'],['usableGal','Usable fuel','gal'],['taxiGal','Taxi & run-up fuel','gal']]],
   ['Performance',[['tasKt','Cruise true airspeed','kt'],['gph','Cruise fuel flow','gph'],['climbKt','Climb speed','kt'],['climbFpm','Climb rate (sea level)','fpm'],['climbGph','Climb fuel flow','gph'],['ceilingFt','Service ceiling','ft']]],
-  ['Balance — arms in inches aft of the wing leading edge',[['emptyArm','Empty-weight CG','in'],['frontArm','Front seats','in'],['rearArm','Rear seat','in'],['bagArm','Baggage','in'],['maxBag','Max baggage','lb'],['fuelArm','Fuel','in']]]
+  ['Balance — arms in inches aft of the wing leading edge (AFM: front seats + bag A 20 · fuel 24 (aux 22.2) · rear seat 53 · bag B 42, max 175 · bag C 70, max 125)',[['emptyArm','Empty-weight CG','in'],['frontArm','Front seats','in'],['rearArm','Rear seat','in'],['bagArm','Baggage','in'],['maxBag','Max baggage','lb'],['fuelArm','Fuel','in']]]
 ];
 var XC_SHEET_KEYS={ grossWt:'max_gross_weight', emptyWt:'empty_weight', emptyArm:'empty_arm', usableGal:'usable_fuel_gal',
   tasKt:'cruise_tas_kt', gph:'cruise_gph', climbFpm:'climb_fpm', frontArm:'front_arm', rearArm:'rear_arm',
@@ -2222,6 +2230,7 @@ function xcProfile(){
   Object.keys(XC_SHEET_KEYS).forEach(function(k){ var v=num(f[XC_SHEET_KEYS[k]]); if(!isNaN(v)){ p[k]=v; src[k]='sheet'; } });
   var ls={}; try{ ls=JSON.parse(localStorage.getItem(XC_PROF_LS)||'{}')||{}; }catch(e){}
   Object.keys(ls).forEach(function(k){ var v=num(ls[k]); if((k in p) && !isNaN(v)){ p[k]=v; src[k]='you'; } });
+  XC_ENV=/float/i.test(String(f.gear||''))?XC_ENV_FLOATS:XC_ENV_WHEELS; p._gear=XC_ENV===XC_ENV_FLOATS?'floats':'wheels';
   p._src=src; return p;
 }
 function xcDefaults(){
