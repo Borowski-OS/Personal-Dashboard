@@ -969,10 +969,16 @@ function fetchLive(){
   });
 }
 /* KMEV TAF (terminal forecast) via the Apps Script proxy — Minden publishes a TAF even when its AWOS isn't on the national feed */
-function fetchTaf(){ if(LIVE.tafFetched) return; var pw=sessionStorage.getItem(SS_PW); if(!pw) return; LIVE.tafFetched=true;
-  jsonp(API_URL+'?pw='+pw+'&action=taf&ids=KMEV,KRNO').then(function(res){
-    if(res&&res.ok){ LIVE.tafs={}; (res.tafs||[]).forEach(function(t){ LIVE.tafs[t.icao]=t; });
-      if(CURRENT==='flying'||CURRENT==='overview') render(CURRENT); } }).catch(function(){ LIVE.tafFetched=false; });
+/* TAF: show the last good forecast from this device immediately (while still valid), fetch fresh, retry twice on failure */
+function fetchTaf(attempt){ attempt=attempt||0; if(LIVE.tafFetched&&!attempt) return; var pw=sessionStorage.getItem(SS_PW); if(!pw) return; LIVE.tafFetched=true;
+  if(!LIVE.tafs){ try{ var saved=JSON.parse(localStorage.getItem('lifeos_taf')||'null'), now=Date.now()/1000;
+    if(saved){ Object.keys(saved).forEach(function(k){ if(!(saved[k].to>now)) delete saved[k]; }); if(Object.keys(saved).length) LIVE.tafs=saved; } }catch(e){} }
+  jsonp(API_URL+'?pw='+pw+'&action=taf&ids=KMEV,KRNO', 30000).then(function(res){
+    if(!(res&&res.ok&&(res.tafs||[]).length)) throw new Error('no taf');
+    var fresh={}; (res.tafs||[]).forEach(function(t){ fresh[t.icao]=t; }); LIVE.tafs=Object.assign(LIVE.tafs||{}, fresh);
+    try{ localStorage.setItem('lifeos_taf', JSON.stringify(LIVE.tafs)); }catch(e){}
+    if(CURRENT==='flying'||CURRENT==='overview') render(CURRENT);
+  }).catch(function(){ if(attempt<2) setTimeout(function(){ fetchTaf(attempt+1); }, 3000*(attempt+1)); else LIVE.tafFetched=false; });
 }
 /* Air quality (wildfire smoke) for Carson/Minden — Open-Meteo, keyless */
 function fetchAqi(){ if(LIVE.aqiFetched) return; LIVE.aqiFetched=true;
@@ -3236,7 +3242,7 @@ function airportsHtml(){
     var ph=has(a.Phone)?'<a class="tel" href="'+telHref(a.Phone)+'">'+esc(a.Phone)+'</a>':'';
     // when this field's own feed is down, we're showing the nearest reporting station
     var proxyNote = b.proxied
-      ? '<div class="foot" style="margin-top:6px;color:var(--sky)">Nearest reporting: <b>'+esc(b.station)+'</b> · '+esc(b.name)+' ('+esc(b.dist)+') — '+esc(icao)+' isn\'t on the network feed. On-field wx: call '+(has(a.WxFreq)?esc(a.WxFreq):'AWOS')+(has(a.Phone)?' / '+esc(a.Phone):'')+'.</div>'
+      ? '<div class="foot" style="margin-top:6px;color:var(--sky)">Nearest reporting: <b>'+esc(b.station)+'</b> · '+esc(b.name)+' ('+esc(b.dist)+') — '+(icao==='KMEV'?'Minden\'s AWOS hasn\'t reported to the national weather network since Aug 14 (every free source shows it missing; the Minden TAF is still issued — see the forecast card). ':esc(icao)+' isn\'t on the network feed. ')+'On-field wx: call '+(has(a.WxFreq)?esc(a.WxFreq):'AWOS')+(has(a.Phone)?' / '+esc(a.Phone):'')+'.</div>'
       : '';
     var noneNote = (b.none||!m)
       ? '<div class="foot" style="margin-top:6px;color:var(--amber)">No nearby station reporting — call AWOS'+(has(a.WxFreq)?' '+esc(a.WxFreq):'')+(has(a.Phone)?' / '+esc(a.Phone):'')+'.</div>'

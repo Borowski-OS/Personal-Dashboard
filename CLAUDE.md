@@ -27,3 +27,4 @@
   aviationweather.gov answering HTTP 204 (empty) when nothing matches. The page now works around it (per-code retry,
   clear "not an airport" message); the real fix is to treat an empty/204 response as [] in the backend.
 - Maule W&B defaults (XC planner, from AFM/Form 37): empty 1,467 lb @ 11.77"; arms front+bag A 20, fuel 24 (aux 22.2), rear 53, bag B 42 (175 max), bag C 70 (125 max). Envelopes XC_ENV_WHEELS / XC_ENV_FLOATS; Flying kv `gear`=floats switches.
+- KMEV weather: Minden AWOS has not reached the NWS/aviationweather feed since 2026-08-14 (tgftp KMEV.TXT last ob Aug 14; CheckWX/allmetsat show it missing) — page uses nearest reporting station (KCXP). TAFs: backend tafFetch_ caches 20 min, falls back to NOAA tgftp raw TAF (tafFromRaw_ parser) when aviationweather.gov is slow; keepWarm refreshes KMEV,KRNO every 10 min; page keeps last good TAF in localStorage `lifeos_taf` and retries.
