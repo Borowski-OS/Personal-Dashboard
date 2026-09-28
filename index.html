@@ -1556,6 +1556,15 @@ function kindIcon(k){ k=String(k||'').toLowerCase();
   if(k.indexOf('home')>=0||k.indexOf('real')>=0||k.indexOf('market')>=0) return '🏠';
   if(k.indexOf('fly')>=0||k.indexOf('weather')>=0) return '🛩️';
   return '📰'; }
+/* Minden TAF, current (or next) main period, in plain words + a status using student limits */
+function tafNow(icao){ var t=(LIVE.tafs||{})[icao||'KMEV']; if(!t) return null; var now=Date.now()/1000;
+  var ps=tafPeriods(t).filter(function(p){ return !p.tempo; }); if(!ps.length) return null;
+  var p=ps.filter(function(x){ return x.f.from<=now&&x.f.to>now; })[0]||ps[0], f=p.f, pk=Math.max(p.spd,p.gust);
+  var wind=(f.wdir==='VRB'||f.wdir==null?'variable ':(('00'+f.wdir).slice(-3)+'° '))+(p.spd||0)+(p.gust?'G'+p.gust:'')+' kt';
+  var cl=(f.clouds||[]).map(function(c){ return c.base?c.cover+' '+Math.round(c.base/1000)+'k':c.cover; }).join(' ');
+  var st=p.cat!=='VFR'&&p.cat!=='MVFR'?'bad':(p.cat==='MVFR'||pk>=10||p.xw>10?(pk>15||p.xw>10?'bad':'watch'):'good');
+  return {line:wind+' · vis '+(p.vis==null?'—':(p.vis>=6?'6+':p.vis))+' sm'+(cl?' · '+cl:'')+(f.wx?' · '+f.wx:''), cat:p.cat, st:st, future:f.from>now,
+    when:f.from>now?'from '+new Date(f.from*1000).toLocaleTimeString('en-US',{hour:'numeric',timeZone:'America/Los_Angeles'}):'now'}; }
 function radarHtml(){
   var out=[], sevColor={good:'--green',watch:'--amber',bad:'--red'};
   // refi trigger — market rate vs your mortgages
@@ -1572,7 +1581,11 @@ function radarHtml(){
     else if(LIVE.btc>=212500) out.push({sev:'watch',icon:'₿',t:'Bitcoin nearing $250k ($'+Math.round(LIVE.btc).toLocaleString('en-US')+')',sub:'within 15% of your trim target',tab:'ventures'});
   }
   // flyable — Minden conditions from KMEV or the nearest reporting field
-  if(LIVE.metarFlag==='unknown'){
+  var tn=tafNow('KMEV');
+  if(tn){   // Minden's own forecast leads; Carson City's actual reading is the reality check
+    var m0=LIVE.metar||{}, obs=LIVE.metarFlag&&LIVE.metarFlag!=='unknown'?('Carson City actual: '+(m0.wind!=null?'wind '+Math.round(m0.wind)+(m0.gust?'G'+Math.round(m0.gust):'')+' kt':'')+(m0.vis!=null?' · vis '+m0.vis+' sm':'')):'';
+    out.push({sev:tn.st, icon:'🛩️', t:'Minden forecast ('+tn.when+'): '+({good:'within your limits',watch:'use caution',bad:'outside your limits'}[tn.st]), sub:tn.line+(obs?' — '+obs:''), tab:'flying'});
+  } else if(LIVE.metarFlag==='unknown'){
     out.push({sev:'watch',icon:'🛩️',t:'Minden weather unavailable — call AWOS 119.325',sub:(LIVE.kmevNws?nwsNowLine()+' (model est)':'no nearby station reporting'),tab:'flying'});
   } else if(LIVE.metarFlag){ var loc=LIVE.metarProxy?('Minden area ('+LIVE.metarProxy.split(' · ')[0]+')'):'KMEV';
     var fm={good:['good',loc+' looks flyable'],marginal:['watch',loc+' marginal for VFR'],ifr:['bad',loc+' below VFR']}[LIVE.metarFlag];
@@ -3241,6 +3254,8 @@ function airportsHtml(){
     var freq=has(a.WxFreq)?((a.WxType||'AWOS')+' '+a.WxFreq):'';
     var ph=has(a.Phone)?'<a class="tel" href="'+telHref(a.Phone)+'">'+esc(a.Phone)+'</a>':'';
     // when this field's own feed is down, we're showing the nearest reporting station
+    var tnA=(icao==='KMEV'&&b.proxied)?tafNow('KMEV'):null;
+    if(tnA) wx='Minden TAF ('+tnA.when+'): '+tnA.line+' — Carson City actual: '+wx;
     var proxyNote = b.proxied
       ? '<div class="foot" style="margin-top:6px;color:var(--sky)">Nearest reporting: <b>'+esc(b.station)+'</b> · '+esc(b.name)+' ('+esc(b.dist)+') — '+(icao==='KMEV'?'Minden\'s AWOS hasn\'t reported to the national weather network since Aug 14 (every free source shows it missing; the Minden TAF is still issued — see the forecast card). ':esc(icao)+' isn\'t on the network feed. ')+'On-field wx: call '+(has(a.WxFreq)?esc(a.WxFreq):'AWOS')+(has(a.Phone)?' / '+esc(a.Phone):'')+'.</div>'
       : '';
