@@ -842,6 +842,20 @@
   .book-btns { display:flex; gap:8px; flex-wrap:wrap; } a.ebtn { text-decoration:none !important; }
   .al-list, .al-steps { padding-left:20px; line-height:1.55; font-size:14px; } .al-list li, .al-steps li { margin:5px 0; }
   .al-topic { display:flex; gap:8px; align-items:center; margin-top:6px; } .al-topic code { background:#171a1f; border:1px solid var(--card-border-2); border-radius:6px; padding:6px 9px; font-size:13px; overflow-wrap:anywhere; }
+
+  /* checkride forecast, maintenance, what-if, Chelsea view */
+  .ck-stats { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; }
+  .ck-stats .dk-v { font-size:18px; font-weight:700; margin-top:2px; } .ck-stats .foot { color:var(--text-dim); font-size:11.5px; }
+  @media (max-width:900px){ .ck-stats { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+  .once-list { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:4px 16px; } @media (max-width:640px){ .once-list { grid-template-columns:minmax(0,1fr); } }
+  .once { display:flex; gap:8px; align-items:flex-start; font-size:13.5px; cursor:pointer; padding:3px 0; } .once input { margin-top:3px; accent-color:var(--accent); }
+  .maint-v { padding:10px 0 12px; border-bottom:1px solid var(--card-border); } .maint-v:last-child { border-bottom:none; }
+  .maint-h { display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:4px; flex-wrap:wrap; }
+  .wi-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; } @media (max-width:900px){ .wi-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+  .wi-f { display:flex; flex-direction:column; gap:4px; font-size:12px; color:var(--text-muted); position:relative; } .wi-wide { grid-column:1/-1; }
+  .wi-f input, .wi-f select { background:#171a1f; color:var(--text); border:1px solid var(--card-border-2); border-radius:8px; padding:8px 10px; font:inherit; font-size:14px; min-width:0; }
+  .wi-f em { position:absolute; right:10px; bottom:9px; font-style:normal; font-size:11px; color:var(--text-dim); pointer-events:none; }
+  body.role-chelsea #navTabs .nav-tab:not([data-tab="overview"]):not([data-tab="life"]), body.role-chelsea .b-only, body.role-chelsea #aiFab, body.role-chelsea .hero-actions { display:none !important; }
 </style>
 </head>
 <body>
@@ -859,8 +873,10 @@
   </div>
   <div class="nav-right">
     <button class="refresh-btn" onclick="openPalette()" title="Search (⌘K)"><svg class="ni" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><span class="nl"> Search</span> <span class="pk">⌘K</span></button>
-    <button class="refresh-btn" onclick="openAlerts()" title="Phone alerts"><svg class="ni" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg><span class="nl"> Alerts</span></button>
-    <button class="refresh-btn" id="editToggle" onclick="toggleEdit()"><svg class="ni" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg><span class="nl"> Edit</span></button>
+    <button class="refresh-btn b-only" onclick="snapPick()" title="Snap & file a receipt or bill"><svg class="ni" viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3z"/><circle cx="12" cy="13" r="3.5"/></svg><span class="nl"> Snap &amp; file</span></button>
+    <button class="refresh-btn b-only" onclick="openChelseaSetup()" title="Chelsea’s view"><svg class="ni" viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg><span class="nl"> Chelsea’s view</span></button>
+    <button class="refresh-btn b-only" onclick="openAlerts()" title="Phone alerts"><svg class="ni" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg><span class="nl"> Alerts</span></button>
+    <button class="refresh-btn b-only" id="editToggle" onclick="toggleEdit()"><svg class="ni" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg><span class="nl"> Edit</span></button>
     <button class="refresh-btn" onclick="reload()" title="Refresh"><svg class="ni" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg><span class="nl"> Refresh</span></button>
     <button class="refresh-btn" onclick="signOut()" title="Lock"><svg class="ni" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span class="nl"> Lock</span></button>
   </div>
@@ -891,6 +907,7 @@
 </div>
 
 <!-- Password / setup gate -->
+<input type="file" id="snapInput" accept="image/*,application/pdf" style="display:none" onchange="snapFile(this.files[0])">
 <div id="syncBar"></div>
 <div id="gate">
   <div class="box">
@@ -1213,8 +1230,8 @@ function debugWide(){
 }
 function showApp(res){
   try{ if(document.activeElement && document.activeElement.blur) document.activeElement.blur(); }catch(e){}
-  DATA = res.data || {};
-  try{ localStorage.setItem(LS_DATA, JSON.stringify({data:DATA, updated:res.updated})); }catch(e){}
+  DATA = res.data || {}; ROLE = res.role || 'brad'; applyRole();
+  try{ localStorage.setItem(LS_DATA, JSON.stringify({data:DATA, updated:res.updated, role:ROLE})); }catch(e){}
   $('gate').classList.add('hidden');
   $('topNav').classList.remove('hidden');
   $('aiFab').classList.remove('hidden');
@@ -1302,6 +1319,7 @@ function navGo(tab){
   var sec = TAB_SECTION[tab];
   tab = TAB_ALIAS[tab] || tab;               // fold old tabs into their new home
   if(!TABS[tab]) tab='overview';
+  if(ROLE==='chelsea' && !CHELSEA_TABS[tab]) tab='overview';
   CURRENT = tab;
   document.querySelectorAll('#topNav .nav-tab').forEach(function(b){ b.classList.toggle('active', b.dataset.tab===tab); });
   document.body.classList.toggle('on-today', tab==='overview');
@@ -1323,10 +1341,11 @@ function render(tab){
   clearCharts();
   var el = $('panels');
   el.innerHTML = ({
-    overview: renderOverview, home: renderHome, life: renderLife,
+    overview: function(){ return ROLE==='chelsea'?renderChelseaHome():renderOverview(); }, home: function(){ return renderHome()+receiptsCard(); }, life: renderLife,
     flying: renderFlying, ventures: renderVentures, health: renderHealth, faith: renderFaith
   }[tab] || function(){return '';})();
   if(tab==='home') drawMoneyCharts();
+  if(tab==='ventures') setTimeout(wiRun,0);
   if(tab==='flying'){ fetchAirports(); fetchNwsFc(); xcMount(); atMount(); }
   applyLive();
 }
@@ -1352,6 +1371,7 @@ var ESCHEMA={
   Hobbies:{cols:['Name','Who','Cadence','Gear','Goal','Budget','Log','Notes']},
   Vehicles:{cols:['Name','Type','Year','Make','Model','Trim','VIN','Plate','Mileage','Owner','RegRenewal','InsProvider','InsPolicy','InsRenewal','LoanBalance','LoanLender','PurchaseDate','PurchasePrice','Value','ValueAsOf','TitleLocation','Notes','Specs']},
   VehicleService:{cols:['Vehicle','Date','Mileage','Service','Cost','Shop','NextDue','Notes']},
+  Receipts:{cols:['Date','Vendor','Amount','Category','Summary','File']},
   Travel:{cols:['Trip','Destination','StartDate','EndDate','Purpose','Who','Status','Notes']},
   TravelChecklist:{cols:['Trip','Item','Done','Notes']},
   Points:{cols:['Program','Type','Number','Balance','Notes']},
@@ -1531,6 +1551,7 @@ function upcomingAlerts(){
     if(d!=null&&d>=0&&d<=90) out.push({d:d, label:esc(t.Trip||t.Destination), sub:'trip · '+esc(String(t.StartDate)), tab:'travel'}); });
   arr('ProjectTasks').forEach(function(t){ if(truthy(t.Done)||!has(t.Due)) return; var d=daysUntilDate(t.Due);
     if(d!=null&&d<=21) out.push({d:d, label:esc(t.Task), sub:esc(t.Project||'')+' task', tab:(arr('Projects').some(function(p){return p.Name===t.Project&&isFlyingProject(p);})?'flying':'projects')}); });
+  try{ out=out.concat(maintAlerts()); }catch(e){}
   out.sort(function(a,b){return a.d-b.d;});
   return out;
 }
@@ -1932,7 +1953,7 @@ function todayHero(){
   if(quotes.length){ var doy=Math.floor((Date.now()-new Date(n.getFullYear(),0,0))/864e5), q=quotes[doy%quotes.length];
     qTxt='<div class="hero-q">“'+esc(q.Quote)+'” <span>— '+esc(q.Author||'Unknown')+'</span></div>'; }
   return '<div class="hero"><div class="hero-top"><div><div class="hero-date">'+esc(dateTxt)+'</div><h1 class="hero-h">'+greet+', '+esc(name)+'.</h1></div>'
-    +'<div class="hero-actions"><button class="ebtn pri" onclick="quickAdd()">＋ Quick add</button><button class="ebtn" onclick="printReview()">Weekly review</button>'+inboxLink()+cronoLink()+'</div></div>'
+    +'<div class="hero-actions"><button class="ebtn pri" onclick="quickAdd()">＋ Quick add</button><button class="ebtn" onclick="snapPick()">📷 Snap &amp; file</button><button class="ebtn" onclick="printReview()">Weekly review</button>'+inboxLink()+cronoLink()+'</div></div>'
     +'<div class="bchips">'+chips.join('')+'</div>'+qTxt+'</div>';
 }
 async function markActionDone(rownum){
@@ -2118,7 +2139,7 @@ function renderLife(){
   return subnavHtml([['Family & household','sec-family'],['Projects','sec-projects'],['Vehicles','sec-vehicles'],['Hunting & hobbies','sec-hobbies'],['Travel & points','sec-travel']])
     + '<div id="sec-family" style="scroll-margin-top:70px"></div>' + renderFamily()
     + secDivider('Projects','sec-projects') + renderProjects()
-    + secDivider('Vehicles','sec-vehicles') + renderVehicles()
+    + secDivider('Vehicles','sec-vehicles') + renderVehicles() + '<div style="height:22px"></div>' + maintenanceCard()
     + secDivider('Hunting & hobbies','sec-hobbies') + renderHobbies()
     + secDivider('Travel & points','sec-travel') + renderTravel();
 }
@@ -3276,7 +3297,7 @@ function ppl109Card(){
   rows+='<div class="req"><div class="req-h"><span>Checkride prep — 3 hrs dual in the 60 days before the test</span><span class="req-v" style="color:var(--text-dim)">'+(dToCk!=null&&dToCk<=60?t.dual60.toFixed(1)+' / 3 hrs':'when a checkride date is set')+'</span></div></div>';
   var foot='<div class="req-o">Also required: 150 nm solo XC with full-stop landings at 3 points (one leg 50 nm+) · 3 solo takeoffs & landings at a towered airport · knowledge test · practical test. '
     +'Landings logged: <b>'+t.ldg+'</b>. Night and hood time are read from the flight Type or Notes ("night", "hood").</div>';
-  return card('Private pilot requirements (§61.109)', 'Minimums the FAA requires before the checkride — computed from your logbook. Most students finish around 60–70 hrs.', rows+foot, '--sky');
+  return card('Checkride tracker', 'Your pace, projected checkride date and cost to finish, plus the FAA minimums (§61.109) computed from your logbook.', checkrideForecastHtml()+'<div class="section-title" style="margin:16px 0 6px">FAA minimums</div>'+rows+foot, '--sky');
 }
 function renderFlying(){
   var f=kv('Flying'), ac=arr('Aircraft'), log=arr('FlightLog');
@@ -3858,6 +3879,247 @@ async function sendTestAlert(){
   var m2=$('alMsg'); if(!m2) return;
   m2.textContent = !(r&&r.topic) ? 'Couldn’t reach the server. Try again.' : isNew ? 'Channel ready. Do steps 1–2, then send a test.' : (r.ok?'Sent ✓ Check your phone.':'Couldn’t send. Try again.');
 }
+
+/* ============================================================
+   ROLES — Brad sees everything; Chelsea's password gets a shared household view (the server filters her data)
+   ============================================================ */
+var ROLE='brad';
+function shortDay(d){ d=String(d).slice(0,10); var x=new Date(d+'T12:00:00'); return isNaN(x)?d:x.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'}); }
+var CHELSEA_TABS={overview:1, life:1};
+function applyRole(){
+  document.body.classList.toggle('role-chelsea', ROLE==='chelsea');
+  TABS.overview.title = ROLE==='chelsea' ? 'Home' : 'Today';
+  var ov=document.querySelector('#navTabs .nav-tab[data-tab="overview"] .nt'); if(ov) ov.textContent=TABS.overview.title;
+  TABS.overview.sub = ROLE==='chelsea' ? 'Our calendar, bills, trips, projects and cars.' : 'What matters today — and the numbers that decide it.';
+}
+function renderChelseaHome(){
+  var today=ymd(laNow()), in7=ymd(new Date(laNow().getTime()+7*864e5));
+  var ev=arr('Events').filter(function(e){ var d=String(e.Date).slice(0,10); return d>=today && d<=in7; });
+  var evHtml=ev.length?ev.map(function(e){ return '<div class="kv-row"><span class="k"><b>'+esc(shortDay(e.Date))+'</b> · '+esc(e.Title||'')+(has(e.Location)?' <span class="foot" style="color:var(--text-dim);display:inline">'+esc(e.Location)+'</span>':'')+'</span><span class="v">'+esc(evTime(e.Time))+'</span></div>'; }).join('')
+    :'<div class="empty">Nothing on the calendar this week.</div>';
+  var bills=arr('Bills').filter(function(b){return has(b.DueDay);}).map(function(b){return {b:b, d:daysUntilDueDay(b.DueDay)};}).filter(function(x){return x.d!=null&&x.d<=14;}).sort(function(a,b){return a.d-b.d;});
+  var billHtml=bills.length?bills.map(function(x){ return '<div class="kv-row"><span class="k">'+esc(x.b.Vendor)+(truthy(x.b.Autopay)?' <span class="tag active">auto</span>':'')+'</span><span class="v '+dueClass(x.d)+'">'+fmtDue(x.d)+'</span></div>'; }).join('')
+    :'<div class="empty">No bills due in the next two weeks.</div>';
+  var trips=arr('Travel').filter(function(t){ return String(t.Status||'').toLowerCase()!=='past' && has(t.StartDate) && (daysUntilDate(t.StartDate)||0)>=-1; });
+  var tripHtml=trips.length?trips.map(function(t){ return '<div class="kv-row"><span class="k">'+esc(t.Trip||t.Destination)+'</span><span class="v">'+esc(String(t.StartDate).slice(0,10))+'</span></div>'; }).join(''):'<div class="empty">No trips planned.</div>';
+  var tasks=arr('ProjectTasks').filter(function(t){return !truthy(t.Done);});
+  var taskHtml=tasks.length?tasks.slice(0,12).map(function(t){ var full={}; Object.keys(t).forEach(function(k){ if(k!=='__row') full[k]=t[k]; }); full.Done='TRUE';
+      return '<div class="kv-row"><span class="k"><button class="ebtn" style="padding:2px 8px;margin-right:8px" onclick=\'saveRowNow("ProjectTasks",'+t.__row+','+esc(JSON.stringify(full))+')\'>✓</button>'+esc(t.Task)+' <span class="foot" style="display:inline;color:var(--text-dim)">'+esc(t.Project||'')+'</span></span><span class="v">'+(has(t.Due)?esc(String(t.Due).slice(0,10)):'')+'</span></div>'; }).join('')
+    :'<div class="empty">No open project tasks.</div>';
+  return '<div class="grid cols-2" style="margin-bottom:22px">'+card('This week',"What's on the calendar.", evHtml)+card('Bills due soon','Next two weeks.', billHtml)+'</div>'
+    +'<div class="grid cols-2" style="margin-bottom:22px">'+card('Home projects','Open tasks. Tap ✓ when done.', taskHtml)+card('Trips','Coming up.', tripHtml)+'</div>'
+    +maintenanceCard();
+}
+function openChelseaSetup(){
+  $('modalSheet').innerHTML='<button class="mclose" onclick="closeModal()">×</button><div class="mhead"><h2>Chelsea’s view</h2></div>'
+    +'<p style="color:var(--text-muted);font-size:14px">Chelsea signs in at the same address with her own password and sees a simple shared view: the calendar, bills coming due, trips, home projects (she can check tasks off), and car maintenance. '
+    +'She <b>doesn’t</b> see money balances, investments, ventures, health, flying, faith or the AI assistant. That data never leaves the server on her password.</p>'
+    +'<div id="chStatus" class="foot" style="margin:10px 0;color:var(--text-dim)">Checking…</div>'
+    +'<div class="efield"><label>Set or change her password</label><input id="chPw" type="password" autocomplete="new-password" placeholder="At least 6 characters"></div>'
+    +'<div class="eactions"><button class="ebtn" onclick="setChelseaPw(true)">Turn off her access</button><span class="spacer"></span><span class="esaved" id="chMsg"></span><button class="ebtn pri" onclick="setChelseaPw()">Save password</button></div>';
+  $('modal').classList.remove('hidden');
+  apiWrite({action:'chelseastatus'}).then(function(r){ var s=$('chStatus'); if(s) s.textContent=r&&r.chelsea?'Her access is ON. Share the dashboard link and her password with her.':'Her access is off. Set a password to turn it on.'; }).catch(function(){});
+}
+async function setChelseaPw(off){
+  var m=$('chMsg'), pw=off?'':($('chPw')||{}).value||'';
+  if(!off && pw.length<6){ m.textContent='Use at least 6 characters.'; return; }
+  m.textContent='Saving…';
+  var r=await apiWrite(off?{action:'setchelseapw'}:{action:'setchelseapw', hash:await sha256(pw)});
+  m.textContent=r&&r.ok?(off?'Turned off.':'Saved ✓ Her access is on.'):'Couldn’t save. Try again.';
+  var s=$('chStatus'); if(s&&r&&r.ok) s.textContent=r.chelsea?'Her access is ON. Share the dashboard link and her password with her.':'Her access is off.';
+}
+
+/* ============================================================
+   SNAP & FILE — photo or PDF → the server reads it and files it (receipts, service log, medical)
+   ============================================================ */
+function snapPick(){ var i=$('snapInput'); if(i){ i.value=''; i.click(); } }
+function shrinkImage(file){
+  return new Promise(function(res,rej){ var url=URL.createObjectURL(file), img=new Image();
+    img.onload=function(){ var s=Math.min(1,1600/Math.max(img.width,img.height)), c=document.createElement('canvas'); c.width=Math.round(img.width*s); c.height=Math.round(img.height*s);
+      c.getContext('2d').drawImage(img,0,0,c.width,c.height); URL.revokeObjectURL(url); res(c.toDataURL('image/jpeg',0.85).split(',')[1]); };
+    img.onerror=function(){ URL.revokeObjectURL(url); rej(new Error('image')); }; img.src=url; });
+}
+function readB64(file){ return new Promise(function(res,rej){ var r=new FileReader(); r.onload=function(){ res(String(r.result).split(',')[1]); }; r.onerror=rej; r.readAsDataURL(file); }); }
+async function snapFile(file){
+  if(!file) return;
+  var pdf=/pdf/i.test(file.type), img=/^image\//i.test(file.type);
+  if(!pdf&&!img){ toast('Send a photo or a PDF.'); return; }
+  if(pdf&&file.size>15e6){ toast('That PDF is too big (15 MB max).'); return; }
+  snapModal('<div class="foot" style="color:var(--text-muted)"><span class="spinner" style="width:12px;height:12px;display:inline-block;vertical-align:-2px;margin-right:6px"></span>Reading '+esc(file.name||'your photo')+'… about 10–20 seconds.</div>');
+  try{
+    var data=img?await shrinkImage(file):await readB64(file);
+    var r=await fetch(API_URL,{method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body:JSON.stringify({pw:sessionStorage.getItem(SS_PW), action:'filedoc', name:img?(file.name||'photo').replace(/\.[^.]+$/,'')+'.jpg':file.name, mime:img?'image/jpeg':'application/pdf', data:data})}).then(function(x){return x.json();});
+    if(!r||!r.ok){ snapModal('<div style="color:var(--red)">'+esc((r&&r.error)||'Couldn’t file that.')+'</div>'); return; }
+    var x=r.facts||{};
+    snapModal('<div class="an-verdict" style="border-color:var(--green)"><div class="an-tag" style="color:var(--green)">FILED</div><div class="an-head">'+esc(r.filed||'')+'</div></div>'
+      +'<div class="foot" style="margin-top:10px;color:var(--text-muted)">'+esc([x.date, x.vendor, x.amount!=null&&x.amount!==''?money(x.amount,2):'', x.summary].filter(has).join(' · '))+'</div>'
+      +'<div class="eactions"><a class="ebtn" href="'+esc(r.file||'#')+'" target="_blank" rel="noopener">Open the file ↗</a><span class="spacer"></span><button class="ebtn" onclick="snapPick()">Snap another</button><button class="ebtn pri" onclick="closeModal()">Done</button></div>');
+    afterWriteQuiet();
+  }catch(e){ snapModal('<div style="color:var(--red)">Couldn’t send that. Check your connection and try again.</div>'); }
+}
+function snapModal(body){
+  $('modalSheet').innerHTML='<button class="mclose" onclick="closeModal()">×</button><div class="mhead"><h2>Snap &amp; file</h2></div>'
+    +'<p class="foot" style="color:var(--text-dim);margin-top:0">Receipts → Receipts · oil changes & repairs → the car’s service log (and its mileage) · doctor bills & insurance statements → medical history.</p>'+body;
+  $('modal').classList.remove('hidden');
+}
+async function afterWriteQuiet(){ try{ var res=await jsonp(API_URL+'?pw='+sessionStorage.getItem(SS_PW)); if(res&&res.ok){ DATA=res.data||{}; try{ localStorage.setItem(LS_DATA, JSON.stringify({data:DATA, updated:res.updated, role:res.role})); }catch(e){} if($('modal').classList.contains('hidden')) render(CURRENT); } }catch(e){} }
+function receiptsCard(){
+  var r=arr('Receipts').slice().sort(function(a,b){return String(b.Date).localeCompare(String(a.Date));});
+  var cols=[{label:'Date',render:function(x){return esc(String(x.Date).slice(0,10));}},{label:'Vendor',render:function(x){return has(x.File)?'<a href="'+esc(x.File)+'" target="_blank" rel="noopener">'+esc(x.Vendor||'—')+' ↗</a>':esc(x.Vendor||'—');}},
+    {label:'Category',render:function(x){return has(x.Category)?'<span class="chip">'+esc(x.Category)+'</span>':'';}},{label:'Amount',num:true,render:function(x){return has(x.Amount)?money(x.Amount,2):'';}},{label:'What',key:'Summary'}];
+  return '<div style="height:22px"></div>'+card('Receipts','Filed from photos (📷 Snap & file) or anything dropped in the Drive inbox.',
+    '<div class="editbar" style="margin-bottom:10px"><button class="ebtn pri" onclick="snapPick()">📷 Snap &amp; file</button></div>'+tableEl(cols, r.slice(0,25), {empty:'Nothing filed yet. Snap a receipt to start.', editTab:'Receipts'}));
+}
+
+/* ============================================================
+   MAINTENANCE AUTOPILOT — mileage-based schedule from the service log
+   ============================================================ */
+var MAINT_ITEMS={
+  truck:[['Oil & filter',/oil/i,5000,6],['Tire rotation',/rotat/i,5000,6],['Cabin air filter',/cabin/i,15000,12],['Engine air filter',/engine air|^air filter/i,30000,36],
+    ['Brake fluid',/brake fluid/i,30000,36],['Differential & transfer case fluid',/diff|transfer/i,30000,36],['Transmission fluid',/trans(?!fer)|atf/i,60000,72],
+    ['Coolant',/coolant|antifreeze/i,50000,60],['Spark plugs',/spark/i,120000,0],['12-volt battery',/battery/i,0,48]],
+  hybrid:[['Oil & filter',/oil/i,10000,12],['Tire rotation',/rotat/i,5000,6],['Cabin air filter',/cabin/i,15000,12],['Engine air filter',/engine air|^air filter/i,30000,36],
+    ['Hybrid battery fan filter',/fan filter|hybrid.*(filter|fan)/i,15000,12],['Brake fluid',/brake fluid/i,30000,36],['Transmission (eCVT) fluid',/trans|cvt|atf/i,60000,72],
+    ['Coolant',/coolant|antifreeze/i,50000,60],['Spark plugs',/spark/i,120000,0],['12-volt battery',/12.?v|battery/i,0,48]]
+};
+function maintFor(v){
+  var name=String(v.Name||''), svc=arr('VehicleService').filter(function(x){return String(x.Vehicle||'').trim()===name.trim();});
+  var reads=svc.filter(function(x){return num(x.Mileage)>0&&parseDate(x.Date);}).map(function(x){return {d:parseDate(x.Date).getTime(), m:num(x.Mileage)};}).sort(function(a,b){return a.d-b.d;});
+  if(num(v.Mileage)>0 && !reads.some(function(r){return r.m>=num(v.Mileage);})) reads.push({d:(reads.length?reads[reads.length-1].d:Date.now()), m:num(v.Mileage)});
+  var last=reads[reads.length-1], first=reads[0], perDay=1000/30.4, fromLog=false;
+  if(first&&last&&last.d-first.d>=30*864e5&&last.m>first.m){ perDay=(last.m-first.m)/((last.d-first.d)/864e5); fromLog=true; }
+  var est=last?Math.round(last.m+perDay*Math.max(0,(Date.now()-last.d)/864e5)):null;
+  var sched=MAINT_ITEMS[/hybrid|prius|rav4/i.test(name+' '+(v.Model||''))?'hybrid':'truck'];
+  var items=sched.map(function(it){
+    var done=svc.filter(function(x){ return String(x.Service||'').split(/,|;| and /).some(function(p){ return it[1].test(p.trim()); }); })
+      .map(function(x){return {d:parseDate(x.Date), m:num(x.Mileage)};}).filter(function(x){return x.d;}).sort(function(a,b){return b.d-a.d;})[0];
+    if(!done) return {name:it[0], status:'unknown'};
+    var mLeft=it[2]&&done.m&&est!=null?done.m+it[2]-est:null, dLeft=it[3]?Math.round((new Date(done.d.getTime()).setMonth(done.d.getMonth()+it[3])-Date.now())/864e5):null;
+    var byMiles=mLeft!=null?mLeft/perDay:null, days=[byMiles,dLeft].filter(function(x){return x!=null;}); days=days.length?Math.min.apply(null,days):null;
+    var st=days==null?'ok':days<0||(mLeft!=null&&mLeft<0)?'over':(days<=30||(mLeft!=null&&mLeft<=1000))?'soon':'ok';
+    return {name:it[0], status:st, last:done, mLeft:mLeft, dLeft:dLeft, days:days, dueAt:it[2]&&done.m?done.m+it[2]:null};
+  });
+  return {v:v, est:est, perDay:perDay, fromLog:fromLog, items:items};
+}
+function maintVehicles(){ return arr('Vehicles').filter(function(v){ return !isAircraft(v); }).map(maintFor); }
+function maintDone(vname, item, est){
+  var today=ymd(laNow());
+  apiWrite({action:'upsert', tab:'VehicleService', row:JSON.stringify({Vehicle:vname, Date:today, Mileage:est||'', Service:item, Cost:'', Shop:'', NextDue:'', Notes:'Marked done on the dashboard'})})
+    .then(function(r){ if(r&&r.ok){ toast('Logged: '+item); afterWriteQuiet(); } else toast('Couldn’t save that.'); });
+}
+function maintMileage(vname, rownum, cur){
+  var m=window.prompt('Current odometer for '+vname+':', cur||''); if(m==null) return; m=parseInt(String(m).replace(/[^\d]/g,''),10); if(!m){ toast('Enter a number.'); return; }
+  var today=ymd(laNow());
+  apiWrite({action:'upsert', tab:'VehicleService', row:JSON.stringify({Vehicle:vname, Date:today, Mileage:m, Service:'Odometer reading', Cost:'', Shop:'', NextDue:'', Notes:''})})
+    .then(function(){ var v=arr('Vehicles').filter(function(x){return String(x.__row)===String(rownum);})[0]; if(!v) return afterWriteQuiet();
+      var full={}; Object.keys(v).forEach(function(k){ if(k!=='__row') full[k]=v[k]; }); full.Mileage=m; saveRowNow('Vehicles', rownum, full); toast('Mileage updated'); });
+}
+function maintenanceCard(){
+  var vs=maintVehicles(); if(!vs.length) return '';
+  var tone={over:['var(--red)','Overdue'],soon:['var(--amber)','Due soon'],ok:['var(--green)','OK'],unknown:['var(--text-dim)','No record']};
+  var body=vs.map(function(o){ var vname=o.v.Name;
+    var known=o.items.filter(function(i){return i.status!=='unknown';}).sort(function(a,b){ var r={over:0,soon:1,ok:2}; return r[a.status]-r[b.status] || (a.days||0)-(b.days||0); });
+    var unknown=o.items.filter(function(i){return i.status==='unknown';});
+    var row=function(i){ var t=tone[i.status], when=i.status==='unknown'?'':(i.dueAt?'due ~'+i.dueAt.toLocaleString()+' mi':'')+(i.dLeft!=null?(i.dueAt?' or ':'due ')+shortDay(ymd(new Date(Date.now()+i.dLeft*864e5))):'');
+      return '<div class="kv-row"><span class="k"><span style="color:'+t[0]+'">●</span> '+esc(i.name)+(i.last?' <span class="foot" style="display:inline;color:var(--text-dim)">last '+esc(shortDay(ymd(i.last.d)))+(i.last.m?' @ '+i.last.m.toLocaleString():'')+'</span>':'')+'</span>'
+        +'<span class="v"><span style="color:'+t[0]+'">'+t[1]+'</span>'+(when?' <span class="foot" style="display:inline;color:var(--text-dim)">'+esc(when)+'</span>':'')
+        +' <button class="ebtn" style="padding:2px 8px;margin-left:6px" title="Mark done today" onclick="maintDone(\''+esc(vname).replace(/'/g,"\\'")+'\',\''+esc(i.name)+'\','+(o.est||0)+')">✓</button></span></div>'; };
+    return '<div class="maint-v"><div class="maint-h"><div><b>'+esc(vehName(o.v))+'</b><div class="foot" style="color:var(--text-dim)">~'+(o.est!=null?o.est.toLocaleString():'?')+' mi now · '+(o.fromLog?Math.round(o.perDay*30.4).toLocaleString()+' mi/mo from your log':'assumes ~1,000 mi/mo until two readings are logged')+'</div></div>'
+      +'<button class="ebtn" onclick="maintMileage(\''+esc(vname).replace(/'/g,"\\'")+'\','+o.v.__row+','+(o.est||0)+')">Update mileage</button></div>'
+      +known.map(row).join('')
+      +(unknown.length?'<details class="bud-more" style="margin-top:6px"><summary>'+unknown.length+' items with no service record yet: tap ✓ when done to start tracking</summary>'+unknown.map(row).join('')+'</details>':'')+'</div>'; }).join('');
+  return card('Maintenance autopilot','Based on mileage and time since each service. Snap a service receipt and it logs itself, mileage included. Intervals are Toyota’s schedule for high-mileage use; check your manual.',
+    '<div class="editbar" style="margin-bottom:10px"><button class="ebtn pri" onclick="snapPick()">📷 Snap a service receipt</button></div>'+body, '--rose');
+}
+function maintAlerts(){
+  var out=[]; maintVehicles().forEach(function(o){ o.items.forEach(function(i){ if(i.status==='over'||i.status==='soon')
+    out.push({d:Math.round(i.days||0), label:esc(vehName(o.v))+' '+esc(i.name.toLowerCase()), sub:i.dueAt?'due ~'+i.dueAt.toLocaleString()+' mi':'maintenance', tab:'life'}); }); });
+  return out;
+}
+
+/* ============================================================
+   CHECKRIDE FORECAST — pace, projected date, cost to finish, one-time items
+   ============================================================ */
+var PPL_ONCE=[['req_medical','FAA medical certificate','ppl_medical'],['req_written','Knowledge (written) test passed','written_status'],['req_solo','First solo',null],
+  ['req_long_xc','Long solo cross-country: 150 nm, 3 full-stop landings, one leg 50 nm+',null],['req_towered','3 solo takeoffs & full-stop landings at a towered airport',null],
+  ['req_night_xc','Night cross-country over 100 nm (dual)',null],['req_night_ldg','10 night takeoffs & full-stop landings',null]];
+function checkrideForecastHtml(){
+  var f=kv('Flying'), t=logTotals(), rate=num(f.cfi_rate)||175, soloRate=num(f.solo_rate)||130, target=num(f.ppl_target_hours)||60;
+  var cut=Date.now()-60*864e5, recent=arr('FlightLog').reduce(function(s,r){ var d=parseDate(r.Date); return s+(d&&d.getTime()>=cut?(num(r.Hours)||0):0); },0), perMo=recent/2;
+  var left=Math.max(0,target-t.total), soloLeft=Math.max(0,10-t.solo), dualLeft=Math.max(0,left-soloLeft);
+  var fixed=(/pass|done|complete/i.test(String(f.written_status||''))?0:175)+(num(f.dpe_fee)||1000);
+  var cost=dualLeft*rate+soloLeft*soloRate+fixed;
+  var months=perMo>0?left/perMo:null, eta=months!=null?new Date(Date.now()+months*30.4*864e5):null;
+  var minLeft=Math.max(0,40-t.total), minEta=perMo>0?new Date(Date.now()+minLeft/perMo*30.4*864e5):null;
+  var once=PPL_ONCE.map(function(o){ var done=truthy(f[o[0]])||(o[2]&&/pass|done|complete|current|valid|yes/i.test(String(f[o[2]]||'')))||(o[0]==='req_solo'&&t.solo>0);
+    return '<label class="once"><input type="checkbox"'+(done?' checked':'')+' onchange="setOnce(\''+o[0]+'\',this.checked)"> '+esc(o[1])+'</label>'; }).join('');
+  var mo=function(d){ return d?d.toLocaleDateString('en-US',{month:'short',year:'numeric'}):'—'; };
+  return '<div class="ck-fc"><div class="ck-stats">'
+      +'<div><div class="dk-l">Pace</div><div class="dk-v">'+perMo.toFixed(1)+' hrs/mo</div><div class="foot">last 60 days</div></div>'
+      +'<div><div class="dk-l">Checkride (realistic)</div><div class="dk-v">'+mo(eta)+'</div><div class="foot">at ~'+target+' hrs total</div></div>'
+      +'<div><div class="dk-l">FAA minimum</div><div class="dk-v">'+mo(minEta)+'</div><div class="foot">at 40 hrs</div></div>'
+      +'<div><div class="dk-l">Cost to finish</div><div class="dk-v">'+money(cost)+'</div><div class="foot">'+dualLeft.toFixed(1)+' dual × '+money(rate)+' + '+soloLeft.toFixed(1)+' solo × '+money(soloRate)+' + tests '+money(fixed)+'</div></div></div>'
+    +'<div class="section-title" style="margin:14px 0 6px">One-time items</div><div class="once-list">'+once+'</div>'
+    +'<p class="foot" style="color:var(--text-dim);margin:8px 0 0">Assumes '+target+' hrs total (most students finish at 60–70), solo at '+money(soloRate)+'/hr, examiner ~'+money(num(f.dpe_fee)||1000)+'. Change them in Flying: ppl_target_hours, solo_rate, dpe_fee. Keep your pace up: 2–3 flights a week is the cheapest way to finish.</p></div>';
+}
+function setOnce(key, on){ var o={}; o[key]=on?'yes':''; var f=kv('Flying'); f[key]=o[key];
+  apiWrite({action:'setkv', tab:'Flying', row:JSON.stringify(o)}).then(function(r){ if(!(r&&r.ok)) toast('Couldn’t save that.'); }); render(CURRENT); }
+
+/* ============================================================
+   WHAT-IF PLANNER — sell some BTC, buy a deal (with partners): monthly cash and 5-yr net worth vs. keeping the BTC
+   ============================================================ */
+var WI=null;
+function wiDeals(){
+  var live=function(r){ return !/(pass|dead)/i.test(String(r.Stage||'')); };
+  return arr('Properties').filter(live).map(function(r){ var dm=String(r.Financing||'').match(/(\d+)%\s*down/i), rm=String(r.Financing||'').match(/@\s*([\d.]+)%/);
+      return {key:'P'+r.__row, label:r.Address+' (rental)', price:num(r.Price), cash:num(r.CashNeeded), cf:num(r.CashFlowMo), down:dm?+dm[1]:25, rate:rm?+rm[1]:(num(kv('Config').market_mortgage_30yr)||7)+1, re:true}; })
+    .concat(arr('Deals').filter(live).map(function(r){ return {key:'D'+r.__row, label:r.Name+' (business)', price:num(r.Price), cash:num(r.CashNeeded), cf:num(r.MonthlyNet), down:10, rate:10.5, re:false}; }))
+    .filter(function(d){return d.price>0;});
+}
+function wiLoad(){ if(WI) return WI; var s={}; try{ s=JSON.parse(localStorage.getItem('lifeos_whatif')||'{}'); }catch(e){}
+  var ds=wiDeals(), d=ds.filter(function(x){return x.key===s.deal;})[0]||ds[0]||{key:'custom',price:500000,cash:150000,cf:300,down:25,rate:8,re:true};
+  WI={deal:d.key, price:s.deal===d.key&&s.price?s.price:d.price, cash:s.deal===d.key&&s.cash?s.cash:d.cash, cf:s.deal===d.key&&s.cf!=null?s.cf:d.cf, down:d.down, rate:d.rate, re:d.re,
+    btc:s.btc!=null?s.btc:(LIVE.btc?Math.max(0.05,Math.round(Math.min(num(kv('Config').btc_qty)||1, Math.min(d.cash,190000)/LIVE.btc)*20)/20):0.5), basis:s.basis!=null?s.basis:30000, btcG:s.btcG!=null?s.btcG:15, appr:num(kv('Config').re_appreciation_pct)||3}; return WI; }
+function wiSet(k,v){ var w=wiLoad();
+  if(k==='deal'){ var d=wiDeals().filter(function(x){return x.key===v;})[0]; if(d){ w.deal=d.key; w.price=d.price; w.cash=d.cash; w.cf=d.cf; w.down=d.down; w.rate=d.rate; w.re=d.re; } }
+  else w[k]=parseFloat(String(v).replace(/[$,]/g,''))||0;
+  try{ localStorage.setItem('lifeos_whatif', JSON.stringify(w)); }catch(e){}
+  if(k==='deal') render(CURRENT); else wiRun(); }
+function wiCard(){
+  var w=wiLoad(), ds=wiDeals(), f=function(id,label,val,step,suffix){ return '<label class="wi-f"><span>'+label+'</span><input type="number" inputmode="decimal" step="'+(step||'any')+'" value="'+val+'" onchange="wiSet(\''+id+'\',this.value)">'+(suffix?'<em>'+suffix+'</em>':'')+'</label>'; };
+  var sel='<label class="wi-f wi-wide"><span>Deal</span><select onchange="wiSet(\'deal\',this.value)">'+ds.map(function(d){return '<option value="'+d.key+'"'+(d.key===w.deal?' selected':'')+'>'+esc(d.label)+'</option>';}).join('')+(ds.length?'':'<option>custom</option>')+'</select></label>';
+  var form='<div class="wi-grid">'+sel+f('price','Price',w.price,1000,'$')+f('cash','Total cash to close',w.cash,1000,'$')+f('cf','Deal cash flow',w.cf,50,'$/mo')
+    +f('btc','BTC you’d sell',w.btc,0.05,'BTC')+f('basis','Your cost per BTC',w.basis,1000,'$')+f('btcG','BTC growth',w.btcG,1,'%/yr')+f('appr','Property growth',w.appr,0.5,'%/yr')+'</div>';
+  return card('What-if planner','Sell some Bitcoin and buy this deal (partners cover the rest): what happens to your monthly cash and your net worth over 5 years, versus just holding the Bitcoin.',
+    form+'<div id="wiOut" style="margin-top:14px"></div><div style="height:220px;margin-top:10px"><canvas id="wiChart"></canvas></div>', '--indigo');
+}
+function wiRun(){
+  var out=$('wiOut'); if(!out) return; var w=wiLoad(), px=LIVE.btc||num(kv('Config').btc_price)||0;
+  if(!px){ out.innerHTML='<div class="foot" style="color:var(--text-dim)">Waiting for the live Bitcoin price…</div>'; return; }
+  var sell=Math.min(w.btc, num(kv('Config').btc_qty)||w.btc), gross=sell*px, tax=Math.max(0,(px-w.basis)*sell)*0.15, net=gross-tax;
+  var mine=Math.min(net, w.cash), partner=Math.max(0, w.cash-mine), share=w.cash>0?mine/w.cash:1, leftover=net-mine;
+  var loan=w.re?w.price*(1-w.down/100):w.price*0.9, r=(w.re?w.rate:10.5)/100/12, n=(w.re?25:10)*12, pi=loan*r/(1-Math.pow(1+r,-n));
+  var bal=function(k){ return Math.max(0, loan*Math.pow(1+r,k)-pi*(Math.pow(1+r,k)-1)/r); };
+  var yrs=[0,1,2,3,4,5], keep=[], deal=[];
+  yrs.forEach(function(y){ var btcV=gross*Math.pow(1+w.btcG/100,y); keep.push(btcV);
+    var val=w.re?w.price*Math.pow(1+w.appr/100,y):w.price; var eq=(val-bal(y*12))*share; var cash=w.cf*12*y*share;
+    deal.push(eq+cash+leftover); });
+  var diff=deal[5]-keep[5];
+  out.innerHTML='<div class="deal-k">'
+    +[['You sell',sell.toFixed(2)+' BTC · '+money(gross)],['Tax (~15% long-term)',money(tax)],['Your cash in',money(mine)+(leftover>0?' ('+money(leftover)+' left over)':'')],['Partners / hard money',money(partner)+(partner?' · they own '+Math.round((1-share)*100)+'%':'')],
+      ['Monthly cash to you',(w.cf*share>=0?'+':'')+money(w.cf*share)+'/mo'],['5 years: deal vs. hold BTC','<span style="color:'+(diff>=0?'var(--green)':'var(--red)')+'">'+(diff>=0?'+':'')+money(diff)+'</span>']]
+      .map(function(k){return '<div class="dk"><div class="dk-l">'+k[0]+'</div><div class="dk-v">'+k[1]+'</div></div>';}).join('')+'</div>'
+    +'<p class="foot" style="color:var(--text-dim);margin:8px 0 0">Deal side = your share of equity (value '+(w.re?'grows '+w.appr+'%/yr':'held flat')+', loan paid down) + your share of cash flow. Hold side = the same BTC growing '+w.btcG+'%/yr. Tax uses your cost basis at 15%; ask your CPA. Rough planning only.</p>';
+  var cv=$('wiChart'); if(!cv||typeof Chart==='undefined') return;
+  if(window.__wiChart){ try{ window.__wiChart.destroy(); }catch(e){} }
+  window.__wiChart=new Chart(cv.getContext('2d'),{type:'line', data:{labels:yrs.map(function(y){return y?'Yr '+y:'Now';}),
+    datasets:[{label:'Buy the deal',data:deal.map(Math.round),borderColor:'#7aa2f7',backgroundColor:'rgba(122,162,247,.10)',fill:false,tension:.25,pointRadius:3},
+      {label:'Hold the BTC',data:keep.map(Math.round),borderColor:'#c9a86a',fill:false,tension:.25,pointRadius:3,borderDash:[5,4]}]},
+    options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{labels:{color:'#c3cad3',font:{family:'Inter'}}},tooltip:{callbacks:{label:function(c){return c.dataset.label+': $'+Math.round(c.parsed.y).toLocaleString();}}}},
+      scales:{x:{ticks:{color:'#8b93a0'},grid:{color:'#2a2f37'}},y:{ticks:{color:'#8b93a0',callback:function(v){return '$'+Math.round(v/1000)+'k';}},grid:{color:'#2a2f37'}}}}});
+  charts.push(window.__wiChart);
+}
 function analyzerBody(){
   var r=ANALYZE.res, h='<div class="an-row"><input id="anUrl" type="url" inputmode="url" placeholder="Paste a Zillow, Redfin, LoopNet, Crexi or BizBuySell link" value="'+esc(ANALYZE.url)+'" onkeydown="if(event.key===\'Enter\')runAnalyze()">'
     +'<button class="ebtn pri" onclick="runAnalyze()"'+(ANALYZE.busy?' disabled':'')+'>'+(ANALYZE.busy?'Analyzing…':'Analyze')+'</button></div>';
@@ -3889,7 +4151,7 @@ function renderVentures(){
   var propsHtml = props.length ? '<div class="deals">'+props.map(propCardHtml).join('')+'</div>' : '<div class="empty">Nothing cash-flows at today’s rates within an hour of Carson. The Monday search keeps looking and adds anything that does.</div>';
   return tiles
     + (EDIT?'<div class="editbar">'+kvEditBtn('Ventures')+addBtn('Deals','deal')+addBtn('Properties','property')+'</div>':'')
-    + card('Analyze a listing','Paste any rental or business-for-sale link. Same math as the daily search: cash flow at today’s rates on every financing path, a days-on-market-capped offer, distance from Carson, and your buy-box rules.', analyzerBody(), '--indigo') + '<div style="height:22px"></div>' + pipelineCard() + '<div style="height:22px"></div>'
+    + card('Analyze a listing','Paste any rental or business-for-sale link. Same math as the daily search: cash flow at today’s rates on every financing path, a days-on-market-capped offer, distance from Carson, and your buy-box rules.', analyzerBody(), '--indigo') + '<div style="height:22px"></div>' + pipelineCard() + '<div style="height:22px"></div>' + wiCard() + '<div style="height:22px"></div>'
     + card('Deal pipeline','Businesses for sale that fit your buy box — verified live, refreshed every Monday. Estimates: underwrite before trusting SDE.', dealsHtml, '--indigo')
     + '<div style="height:22px"></div>'
     + card('Real Estate Investments','2–4 unit rentals within an hour of Carson that cash-flow at today’s rates (at list or a days-on-market-capped offer).', propsHtml, '--teal')

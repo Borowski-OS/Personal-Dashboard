@@ -36,3 +36,14 @@
   8 AM non-autopay bills due in 3 days, new cash-flowing rentals (from refreshProperties_). `alertcheck&hour=18` = dry run.
   Minden TAF is part-time (valid ~5 AM–5 AM), so hours it doesn't cover use the Open-Meteo hourly model. Keep alert text free of balances/account numbers.
 - Book with Jeremy: Flying TAF card "Next good window" bar → Google Calendar template link + sms: link (Flying kv `cfi_phone` fills the number).
+- Checkride tracker (Flying): ppl109Card + checkrideForecastHtml — pace (last 60 days), projected date at Flying kv `ppl_target_hours` (60) and at 40,
+  cost to finish (cfi_rate dual, `solo_rate` 130, `dpe_fee` 1000, written $175), one-time items saved as Flying kv req_* = "yes".
+- Snap & file: page POSTs {pw, action:'filedoc', name, mime, data(base64, images shrunk to 1600px JPEG)} to the web app (doPost; Brad only).
+  Docs.js reads it with Claude (vision/PDF) and files it: vehicle_service → VehicleService (+ bumps Vehicles.Mileage), medical → Medical (Kind Visit),
+  else → Receipts tab. File moves to Drive "Life OS Inbox/Filed". Photos/PDFs dropped in the Drive inbox are filed by importInbox_ (dailySync). `dry:1` = read only.
+- Maintenance autopilot (Home & Life → Vehicles): MAINT_ITEMS schedules (truck vs hybrid), last-done from VehicleService Service text (comma-separated),
+  mileage estimate from odometer readings in VehicleService ("Odometer reading" rows; ~1,000 mi/mo until two readings 30+ days apart). Due items feed upcomingAlerts.
+- Chelsea's view: second password (Script Property CHELSEA_PW_HASH, set by Brad in the "Chelsea's view" modal → action setchelseapw). roleOf_ in Code.js;
+  chelseaRequest_ serves ONLY CHELSEA_READ_ tabs (drops bill account #s, vehicle VIN/policy/loan/value, and Brad's flying/business projects) and allows writes
+  only to CHELSEA_WRITE_ tabs. Page: ROLE='chelsea' shows Home (renderChelseaHome) + Home & Life; hides AI, edit, alerts, snap. Keep filtering server-side.
+- What-if planner (Ventures): wiCard/wiRun — sell X BTC (15% LTCG on gain over cost basis), your share vs partners, equity + cash flow over 5 yrs vs holding the BTC. Inputs remembered in localStorage `lifeos_whatif`.
