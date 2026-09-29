@@ -51,3 +51,8 @@
   (2026-09-30), cycling by Order (Active=no pauses). Today shows callBar (📞 Call / ✓ Called); Home & Life shows callRotationCard (next 3 weeks).
   Alerts.js callAlert_ sends a 7 AM Mon–Thu phone alert with a tap-to-call button. Page callFor() and backend callFor_() must stay in sync.
 - Jeremy's instruction is free; N3207A rents at $175/hr dual or solo (Flying kv cfi_rate=175, solo_rate=175, cfi_phone set).
+- Home values: Investments rows "Prospect House" / "Lahontan House" carry Claude's comp-based appraisals (AsOf "(Claude appraisal)"), set by hand —
+  updateHomeValues_ no longer overwrites them; RentCast's AVM is saved only as a reference in Config avm_prospect / avm_lahontan.
+  Comp sources: Carson City recorded sales via carsoncitynv.devnetwedge.com (POST /Search/ExecuteSalesSearch, then POST /Search/SalesResults;
+  parcel detail /parcel/view/<parcel#>/<year>); Humboldt County parcels at humboldt-search.gsacorp.io/parcel/<id> (sales history on each page).
+  Backend action `homecomps&which=prospect|lahontan` returns RentCast property record + AVM comps (list prices, not closed sales). Re-appraise yearly.
