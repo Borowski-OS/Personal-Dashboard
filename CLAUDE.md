@@ -28,3 +28,11 @@
   clear "not an airport" message); the real fix is to treat an empty/204 response as [] in the backend.
 - Maule W&B defaults (XC planner, from AFM/Form 37): empty 1,467 lb @ 11.77"; arms front+bag A 20, fuel 24 (aux 22.2), rear 53, bag B 42 (175 max), bag C 70 (125 max). Envelopes XC_ENV_WHEELS / XC_ENV_FLOATS; Flying kv `gear`=floats switches.
 - KMEV weather: Minden AWOS has not reached the NWS/aviationweather feed since 2026-08-14 (tgftp KMEV.TXT last ob Aug 14; CheckWX/allmetsat show it missing) — page uses nearest reporting station (KCXP). TAFs: backend tafFetch_ caches 20 min, falls back to NOAA tgftp raw TAF (tafFromRaw_ parser) when aviationweather.gov is slow; keepWarm refreshes KMEV,KRNO every 10 min; page keeps last good TAF in localStorage `lifeos_taf` and retries.
+- Listing analyzer (Ventures): web action `analyze&url=` (Ventures.js analyzeListing_: Claude web_fetch/web_search reads one listing →
+  judgeRental_/judgeBusiness_ with the same rentalMath_/financingPaths_/offerCap_ as the daily search). "Save to my pipeline" writes Stage
+  Watching; pipeline stages Watching → Analyzing → Offer made → Pass. keepRow_ keeps watch/analy/offer-made rows so daily refreshes never drop them.
+- Phone alerts (Alerts.js): ntfy.sh topic in Config `ntfy_topic` (made by action `testalert`); hourlyAlerts trigger (action `alerttrigger`), quiet 9 PM–6 AM.
+  6 PM tomorrow fly window (free on calendar; skipped in sick mode), lesson-weather warnings (calendar titles like lesson/Jeremy/CFI/N3207A),
+  8 AM non-autopay bills due in 3 days, new cash-flowing rentals (from refreshProperties_). `alertcheck&hour=18` = dry run.
+  Minden TAF is part-time (valid ~5 AM–5 AM), so hours it doesn't cover use the Open-Meteo hourly model. Keep alert text free of balances/account numbers.
+- Book with Jeremy: Flying TAF card "Next good window" bar → Google Calendar template link + sms: link (Flying kv `cfi_phone` fills the number).

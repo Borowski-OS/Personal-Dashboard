@@ -828,6 +828,20 @@
     #topNav .refresh-btn { background:none; border:none; padding:6px 7px; } #topNav .refresh-btn svg.ni { width:18px; height:18px; }
     .card, .stat, .hero { border-radius:12px; }
   }
+
+  /* analyzer, pipeline, booking, alerts */
+  .an-row { display:flex; gap:8px; } .an-row input { flex:1; min-width:0; padding:10px 12px; border-radius:8px; border:1px solid var(--card-border-2); background:#171a1f; color:var(--text); font:inherit; }
+  .an-verdict { margin-top:14px; border:1px solid; border-left-width:4px; border-radius:10px; padding:10px 12px; background:var(--card-2); }
+  .an-tag { font-size:11px; font-weight:700; letter-spacing:.1em; } .an-head { font-weight:600; margin-top:2px; }
+  .an-flags { margin:10px 0 6px; padding-left:18px; color:var(--amber); font-size:13.5px; } .an-flags li { margin:2px 0; }
+  .pipe-row { display:flex; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid var(--card-border); flex-wrap:wrap; }
+  .pipe-row:last-child { border-bottom:none; } .pipe-main { flex:1 1 200px; min-width:0; }
+  .pipe-k { display:flex; gap:12px; font-size:13px; color:var(--text-muted); flex-wrap:wrap; } .pipe-k .dk-l { color:var(--text-dim); font-size:11px; text-transform:uppercase; letter-spacing:.05em; }
+  .pipe-sel { background:var(--card-2); color:var(--text); border:1px solid var(--card-border-2); border-radius:8px; padding:6px 8px; font:inherit; font-size:13px; }
+  .book-bar { display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; padding:10px 12px; margin-bottom:10px; border-radius:10px; background:rgba(107,196,138,.08); border:1px solid rgba(107,196,138,.25); font-size:13.5px; }
+  .book-btns { display:flex; gap:8px; flex-wrap:wrap; } a.ebtn { text-decoration:none !important; }
+  .al-list, .al-steps { padding-left:20px; line-height:1.55; font-size:14px; } .al-list li, .al-steps li { margin:5px 0; }
+  .al-topic { display:flex; gap:8px; align-items:center; margin-top:6px; } .al-topic code { background:#171a1f; border:1px solid var(--card-border-2); border-radius:6px; padding:6px 9px; font-size:13px; overflow-wrap:anywhere; }
 </style>
 </head>
 <body>
@@ -845,6 +859,7 @@
   </div>
   <div class="nav-right">
     <button class="refresh-btn" onclick="openPalette()" title="Search (⌘K)"><svg class="ni" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><span class="nl"> Search</span> <span class="pk">⌘K</span></button>
+    <button class="refresh-btn" onclick="openAlerts()" title="Phone alerts"><svg class="ni" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg><span class="nl"> Alerts</span></button>
     <button class="refresh-btn" id="editToggle" onclick="toggleEdit()"><svg class="ni" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg><span class="nl"> Edit</span></button>
     <button class="refresh-btn" onclick="reload()" title="Refresh"><svg class="ni" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg><span class="nl"> Refresh</span></button>
     <button class="refresh-btn" onclick="signOut()" title="Lock"><svg class="ni" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span class="nl"> Lock</span></button>
@@ -1113,7 +1128,7 @@ function tafCard(){
       +'<div class="taf-go">'+(p.fly?(dayHours(f.from,f.to)?(Math.max(p.spd,p.gust)>=10?'<span class="tag" style="color:var(--amber);background:rgba(255,222,0,.10)">Caution</span>':'<span class="tag active">Good to fly</span>'):'<span class="tag">Night</span>'):'<span class="tag blocked">'+(p.cat!=='VFR'?'Not VFR':'Too windy')+'</span>')+'</div></div>'; }).join('');
   var issued=new Date(t.issued).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',timeZone:'America/Los_Angeles'});
   return card('KMEV forecast (TAF)','Official Minden terminal forecast, issued '+issued+' local. "Good to fly" = VFR, wind & gusts ≤15 kt (10–15 = use caution), crosswind ≤10 on the best runway.',
-    rows+'<details style="margin-top:12px"><summary class="foot" style="cursor:pointer;color:var(--text-dim)">Raw TAF</summary><div class="code" style="font-size:12.5px;margin-top:6px;color:var(--text-muted);white-space:pre-wrap">'+esc(t.raw)+'</div></details>', '--sky');
+    bookBar()+rows+'<details style="margin-top:12px"><summary class="foot" style="cursor:pointer;color:var(--text-dim)">Raw TAF</summary><div class="code" style="font-size:12.5px;margin-top:6px;color:var(--text-muted);white-space:pre-wrap">'+esc(t.raw)+'</div></details>', '--sky');
 }
 /* next "good to fly" block from the TAF (for Today) */
 function tafNextFly(){ var t=(LIVE.tafs||{}).KMEV; if(!t) return null;
@@ -3732,10 +3747,128 @@ function propCardHtml(r){
     +(has(r.Financing)?'<div class="deal-notes" style="margin-bottom:6px"><b>Financing:</b> '+esc(r.Financing)+'</div>':'')
     +'<div class="deal-notes">'+linkify(sv.text)+'</div>'
     +'<div class="deal-f">'+sv.badge+(has(r.FirstSeen)?'<span class="foot" style="color:var(--text-dim)">first seen '+esc(prettyIso(String(r.FirstSeen)))+'</span>':'')+(EDIT?editBtn('Properties',r.__row):'')+'</div></div>'; }
+
+/* ---------- Paste-a-listing analyzer + pipeline (Watching → Analyzing → Offer made → Pass) ---------- */
+var ANALYZE={busy:false, res:null, url:''};
+var PIPE_STAGES=['Watching','Analyzing','Offer made','Pass'];
+function inPipe(r){ return /^(watching|analyzing|offer made)/i.test(String(r.Stage||'').trim()); }
+function runAnalyze(){
+  var el=$('anUrl'), url=el?el.value.trim():ANALYZE.url; if(!url) return;
+  ANALYZE={busy:true, res:null, url:url}; render(CURRENT);
+  jsonp(API_URL+'?pw='+sessionStorage.getItem(SS_PW)+'&action=analyze&url='+encodeURIComponent(url), 240000)
+    .then(function(r){ ANALYZE={busy:false, res:r||{ok:false,error:'No answer'}, url:url}; })
+    .catch(function(){ ANALYZE={busy:false, res:{ok:false,error:'That took too long. Try again in a minute.'}, url:url}; })
+    .then(function(){ if(CURRENT==='ventures') render(CURRENT); else toast('Listing analysis is ready on the Ventures tab.'); });
+}
+function analyzeResultHtml(r){
+  var x=r.facts||{}, v=r.verdict||{}, tone=v.go?'good':((v.flags||[]).length&&/works|cash-flows/i.test(v.headline||'')?'warn':'bad');
+  var col={good:'var(--green)',warn:'var(--amber)',bad:'var(--red)'}[tone];
+  var h='<div class="an-verdict" style="border-color:'+col+'"><div class="an-tag" style="color:'+col+'">'+(v.go?'GO':tone==='warn'?'MAYBE':'NO-GO')+'</div><div class="an-head">'+esc(v.headline||'')+'</div></div>';
+  var facts=[x.title&&x.title!==x.address?x.title:'', [x.address,x.city,x.state].filter(has).join(', '), x.units?x.units+' unit'+(x.units>1?'s':''):'', x.year_built?'built '+x.year_built:'',
+    x.price?money(x.price):'', x.days_on_market!=null?x.days_on_market+' days on market':'', x.drive_minutes?'~'+x.drive_minutes+' min from Carson':'', x.status&&x.status!=='active'?x.status:''].filter(has);
+  h+='<div class="foot" style="margin:10px 0 4px;color:var(--text-muted)">'+esc(facts.join(' · '))+'</div>';
+  if(v.paths&&v.paths.length){
+    h+='<div style="overflow-x:auto"><table class="tbl" style="margin-top:8px"><thead><tr><th>Financing</th><th class="num">Cash flow at list</th><th class="num">Break-even price</th><th class="num">Cash in</th><th class="num">DSCR</th></tr></thead><tbody>'
+      +v.paths.map(function(p){ return '<tr><td>'+esc(p.name)+' <span class="foot" style="color:var(--text-dim)">@ '+p.rate.toFixed(2)+'%</span></td>'
+        +'<td class="num" style="color:'+(p.cfList>0?'var(--green)':'var(--red)')+'">'+money(p.cfList)+'/mo</td>'
+        +'<td class="num">'+(p.breakeven?money(p.breakeven)+(p.needPct>0?' <span class="foot" style="color:var(--text-dim)">('+(p.needPct*100).toFixed(1)+'% off)</span>':''):'—')+'</td>'
+        +'<td class="num">'+money(p.cash)+'</td><td class="num">'+p.dscr+'</td></tr>'; }).join('')+'</tbody></table></div>'
+      +'<div class="foot" style="margin-top:6px;color:var(--text-dim)">Investor rate '+v.rate+'% base · offer cap '+v.offerCapPct+'% for its days on market · rents '+esc(x.rent_source||'estimate')+'</div>';
+  }
+  if(v.business){ var b=v.business; h+='<div class="deal-k" style="margin-top:10px">'
+    +[['Price',money(x.price)],['SDE',x.sde?money(x.sde):'—'],['Multiple',b.multiple?b.multiple+'×':'—'],['Cash in',money(b.cash)],['Net / mo',b.net!=null?money(b.net):'—']]
+      .map(function(k){return '<div class="dk"><div class="dk-l">'+k[0]+'</div><div class="dk-v">'+k[1]+'</div></div>';}).join('')+'</div>'; }
+  if((v.flags||[]).length) h+='<ul class="an-flags">'+v.flags.map(function(f){return '<li>'+esc(f)+'</li>';}).join('')+'</ul>';
+  if(x.highlights) h+='<div class="deal-notes"><b>Good:</b> '+esc(x.highlights)+'</div>';
+  if(x.red_flags) h+='<div class="deal-notes" style="margin-top:4px"><b>Watch out:</b> '+esc(x.red_flags)+'</div>';
+  if(x.kind==='rental'||x.kind==='business') h+='<div class="hero-actions" style="justify-content:flex-start;margin-top:12px"><button class="ebtn pri" onclick="saveAnalyzed()">＋ Save to my pipeline</button><a class="ebtn" href="'+esc(x.url)+'" target="_blank" rel="noopener">Open listing ↗</a></div>';
+  return h;
+}
+async function saveAnalyzed(){
+  var r=ANALYZE.res; if(!r||!r.ok) return; var x=r.facts, v=r.verdict, today=ymd(laNow());
+  var notes=[v.headline].concat(v.flags||[]).concat(x.highlights?['Good: '+x.highlights]:[]).concat(x.red_flags?['Watch out: '+x.red_flags]:[]).join('. ')+'. Analyzed '+today+'.';
+  var tab, row;
+  if(x.kind==='business'){ var b=v.business||{}; tab='Deals';
+    row={Name:x.title||'Business', Sector:x.sector||'', Location:x.city||'', Price:x.price||'', SDE:x.sde||'', CashNeeded:b.cash||'', MonthlyNet:b.net!=null?b.net:'', OwnerHrs:x.owner_hours||(x.manager_in_place?'manager in place':''), Stage:'Watching', Notes:notes+' '+x.url}; }
+  else { var p=(v.paths||[]).filter(function(q){return q.ok;})[0]||(v.paths||[])[0]||{}; tab='Properties';
+    row={Address:x.address||x.title, Area:x.city||'', Units:(x.mix||((x.units||'?')+' units'))+(x.year_built?' ('+x.year_built+')':''), Price:x.price||'', GrossRentMo:x.monthly_rent||'', NOI:'',
+      CapRate:p.cap!=null?p.cap+'%':'', CashNeeded:p.cash||'', CashFlowMo:p.cfList!=null?p.cfList:'', CashOnCash:p.coc!=null?p.coc+'%':'', DSCR:p.dscr||'', Appreciation5yr:'',
+      Stage:'Watching', URL:x.url, Notes:notes, Financing:p.name?p.name+' @ '+p.rate.toFixed(2)+'%':'', FirstSeen:today}; }
+  toast('Saving to your pipeline…');
+  var res=await apiWrite({action:'upsert',tab:tab,row:JSON.stringify(row)});
+  if(res&&res.ok){ ANALYZE={busy:false,res:null,url:''}; await afterWrite(); toast('Saved: it’s in your pipeline as Watching.'); } else toast('Couldn’t save that. Try again.');
+}
+function setPipeStage(tab, rownum, stage){
+  var row=arr(tab).filter(function(r){return String(r.__row)===String(rownum);})[0]; if(!row) return;
+  var full={}; Object.keys(row).forEach(function(k){ if(k!=='__row') full[k]=row[k]; }); full.Stage=stage;
+  saveRowNow(tab, rownum, full);
+}
+function pipelineCard(){
+  var items=arr('Properties').filter(inPipe).map(function(r){return {tab:'Properties', r:r, name:r.Address, sub:[r.Area,r.Units].filter(has).join(' · '), url:r.URL,
+      k:[['Price',money(r.Price)],['Cash flow',has(r.CashFlowMo)?money(r.CashFlowMo)+'/mo':'—'],['Cash in',money(r.CashNeeded)]]};})
+    .concat(arr('Deals').filter(inPipe).map(function(r){ var u=(String(r.Notes||'').match(/https?:\/\/\S+/g)||[]).pop();
+      return {tab:'Deals', r:r, name:r.Name, sub:[r.Sector,r.Location].filter(has).join(' · '), url:u,
+      k:[['Price',money(r.Price)],['SDE',has(r.SDE)?money(r.SDE):'—'],['Net / mo',has(r.MonthlyNet)?money(r.MonthlyNet):'—']]};}));
+  var order=function(st){ var i=PIPE_STAGES.findIndex(function(s){return new RegExp('^'+s,'i').test(String(st||'').trim());}); return i<0?9:i; };
+  items.sort(function(a,b){ return order(b.r.Stage)-order(a.r.Stage); });
+  var body=items.length?'<div class="pipe">'+items.map(function(it){ var cur=PIPE_STAGES[order(it.r.Stage)]||'Watching';
+      return '<div class="pipe-row"><div class="pipe-main"><div class="deal-n">'+(it.url?'<a href="'+esc(it.url)+'" target="_blank" rel="noopener">'+esc(it.name)+' ↗</a>':esc(it.name))+'</div><div class="deal-s">'+esc(it.sub)+'</div></div>'
+        +'<div class="pipe-k">'+it.k.map(function(k){return '<span><span class="dk-l">'+k[0]+'</span> '+k[1]+'</span>';}).join('')+'</div>'
+        +'<select class="pipe-sel" onchange="setPipeStage(\''+it.tab+'\','+it.r.__row+',this.value)">'+PIPE_STAGES.map(function(s){return '<option'+(s===cur?' selected':'')+'>'+s+'</option>';}).join('')+'</select></div>'; }).join('')+'</div>'
+    :'<div class="empty">Nothing saved yet. Analyze a listing above and tap “Save to my pipeline.” Moving something to Pass hides it.</div>';
+  return card('My pipeline','Deals you’re working. The daily search never overwrites these.', body, '--indigo');
+}
+
+/* ---------- Book a lesson with Jeremy: calendar event + prefilled text ---------- */
+function jeremyLinks(fromSec, toSec, msg){
+  var fk=kv('Flying'), phone=String(fk.cfi_phone||'').replace(/[^\d+]/g,''), tail=fk.cfi_aircraft||'N3207A';
+  var g=function(s){ return new Date(s*1000).toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,''); };
+  var day=new Date(fromSec*1000).toLocaleDateString('en-US',{weekday:'long',timeZone:'America/Los_Angeles'});
+  return {cal:'https://calendar.google.com/calendar/render?action=TEMPLATE&text='+encodeURIComponent('Flight lesson with Jeremy ('+tail+')')+'&dates='+g(fromSec)+'/'+g(toSec)
+      +'&location='+encodeURIComponent('Minden-Tahoe Airport (KMEV)')+'&details='+encodeURIComponent('Booked from Life OS. Check the TAF and IMSAFE before you go.'),
+    sms:'sms:'+phone+'&body='+encodeURIComponent(msg||('Hey Jeremy, are you free to fly '+day+' around '+hhmm(fromSec)+'? The Minden forecast looks good.'))};
+}
+function bookBar(){
+  var nf=tafNextFly(); if(!nf||nf.none) return '';
+  var from=nf.f.from, L=jeremyLinks(from, Math.min(nf.f.to, from+2*3600));
+  return '<div class="book-bar"><span><b>Next good window:</b> '+dayLbl(nf.f.from)+' '+hhmm(nf.f.from)+' – '+hhmm(nf.f.to)+'</span>'
+    +'<span class="book-btns"><a class="ebtn pri" href="'+esc(L.cal)+'" target="_blank" rel="noopener">＋ Add lesson to calendar</a><a class="ebtn" href="'+esc(L.sms)+'">Text Jeremy</a></span></div>'; }
+
+/* ---------- Phone alerts (ntfy) ---------- */
+function openAlerts(){
+  var topic=kv('Config').ntfy_topic;
+  var steps=topic
+    ? '<ol class="al-steps"><li>Install the free <a href="https://apps.apple.com/us/app/ntfy/id1625396347" target="_blank" rel="noopener">ntfy app</a> and allow notifications.</li>'
+      +'<li>In ntfy tap <b>＋</b>, paste this topic name, then tap Subscribe:<div class="al-topic"><code id="alTopic">'+esc(topic)+'</code><button class="ebtn" onclick="copyTopic()">Copy</button></div></li>'
+      +'<li>Tap <b>Send test alert</b> below. It should reach your phone within a few seconds.</li></ol>'
+      +'<div class="eactions"><span class="spacer"></span><span class="esaved" id="alMsg"></span><button class="ebtn pri" onclick="sendTestAlert()">Send test alert</button></div>'
+    : '<p>First, make your private alert channel:</p><div class="eactions"><span class="spacer"></span><span class="esaved" id="alMsg"></span><button class="ebtn pri" onclick="sendTestAlert()">Create my alert channel</button></div>';
+  $('modalSheet').innerHTML='<button class="mclose" onclick="closeModal()">×</button><div class="mhead"><h2>Phone alerts</h2></div>'
+    +'<p class="foot" style="color:var(--text-muted);font-size:14px">A few alerts that matter, sent to your phone through the free ntfy app:</p>'
+    +'<ul class="al-list"><li><b>6 PM:</b> a good flying window tomorrow that fits your calendar, with one tap to add the lesson or text Jeremy</li>'
+    +'<li><b>Any time:</b> the forecast turning bad before a lesson on your calendar</li><li><b>8 AM:</b> a bill that isn’t on autopay is due in 3 days</li><li><b>~5 AM:</b> the daily search finds a new rental that cash-flows</li></ul>'
+    +steps+'<p class="foot" style="color:var(--text-dim);margin-top:14px">Quiet from 9 PM to 6 AM. Alerts never include balances or account numbers. Anyone with the topic name could read them, so keep it private.</p>';
+  $('modal').classList.remove('hidden');
+}
+function copyTopic(){ var t=$('alTopic'); if(!t) return; try{ navigator.clipboard.writeText(t.textContent); toast('Copied'); }catch(e){ window.prompt('Copy this:', t.textContent); } }
+async function sendTestAlert(){
+  var m=$('alMsg'), isNew=!kv('Config').ntfy_topic; if(m) m.textContent=isNew?'Creating…':'Sending…';
+  var r=await apiWrite({action:'testalert'});
+  if(r&&r.topic){ DATA.Config=DATA.Config||{}; DATA.Config.ntfy_topic=r.topic; openAlerts(); }
+  var m2=$('alMsg'); if(!m2) return;
+  m2.textContent = !(r&&r.topic) ? 'Couldn’t reach the server. Try again.' : isNew ? 'Channel ready. Do steps 1–2, then send a test.' : (r.ok?'Sent ✓ Check your phone.':'Couldn’t send. Try again.');
+}
+function analyzerBody(){
+  var r=ANALYZE.res, h='<div class="an-row"><input id="anUrl" type="url" inputmode="url" placeholder="Paste a Zillow, Redfin, LoopNet, Crexi or BizBuySell link" value="'+esc(ANALYZE.url)+'" onkeydown="if(event.key===\'Enter\')runAnalyze()">'
+    +'<button class="ebtn pri" onclick="runAnalyze()"'+(ANALYZE.busy?' disabled':'')+'>'+(ANALYZE.busy?'Analyzing…':'Analyze')+'</button></div>';
+  if(ANALYZE.busy) h+='<div class="foot" style="margin-top:10px;color:var(--text-dim)"><span class="spinner" style="width:12px;height:12px;display:inline-block;vertical-align:-2px;margin-right:6px"></span>Reading the listing and running the numbers. Takes about 30–60 seconds.</div>';
+  else if(r&&!r.ok) h+='<div class="foot" style="margin-top:10px;color:var(--red)">'+esc(r.error||'Something went wrong.')+'</div>';
+  else if(r) h+=analyzeResultHtml(r);
+  return h; }
 function renderVentures(){
   var v=kv('Ventures');
   var live=function(r){ return !/(pass|dead)/i.test(String(r.Stage||'')); };
-  var deals=arr('Deals').filter(live), props=arr('Properties').filter(live);
+  var deals=arr('Deals').filter(function(r){return live(r)&&!inPipe(r);}), props=arr('Properties').filter(function(r){return live(r)&&!inPipe(r);});
   // live capital sources
   var cash=arr('Accounts').reduce(function(s,a){var n=num(a.Balance);var t=String(a.Type||'').toLowerCase();return s+(isNaN(n)||t.indexOf('credit')>=0?0:n);},0);
   var crypto=arr('Investments').filter(function(i){return /crypto|btc|bitcoin/i.test(String(i.Type)+' '+String(i.Name));}).reduce(function(s,i){return s+(num(i.Value)||0);},0);
@@ -3756,6 +3889,7 @@ function renderVentures(){
   var propsHtml = props.length ? '<div class="deals">'+props.map(propCardHtml).join('')+'</div>' : '<div class="empty">Nothing cash-flows at today’s rates within an hour of Carson. The Monday search keeps looking and adds anything that does.</div>';
   return tiles
     + (EDIT?'<div class="editbar">'+kvEditBtn('Ventures')+addBtn('Deals','deal')+addBtn('Properties','property')+'</div>':'')
+    + card('Analyze a listing','Paste any rental or business-for-sale link. Same math as the daily search: cash flow at today’s rates on every financing path, a days-on-market-capped offer, distance from Carson, and your buy-box rules.', analyzerBody(), '--indigo') + '<div style="height:22px"></div>' + pipelineCard() + '<div style="height:22px"></div>'
     + card('Deal pipeline','Businesses for sale that fit your buy box — verified live, refreshed every Monday. Estimates: underwrite before trusting SDE.', dealsHtml, '--indigo')
     + '<div style="height:22px"></div>'
     + card('Real Estate Investments','2–4 unit rentals within an hour of Carson that cash-flow at today’s rates (at list or a days-on-market-capped offer).', propsHtml, '--teal')
