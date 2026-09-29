@@ -47,3 +47,7 @@
   chelseaRequest_ serves ONLY CHELSEA_READ_ tabs (drops bill account #s, vehicle VIN/policy/loan/value, and Brad's flying/business projects) and allows writes
   only to CHELSEA_WRITE_ tabs. Page: ROLE='chelsea' shows Home (renderChelseaHome) + Home & Life; hides AI, edit, alerts, snap. Keep filtering server-side.
 - What-if planner (Ventures): wiCard/wiRun — sell X BTC (15% LTCG on gain over cost basis), your share vs partners, equity + cash flow over 5 yrs vs holding the BTC. Inputs remembered in localStorage `lifeos_whatif`.
+- Drive-in call rotation: Calls tab (Name, Relation, Phone, Order, Active, LastCalled, Notes). One person per Mon–Thu from Config `call_rotation_start`
+  (2026-09-30), cycling by Order (Active=no pauses). Today shows callBar (📞 Call / ✓ Called); Home & Life shows callRotationCard (next 3 weeks).
+  Alerts.js callAlert_ sends a 7 AM Mon–Thu phone alert with a tap-to-call button. Page callFor() and backend callFor_() must stay in sync.
+- Jeremy's instruction is free; N3207A rents at $175/hr dual or solo (Flying kv cfi_rate=175, solo_rate=175, cfi_phone set).

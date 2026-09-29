@@ -856,6 +856,12 @@
   .wi-f input, .wi-f select { background:#171a1f; color:var(--text); border:1px solid var(--card-border-2); border-radius:8px; padding:8px 10px; font:inherit; font-size:14px; min-width:0; }
   .wi-f em { position:absolute; right:10px; bottom:9px; font-style:normal; font-size:11px; color:var(--text-dim); pointer-events:none; }
   body.role-chelsea #navTabs .nav-tab:not([data-tab="overview"]):not([data-tab="life"]), body.role-chelsea .b-only, body.role-chelsea #aiFab, body.role-chelsea .hero-actions { display:none !important; }
+
+  .call-bar { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:8px 12px; margin:-8px 0 22px; padding:12px 16px; border-radius:12px; background:var(--card-bg); border:1px solid var(--card-border); border-left:3px solid var(--accent); }
+  .call-main { font-size:15px; } .call-btns { display:flex; gap:8px; } .call-btns .ebtn { text-decoration:none; }
+  .call-next { flex-basis:100%; display:flex; flex-wrap:wrap; gap:4px 16px; font-size:12.5px; color:var(--text-muted); }
+  .call-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:6px; } @media (max-width:640px){ .call-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+  .call-day { background:var(--card-2); border-radius:8px; padding:7px 9px; font-size:12.5px; display:flex; flex-direction:column; } .call-day span { color:var(--text-dim); font-size:11px; }
 </style>
 </head>
 <body>
@@ -1372,6 +1378,7 @@ var ESCHEMA={
   Vehicles:{cols:['Name','Type','Year','Make','Model','Trim','VIN','Plate','Mileage','Owner','RegRenewal','InsProvider','InsPolicy','InsRenewal','LoanBalance','LoanLender','PurchaseDate','PurchasePrice','Value','ValueAsOf','TitleLocation','Notes','Specs']},
   VehicleService:{cols:['Vehicle','Date','Mileage','Service','Cost','Shop','NextDue','Notes']},
   Receipts:{cols:['Date','Vendor','Amount','Category','Summary','File']},
+  Calls:{cols:['Name','Relation','Phone','Order','Active','LastCalled','Notes']},
   Travel:{cols:['Trip','Destination','StartDate','EndDate','Purpose','Who','Status','Notes']},
   TravelChecklist:{cols:['Trip','Item','Done','Notes']},
   Points:{cols:['Program','Type','Number','Balance','Notes']},
@@ -2038,7 +2045,7 @@ function renderOverview(){
     + trendCard('Weight', (!isNaN(cur)?cur+' lb':'—'), weightSeries(), '--pink', 'toward '+(isNaN(goal)?'goal':goal+' lb'))
     + trendCard('Workouts this week', ''+wk, workoutWeekSeries(), '--sky', 'weekly, last 8 wks')
     + '</div>';
-  return todayHero()
+  return todayHero() + callBar()
     + '<div class="grid g-today" style="margin-bottom:22px">' + big3Card() + rhythmCard() + '</div>'
     + scorecardCard() + '<div style="height:22px"></div>'
     + '<div class="grid cols-2" style="margin-bottom:22px">'
@@ -2137,7 +2144,7 @@ function pointsPlanCard(points){
 }
 function renderLife(){
   return subnavHtml([['Family & household','sec-family'],['Projects','sec-projects'],['Vehicles','sec-vehicles'],['Hunting & hobbies','sec-hobbies'],['Travel & points','sec-travel']])
-    + '<div id="sec-family" style="scroll-margin-top:70px"></div>' + renderFamily()
+    + '<div id="sec-family" style="scroll-margin-top:70px"></div>' + callRotationCard() + '<div style="height:22px"></div>' + renderFamily()
     + secDivider('Projects','sec-projects') + renderProjects()
     + secDivider('Vehicles','sec-vehicles') + renderVehicles() + '<div style="height:22px"></div>' + maintenanceCard()
     + secDivider('Hunting & hobbies','sec-hobbies') + renderHobbies()
@@ -4059,9 +4066,9 @@ function checkrideForecastHtml(){
       +'<div><div class="dk-l">Pace</div><div class="dk-v">'+perMo.toFixed(1)+' hrs/mo</div><div class="foot">last 60 days</div></div>'
       +'<div><div class="dk-l">Checkride (realistic)</div><div class="dk-v">'+mo(eta)+'</div><div class="foot">at ~'+target+' hrs total</div></div>'
       +'<div><div class="dk-l">FAA minimum</div><div class="dk-v">'+mo(minEta)+'</div><div class="foot">at 40 hrs</div></div>'
-      +'<div><div class="dk-l">Cost to finish</div><div class="dk-v">'+money(cost)+'</div><div class="foot">'+dualLeft.toFixed(1)+' dual × '+money(rate)+' + '+soloLeft.toFixed(1)+' solo × '+money(soloRate)+' + tests '+money(fixed)+'</div></div></div>'
+      +'<div><div class="dk-l">Cost to finish</div><div class="dk-v">'+money(cost)+'</div><div class="foot">'+(dualLeft+soloLeft).toFixed(1)+' hrs × '+money(rate)+(soloRate!==rate?' ('+soloLeft.toFixed(1)+' solo × '+money(soloRate)+')':'')+' + tests '+money(fixed)+'</div></div></div>'
     +'<div class="section-title" style="margin:14px 0 6px">One-time items</div><div class="once-list">'+once+'</div>'
-    +'<p class="foot" style="color:var(--text-dim);margin:8px 0 0">Assumes '+target+' hrs total (most students finish at 60–70), solo at '+money(soloRate)+'/hr, examiner ~'+money(num(f.dpe_fee)||1000)+'. Change them in Flying: ppl_target_hours, solo_rate, dpe_fee. Keep your pace up: 2–3 flights a week is the cheapest way to finish.</p></div>';
+    +'<p class="foot" style="color:var(--text-dim);margin:8px 0 0">Assumes '+target+' hrs total (most students finish at 60–70), the plane at '+money(rate)+'/hr dual and '+money(soloRate)+'/hr solo (Jeremy’s instruction is free), examiner ~'+money(num(f.dpe_fee)||1000)+'. Change them in Flying: ppl_target_hours, solo_rate, dpe_fee. Keep your pace up: 2–3 flights a week is the cheapest way to finish.</p></div>';
 }
 function setOnce(key, on){ var o={}; o[key]=on?'yes':''; var f=kv('Flying'); f[key]=o[key];
   apiWrite({action:'setkv', tab:'Flying', row:JSON.stringify(o)}).then(function(r){ if(!(r&&r.ok)) toast('Couldn’t save that.'); }); render(CURRENT); }
@@ -4119,6 +4126,44 @@ function wiRun(){
     options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{labels:{color:'#c3cad3',font:{family:'Inter'}}},tooltip:{callbacks:{label:function(c){return c.dataset.label+': $'+Math.round(c.parsed.y).toLocaleString();}}}},
       scales:{x:{ticks:{color:'#8b93a0'},grid:{color:'#2a2f37'}},y:{ticks:{color:'#8b93a0',callback:function(v){return '$'+Math.round(v/1000)+'k';}},grid:{color:'#2a2f37'}}}}});
   charts.push(window.__wiChart);
+}
+
+/* ============================================================
+   CALL ROTATION — one call per work day (Mon–Thu) on the drive in, rotating through the Calls tab by Order
+   ============================================================ */
+function callPeople(){ return arr('Calls').filter(function(p){ return has(p.Name) && !/^(no|false|0|paused)$/i.test(String(p.Active||'').trim()); })
+  .sort(function(a,b){ return (num(a.Order)||999)-(num(b.Order)||999) || a.__row-b.__row; }); }
+function callStart(){ return String(kv('Config').call_rotation_start||'2026-09-30').slice(0,10); }
+function callWd(ymdS){ var w=new Date(ymdS+'T12:00:00').getDay(); return w>=1&&w<=4; }
+function callFor(ymdS){ var ps=callPeople(), st=callStart(); if(!ps.length||!callWd(ymdS)||ymdS<st) return null;
+  var n=0, d=new Date(st+'T12:00:00'), end=new Date(ymdS+'T12:00:00'); for(; d<end; d.setDate(d.getDate()+1)) if(callWd(ymd(d))) n++;
+  return ps[n%ps.length]; }
+function callSchedule(count){ var out=[], d=laNow(); d.setHours(12,0,0,0); var st=new Date(callStart()+'T12:00:00'); if(d<st) d=st;
+  for(var i=0; out.length<count && i<60; i++){ var k=ymd(d), p=callFor(k); if(p) out.push({date:k, p:p}); d.setDate(d.getDate()+1); } return out; }
+function telLink(p, label){ var t=String(p.Phone||'').replace(/[^\d+]/g,''); return t?'<a class="ebtn pri" href="tel:'+esc(t)+'">📞 '+esc(label||'Call')+'</a>':''; }
+function markCalled(row){ var r=arr('Calls').filter(function(x){return x.__row===row;})[0]; if(!r) return;
+  var full={}; Object.keys(r).forEach(function(k){ if(k!=='__row') full[k]=r[k]; }); full.LastCalled=ymd(laNow()); saveRowNow('Calls', row, full); toast('Nice. Logged the call with '+r.Name+'.'); }
+function callBar(){
+  if(!callPeople().length) return '';
+  var today=ymd(laNow()), p=callFor(today), sch=callSchedule(5), called=p&&String(p.LastCalled||'').slice(0,10)===today;
+  var next=sch.filter(function(x){return x.date>today;}).slice(0,3).map(function(x){ return '<span>'+esc(shortDay(x.date).split(',')[0])+': <b>'+esc(x.p.Name)+'</b></span>'; }).join('');
+  var main=p ? (called?'<span style="color:var(--green)">✓</span> Called <b>'+esc(p.Name)+'</b> today.'
+      : '📞 On your way to work, call <b>'+esc(p.Name)+'</b>'+(p.Relation&&p.Relation!==p.Name?' <span class="foot" style="display:inline;color:var(--text-dim)">'+esc(p.Relation)+'</span>':''))
+    : '📞 Next drive-in call: <b>'+esc(sch[0]?sch[0].p.Name:'—')+'</b>'+(sch[0]?' on '+esc(shortDay(sch[0].date)):'');
+  var btns=p&&!called?telLink(p,'Call '+String(p.Name).split(' ')[0])+'<button class="ebtn" onclick="markCalled('+p.__row+')">✓ Called</button>':'';
+  return '<div class="call-bar"><div class="call-main">'+main+'</div><div class="call-btns">'+btns+'</div>'+(next?'<div class="call-next">Up next · '+next+'</div>':'')+'</div>';
+}
+function callRotationCard(){
+  var ps=callPeople(), sch=callSchedule(12), nextFor={};
+  sch.forEach(function(x){ if(!nextFor[x.p.__row]) nextFor[x.p.__row]=x.date; });
+  var list=ps.length?ps.map(function(p){ return '<div class="kv-row"><span class="k"><b>'+esc(p.Name)+'</b>'+(p.Relation&&p.Relation!==p.Name?' <span class="foot" style="display:inline;color:var(--text-dim)">'+esc(p.Relation)+'</span>':'')
+      +(has(p.Phone)?' · <a class="tel" href="tel:'+esc(String(p.Phone).replace(/[^\d+]/g,''))+'">'+esc(p.Phone)+'</a>':' · <span class="foot" style="display:inline;color:var(--amber)">add phone</span>')+'</span>'
+      +'<span class="v">'+(nextFor[p.__row]?'next '+esc(shortDay(nextFor[p.__row])):'')+(has(p.LastCalled)?' <span class="foot" style="display:inline;color:var(--text-dim)">· last '+esc(shortDay(p.LastCalled))+'</span>':'')+' '+editBtn('Calls',p.__row)+'</span></div>'; }).join('')
+    :'<div class="empty">No one in the rotation yet.</div>';
+  var cal=sch.map(function(x){ return '<div class="call-day"><span>'+esc(shortDay(x.date))+'</span><b>'+esc(x.p.Name)+'</b></div>'; }).join('');
+  return card('Drive-in call rotation','One call each work day (Mon–Thu) on the way to work, rotating through everyone in order. With '+ps.length+' people, each person gets a call about every '+(ps.length/4).toFixed(1).replace('.0','')+' weeks. Add or pause people with ✎ Edit (Active = no pauses someone).',
+    '<div class="editbar" style="margin-bottom:8px"><button class="ebtn pri" onclick="openEditor(\'Calls\')">＋ Add a person</button></div>'+list
+    +'<div class="section-title" style="margin:14px 0 6px">Next 3 weeks</div><div class="call-grid">'+cal+'</div>', '--gold');
 }
 function analyzerBody(){
   var r=ANALYZE.res, h='<div class="an-row"><input id="anUrl" type="url" inputmode="url" placeholder="Paste a Zillow, Redfin, LoopNet, Crexi or BizBuySell link" value="'+esc(ANALYZE.url)+'" onkeydown="if(event.key===\'Enter\')runAnalyze()">'
