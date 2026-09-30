@@ -942,6 +942,13 @@
   .tax-form label { display:flex; flex-direction:column; gap:3px; font-size:12px; color:var(--text-muted); }
   .tax-form input, .tax-form select { background:#171a1f; color:var(--text); border:1px solid var(--card-border-2); border-radius:8px; padding:7px 9px; font:inherit; font-size:14px; min-width:0; }
   @media (max-width:640px){ #navTabs .nav-tab[data-tab="taxes"] { display:none; } .tax-bars .tb-row { grid-template-columns:110px 1fr 70px; font-size:12.5px; } .tax-form { grid-template-columns:minmax(0,1fr); } }
+
+  /* Apple-style particle orb */
+  #aiFab { background:radial-gradient(circle at 50% 45%, rgba(30,36,48,.96), rgba(12,15,20,.98) 72%) !important; border:1px solid rgba(120,170,255,.28) !important;
+    box-shadow:0 10px 30px rgba(0,0,0,.5), 0 0 28px rgba(80,150,255,.30) !important; }
+  #aiFab:hover { box-shadow:0 12px 34px rgba(0,0,0,.55), 0 0 38px rgba(90,160,255,.5) !important; }
+  canvas.ai-sphere { display:block; width:100%; height:100%; }
+  .ai-hello-orb { width:150px !important; height:150px !important; margin:0 auto; }
 </style>
 </head>
 <body>
@@ -978,7 +985,7 @@
 </div>
 
 <!-- Floating AI assistant -->
-<button id="aiFab" class="hidden" onclick="openAI()" title="Ask Life OS (⌘J)" aria-label="Ask Life OS AI"><canvas id="aiHive" width="128" height="128"></canvas></button>
+<button id="aiFab" class="hidden" onclick="openAI()" title="Ask Life OS (⌘J)" aria-label="Ask Life OS AI"><canvas id="aiHive" class="ai-sphere"></canvas></button>
 <div id="aiPanel" class="hidden" role="dialog" aria-label="Life OS AI">
   <div class="aiHead">
     <span class="ai-orb sm"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5l1.9 5.6 5.6 1.9-5.6 1.9L12 17.5l-1.9-5.6L4.5 10l5.6-1.9z"/></svg></span>
@@ -4331,16 +4338,22 @@ function taxMoves(r){
   if(rothLeft>0) out.push({id:'roth', title:'Fund two Roth IRAs: '+taxMoney(TAX26.ira)+' each for 2026',
     save:'Tax-free growth forever. The 2026 limit is $7,500 each ($15,000 for both of you), and your income is under the $242K phase-out.',
     how:'Contribute for 2026 any time until April 15, 2027. Chelsea can use a spousal IRA.', due:'By Apr 15, 2027'});
-  out.push({id:'rental', title:'Clean up the Lahontan rental numbers (Schedule E)',
+  if(has(t.rental_ledger)) out.push({id:'rental', title:'Lahontan rental: reconciled from your records. 3 things to confirm',
+    save:'Rent, mortgage, escrow and repairs are matched to your Monarch transactions (see the rental card). Net comes to about '+taxMoney(r.rentNet)+' for 2026.',
+    how:'1) In January, replace the interest estimate with Evergreen’s Form 1098 and the insurance with the escrow statement. 2) Add any lawn care, repairs or supplies paid in cash, by Zelle, or on a card Monarch doesn’t see. 3) Log miles for any trip to Winnemucca for the rental (IRS standard mileage rate). Only count HELOC interest if that money went into the rental.', due:'January 2027'});
+  else out.push({id:'rental', title:'Clean up the Lahontan rental numbers (Schedule E)',
     save:'Claims every legit expense and fixes depreciation. The loss is suspended (your income is over $150K) but carries forward and offsets tax when you sell.',
     how:'Add insurance ('+taxMoney(num(t.rental_insurance))+'), lawn care ('+taxMoney(num(t.rental_lawn))+'), repairs, and mileage for trips to Winnemucca. Depreciate only the building: about '+taxMoney(r.depr)+'/yr (land ~'+num(t.rental_land_pct)+'% per the county), not the full purchase price. Use the actual property tax bill ('+taxMoney(num(t.rental_prop_tax))+'), not the escrow estimate. Keep the HELOC interest out unless that money went into the rental.', due:'Before filing'});
   var mo=parseDate(t.rental_moved_out); if(mo){ var end=new Date(mo); end.setFullYear(end.getFullYear()+3);
     out.push({id:'sec121', title:'Lahontan sale window: tax-free gain until about '+end.toLocaleDateString('en-US',{month:'short',year:'numeric'}),
       save:'You lived there 2+ years, so if you sell within 3 years of moving out, up to $500K of gain is tax-free (except ~25% tax on depreciation taken)',
       how:'Factor this into “keep, pay off, or sell.” Current gain is about '+taxMoney((num((arr('Investments').filter(function(x){return /lahontan/i.test(x.Name);})[0]||{}).Value)||0)-num(t.rental_basis))+' before selling costs, so this matters more if prices climb. After the window, all gain is taxable (or needs a 1031 exchange).', due:end.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}); }
+  out.push({id:'accountable', title:'Get ministry expenses reimbursed through the church (tax-free)',
+    save:'Brad is paid through Living Stones payroll (W-2), so unreimbursed ministry expenses aren’t deductible on your return. But church reimbursements under an accountable plan are 100% tax-free, even with no deduction. The church already reimbursed you once this year.',
+    how:'Ask the church to adopt or expand a written accountable reimbursement plan (a board resolution and a yearly budget). Turn in receipts within 60 days (books, conferences, ministry travel and mileage, phone/internet business share, meals with a ministry purpose, laptop). The church reimburses and it never shows on your W-2. Money you earn directly (weddings, funerals, guest preaching, ASDC) goes on Schedule C, and those expenses ARE deductible there.', due:'Before Jan 1, 2027 (plan) · receipts within 60 days'});
   out.push({id:'cleanup', title:'Take these out of the deduction sheet: they aren’t deductible',
     save:'Keeps your return clean and avoids adjustments',
-    how:'W-2 job expenses and work travel (not deductible for employees since 2018, now permanent) · EFTPS (that’s a tax payment, not a deduction) · medical ($2,000 is under the 7.5%-of-income floor) · the full car registration (only the Nevada “governmental services tax” part counts) · Chelsea’s training toward a new certificate (CFI training that qualifies her for a new line of work generally isn’t deductible; ask the CPA).', due:'Before filing'});
+    how:'W-2 job expenses and work travel: for income tax a church-paid minister is an employee, and employee expenses haven’t been deductible since 2018 (now permanent). Clergy count as self-employed only for Social Security, which your Form 4361 covers. Use the church reimbursement plan instead · EFTPS (that’s a tax payment, not a deduction) · medical ($2,000 is under the 7.5%-of-income floor) · the full car registration (only the Nevada “governmental services tax” part counts) · Chelsea’s training toward a new certificate (CFI training that qualifies her for a new line of work generally isn’t deductible; ask the CPA).', due:'Before filing'});
   out.push({id:'salestax', title:'Add big-purchase sales tax to your deduction',
     save:'Nevada has no income tax, so you deduct sales tax, including the actual tax paid on a car, truck, boat or aircraft',
     how:'If the Maule was bought in 2026, add the Nevada sales/use tax paid on it (~8% of the price) to “sales_tax”. Also count the laptop and any other big purchases.', due:'Tax year of purchase'});
@@ -4398,10 +4411,13 @@ function renderTaxes(){
   var housing='<div class="tax-bars">'+[['Designated by church',r.designated],['Actual housing costs',r.actual],['Fair rental value (furnished + utilities)',r.frv]].map(function(x){ var m=Math.max(r.designated,r.actual,r.frv)||1;
       return '<div class="tb-row"><span>'+x[0]+'</span><div class="tb-bar"><i style="width:'+(x[1]/m*100)+'%;'+(x[1]===r.excl?'background:var(--green)':'')+'"></i></div><b>'+taxMoney(x[1])+'</b></div>'; }).join('')+'</div>'
     +'<p class="foot" style="color:var(--text-muted);margin:8px 0 0">Tax-free = the <b>smallest</b> of the three ('+taxMoney(r.excl)+', set by '+(r.excl===r.actual?'your actual housing costs':r.excl===r.frv?'fair rental value':'the church designation')+'). The rest ('+taxMoney(r.excess)+') is taxable.'+(r.excl===r.actual?' <b>Every housing dollar you spend and document raises the tax-free amount</b> (up to fair rental value): mortgage payments, property tax, insurance, utilities, furniture and décor, appliances, repairs, yard care, and improvements like the roof, exterior and floors if paid this year.':'')+' Fair rental value = market rent for your home'+(has(kv('Tax').frv_note)?' ('+esc(kv('Tax').frv_note)+')':'')+' plus furnishings and utilities. Actual costs = mortgage, property tax, insurance, utilities, repairs and improvements, furnishings. All of the allowance still counts for self-employment tax.</p>';
-  var rental=L('Rent', taxMoney(num(t.rental_rent_yr)))+L('Mortgage interest', taxMoney(-num(t.rental_interest)))+L('Property tax', taxMoney(-num(t.rental_prop_tax)), 'county actual')
+  var led=[]; try{ led=JSON.parse(t.rental_ledger||'[]'); }catch(e){}
+  var rental=led.length ? led.map(function(x){ return L(esc(x[0]), taxMoney(x[1]), esc(x[2]||'')); }).join('')+L('<b>Net (Schedule E)</b>', '<b>'+taxMoney(r.rentNet)+'</b>', r.rentSuspended?'loss suspended (income over $150K), carries forward':(r.rentNet>0?'taxable rental income':''))+(has(t.rental_notes)?'<p class="foot" style="color:var(--text-dim);margin:8px 0 0">'+esc(t.rental_notes)+'</p>':'')
+    : L('Rent', taxMoney(num(t.rental_rent_yr)))+L('Mortgage interest', taxMoney(-num(t.rental_interest)))+L('Property tax', taxMoney(-num(t.rental_prop_tax)), 'county actual')
     +L('Insurance', taxMoney(-num(t.rental_insurance)))+L('Lawn care', taxMoney(-num(t.rental_lawn)))+(num(t.rental_repairs)?L('Repairs', taxMoney(-num(t.rental_repairs))):'')
     +L('Depreciation', taxMoney(-r.depr), taxMoney(num(t.rental_basis))+' × '+(100-num(t.rental_land_pct))+'% building ÷ 27.5 yrs')
     +L('<b>Net</b>', '<b>'+taxMoney(r.rentNet)+'</b>', r.rentSuspended?'loss suspended (income over $150K), carries forward':'');
+  
   var fields=[['Brad total church pay','brad_comp'],['Housing allowance designated','brad_housing_designated'],['Fair rental value / mo (furnished + utilities)','housing_frv_rent_mo'],['Extra FRV / mo (if not included above)','housing_frv_extras_mo'],
     ['Actual housing costs / yr','housing_actual_yr'],['Chelsea wages (incl. bonus)','chelsea_wages'],['Chelsea federal withholding / yr','chelsea_withholding_yr'],['Chelsea side income (net)','chelsea_sc_net'],
     ['ASDC income','asdc_income'],['ASDC expenses','asdc_expenses'],['Estimated payments made (EFTPS)','eftps_paid'],['Brad withholding so far','brad_withholding_ytd'],
@@ -4660,33 +4676,40 @@ function openPalette(){ $('palette').classList.remove('hidden'); var i=$('palInp
 function closePalette(){ $('palette').classList.add('hidden'); }
 
 
-/* ---------- AI launcher: a little "hive mind" of glowing dots swarming in color ---------- */
+/* ---------- AI orb: Apple-style particle sphere (hundreds of tiny flowing blue dots, rotating in 3D) ---------- */
 (function(){
-  var cv, ctx, dots=[], t0=performance.now(), raf=null, reduce=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
-  var COLORS=['#7aa2f7','#b392f0','#5fd0c5','#f28fad','#9ecbff','#c3a6ff'];
-  function init(){ cv=document.getElementById('aiHive'); if(!cv) return; ctx=cv.getContext('2d');
-    for(var i=0;i<30;i++) dots.push({r:10+Math.random()*40, a:Math.random()*6.283, s:(0.35+Math.random()*0.9)*(Math.random()<.5?-1:1), w:0.6+Math.random()*1.8,
-      z:Math.random()*6.283, size:2.2+Math.random()*3.2, c:COLORS[i%COLORS.length]});
-    loop(); document.addEventListener('visibilitychange', function(){ if(!document.hidden&&!raf) loop(); }); }
-  function frame(now){
-    var fab=document.getElementById('aiFab'); if(!ctx||!fab||fab.classList.contains('hidden')||document.hidden){ raf=null; return; }
-    var t=(now-t0)/1000, W=cv.width, C=W/2; ctx.clearRect(0,0,W,W);
-    var g=ctx.createRadialGradient(C,C,4,C,C,C); g.addColorStop(0,'rgba(122,162,247,.22)'); g.addColorStop(1,'rgba(122,162,247,0)'); ctx.fillStyle=g; ctx.fillRect(0,0,W,W);
+  var N=1200, pts=[], t0=performance.now(), raf=null, reduce=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var gold=Math.PI*(3-Math.sqrt(5));
+  for(var i=0;i<N;i++){ var y=1-(i/(N-1))*2, rad=Math.sqrt(1-y*y), th=gold*i;
+    pts.push({x:Math.cos(th)*rad, y:y, z:Math.sin(th)*rad, ph:Math.random()*6.283, sp:0.6+Math.random()*0.9, s:0.35+Math.random()*0.75, depth:0.55+Math.random()*0.45}); }
+  function draw(cv, t){
+    var dpr=Math.min(2, window.devicePixelRatio||1), W=cv.clientWidth, H=cv.clientHeight; if(!W||!H) return;
+    if(cv.width!==Math.round(W*dpr)||cv.height!==Math.round(H*dpr)){ cv.width=Math.round(W*dpr); cv.height=Math.round(H*dpr); }
+    var ctx=cv.getContext('2d'); ctx.setTransform(dpr,0,0,dpr,0,0); ctx.clearRect(0,0,W,H);
+    var R=Math.min(W,H)*0.36, cx=W/2, cy=H/2, ay=t*0.35, ax=Math.sin(t*0.23)*0.45+0.35;
+    var cay=Math.cos(ay), say=Math.sin(ay), cax=Math.cos(ax), sax=Math.sin(ax), big=W>40;
+    var halo=ctx.createRadialGradient(cx,cy,R*0.1,cx,cy,R*1.35); halo.addColorStop(0,'rgba(90,150,255,.20)'); halo.addColorStop(1,'rgba(90,150,255,0)'); ctx.fillStyle=halo; ctx.beginPath(); ctx.arc(cx,cy,Math.min(W,H)/2,0,6.283); ctx.fill();
     ctx.globalCompositeOperation='lighter';
-    var pts=dots.map(function(d){ var a=d.a+t*d.s*0.8, rr=d.r+Math.sin(t*d.w+d.z)*7;
-      var wob=Math.sin(t*0.7+d.z)*0.18; return {x:C+Math.cos(a+wob)*rr, y:C+Math.sin(a-wob)*rr*0.92, d:d}; });
-    ctx.lineWidth=1;
-    for(var i=0;i<pts.length;i++) for(var j=i+1;j<pts.length;j++){ var dx=pts[i].x-pts[j].x, dy=pts[i].y-pts[j].y, dd=dx*dx+dy*dy;
-      if(dd<380){ ctx.strokeStyle='rgba(160,180,255,'+(0.28*(1-dd/380)).toFixed(3)+')'; ctx.beginPath(); ctx.moveTo(pts[i].x,pts[i].y); ctx.lineTo(pts[j].x,pts[j].y); ctx.stroke(); } }
-    pts.forEach(function(p){ var pulse=0.75+0.25*Math.sin(t*2.2+p.d.z), s=p.d.size*pulse;
-      var gg=ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,s*3); gg.addColorStop(0,p.d.c); gg.addColorStop(0.35,p.d.c+'aa'); gg.addColorStop(1,p.d.c+'00');
-      ctx.fillStyle=gg; ctx.beginPath(); ctx.arc(p.x,p.y,s*3,0,6.283); ctx.fill(); });
+    for(var i=0;i<N;i++){ var p=pts[i];
+      // flowing surface: each point breathes in/out and drifts along the sphere
+      var flow=1+0.07*Math.sin(t*p.sp+p.ph)+0.05*Math.sin(t*0.9+p.y*5+p.ph*0.3), r=R*flow*p.depth;
+      var x=p.x*r, y=p.y*r, z=p.z*r;
+      var x1=x*cay+z*say, z1=-x*say+z*cay; var y1=y*cax-z1*sax, z2=y*sax+z1*cax;
+      var persp=1/(1-z2/(R*3.2)), px=cx+x1*persp, py=cy+y1*persp, front=(z2/R+1)/2;
+      var a=(0.28+0.72*front)*(0.6+0.4*Math.sin(t*1.7+p.ph)), size=Math.max(0.6,R/32)*p.s*persp*(0.7+0.5*front);
+      var hue=208+18*Math.sin(p.ph+t*0.2), light=62+18*front;
+      ctx.fillStyle='hsla('+hue.toFixed(0)+',95%,'+light.toFixed(0)+'%,'+a.toFixed(3)+')';
+      ctx.fillRect(px-size/2, py-size/2, size, size);
+    }
     ctx.globalCompositeOperation='source-over';
-    raf=reduce?null:requestAnimationFrame(frame);
   }
-  function loop(){ if(raf) return; raf=requestAnimationFrame(frame); }
-  window.aiHiveWake=loop;
-  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', init); else init();
+  function frame(now){ var t=(now-t0)/1000, any=false;
+    document.querySelectorAll('canvas.ai-sphere').forEach(function(cv){ if(cv.offsetParent===null) return; any=true; draw(cv,t); });
+    raf=(any&&!document.hidden&&!reduce)?requestAnimationFrame(frame):null; }
+  function wake(){ if(!raf) raf=requestAnimationFrame(frame); }
+  window.aiHiveWake=wake;
+  document.addEventListener('visibilitychange', function(){ if(!document.hidden) wake(); });
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', wake); else wake();
 })();
 /* ---------- AI assistant: memory, live data, web search, actions ---------- */
 var AI_LS='lifeos_ai_chat', AI_MSGS=[], AI_BUSY=false;
@@ -4723,10 +4746,10 @@ function aiMd(t){
 function aiRender(){
   var b=$('aiBody'); if(!b) return;
   if(!AI_MSGS.length){
-    b.innerHTML='<div class="ai-hello"><span class="ai-orb lg"><svg viewBox="0 0 24 24"><path d="M12 2.5l1.9 5.6 5.6 1.9-5.6 1.9L12 17.5l-1.9-5.6L4.5 10l5.6-1.9z"/></svg></span>'
+    b.innerHTML='<div class="ai-hello"><canvas class="ai-sphere ai-hello-orb"></canvas>'
       +'<h3>Hi Brad. What’s on your mind?</h3><p>I can see your money, flying, health, calendar, deals and home, look things up on the web, and add tasks for you.</p>'
       +'<div class="ai-sugg">'+aiSuggestions().map(function(x){ return '<button onclick="aiAskText(this.textContent)">'+esc(x)+'</button>'; }).join('')+'</div></div>';
-    return; }
+    if(window.aiHiveWake) aiHiveWake(); return; }
   b.innerHTML=AI_MSGS.map(function(m,i){
     if(m.role==='user') return '<div class="aiMsg u"><div class="bub">'+esc(m.content).replace(/\n/g,'<br>')+'</div></div>';
     return '<div class="aiMsg a'+(m.error?' err':'')+'"><span class="ai-orb xs"><svg viewBox="0 0 24 24"><path d="M12 2.5l1.9 5.6 5.6 1.9-5.6 1.9L12 17.5l-1.9-5.6L4.5 10l5.6-1.9z"/></svg></span><div class="bub">'

@@ -66,3 +66,5 @@
   clergy rules — Sec.107 housing exclusion = min(designated, actual, FRV incl. furnishings+utilities); minister pay incl. full allowance is SE income
   (Tax kv brad_pays_se_tax=no for Form 4361); rental Sch E with land-split depreciation + passive-loss phase-out; itemized vs standard; QBI; safe harbor.
   taxMoves() = prioritized actions (checkbox state in Tax kv move_<id>); taxAlerts() feed Today. Planning estimate, not advice — keep the CPA caveat.
+- AI orb: canvas.ai-sphere elements (launcher #aiHive + chat welcome) share one rAF loop drawing a ~1,200-point Fibonacci particle sphere
+  (3D rotation + flowing radius), Apple-setup style; only visible canvases animate. Tax kv rental_ledger (JSON rows) drives the Schedule E card.
