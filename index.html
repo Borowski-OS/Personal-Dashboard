@@ -4346,7 +4346,7 @@ function taxMoves(r){
     how:'If the Maule was bought in 2026, add the Nevada sales/use tax paid on it (~8% of the price) to “sales_tax”. Also count the laptop and any other big purchases.', due:'Tax year of purchase'});
   out.push({id:'cpa', title:'Hand this page to a clergy-savvy CPA',
     save:'Ministers have unusual rules (dual status, housing allowance, SE tax). One review can pay for itself many times over.',
-    how:'Ask specifically: '+(r.seca?'1) Is Brad paying SE tax, or does he have an approved Form 4361 exemption? ':'1) Confirm the Form 4361 exemption covers only ministerial pay (side businesses like ASDC still owe SE tax). ')+'2) Was the 2025 housing exclusion above fair rental value (amend if so)? 3) 403(b) strategy. 4) Chelsea’s aviation expenses.', due:'Before Jan 15, 2027'});
+    how:'Ask specifically: '+(r.seca?'1) Is Brad paying SE tax, or does he have an approved Form 4361 exemption? ':'1) Confirm the Form 4361 exemption covers only ministerial pay (side businesses like ASDC still owe SE tax). ')+'2) Housing file: 2025 costs (down payment, roof, furnishings) and 2026 costs vs. the furnished-rent opinion. 3) Roth vs 403(b) at your bracket. 4) Chelsea’s aviation expenses.', due:'Before Jan 15, 2027'});
   return out;
 }
 function renderTaxes(){
