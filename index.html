@@ -862,6 +862,61 @@
   .call-next { flex-basis:100%; display:flex; flex-wrap:wrap; gap:4px 16px; font-size:12.5px; color:var(--text-muted); }
   .call-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:6px; } @media (max-width:640px){ .call-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
   .call-day { background:var(--card-2); border-radius:8px; padding:7px 9px; font-size:12.5px; display:flex; flex-direction:column; } .call-day span { color:var(--text-dim); font-size:11px; }
+
+  /* ===== AI assistant v2 ===== */
+  .ai-orb { --o1:#7aa2f7; --o2:#b392f0; --o3:#5fd0c5; position:relative; display:inline-flex; align-items:center; justify-content:center; width:44px; height:44px; border-radius:50%; flex:0 0 auto;
+    background:conic-gradient(from var(--a,0deg), var(--o1), var(--o2), var(--o3), var(--o1)); animation:aiRot 6s linear infinite; box-shadow:0 0 22px rgba(122,162,247,.45), inset 0 0 12px rgba(255,255,255,.25); }
+  .ai-orb::after { content:''; position:absolute; inset:3px; border-radius:50%; background:radial-gradient(circle at 35% 30%, rgba(255,255,255,.35), rgba(20,23,28,.15) 55%, rgba(20,23,28,.35)); }
+  .ai-orb svg { position:relative; z-index:1; width:55%; height:55%; fill:#fff; filter:drop-shadow(0 1px 2px rgba(0,0,0,.35)); }
+  .ai-orb.sm { width:32px; height:32px; } .ai-orb.xs { width:24px; height:24px; box-shadow:0 0 10px rgba(122,162,247,.35); } .ai-orb.lg { width:64px; height:64px; }
+  @property --a { syntax:'<angle>'; inherits:false; initial-value:0deg; }
+  @keyframes aiRot { to { --a:360deg; } }
+  @media (prefers-reduced-motion:reduce){ .ai-orb { animation:none; } }
+  #aiFab { all:unset; position:fixed; right:22px; bottom:22px; z-index:2400; display:flex; align-items:center; gap:10px; cursor:pointer; padding:6px 16px 6px 6px; border-radius:40px;
+    background:rgba(32,36,43,.92); border:1px solid rgba(122,162,247,.35); box-shadow:0 10px 30px rgba(0,0,0,.45), 0 0 0 1px rgba(255,255,255,.02); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); transition:transform .15s, box-shadow .15s; }
+  #aiFab:hover { transform:translateY(-2px); box-shadow:0 14px 34px rgba(0,0,0,.5), 0 0 24px rgba(122,162,247,.25); }
+  #aiFab.hidden { display:none; }
+  .ai-fab-lbl { font:600 13.5px Inter,sans-serif; color:#e6e9ee; white-space:nowrap; } .ai-fab-lbl kbd { font:500 11px Inter,sans-serif; color:var(--text-dim); border:1px solid var(--card-border-2); border-radius:5px; padding:1px 5px; margin-left:4px; }
+  #aiPanel { position:fixed; right:22px; bottom:22px; z-index:2500; width:440px; height:min(680px, calc(100vh - 44px)); max-width:calc(100vw - 32px); display:flex; flex-direction:column;
+    background:rgba(24,27,33,.97); border:1px solid rgba(122,162,247,.22); border-radius:18px; overflow:hidden; box-shadow:0 24px 70px rgba(0,0,0,.6), 0 0 40px rgba(122,162,247,.10);
+    backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); animation:aiIn .18s ease-out; }
+  #aiPanel.hidden { display:none; }
+  #aiPanel.big { width:min(860px, calc(100vw - 280px)); height:calc(100vh - 44px); }
+  @keyframes aiIn { from { opacity:0; transform:translateY(10px) scale(.98); } to { opacity:1; transform:none; } }
+  .aiHead { display:flex; align-items:center; gap:10px; padding:12px 12px 12px 14px; border-bottom:1px solid var(--card-border); background:linear-gradient(180deg, rgba(122,162,247,.07), transparent); }
+  .aiTitle { flex:1; min-width:0; display:flex; flex-direction:column; } .aiTitle strong { font-size:14.5px; color:#e9eefb; } .aiTitle span { font-size:11.5px; color:var(--text-dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .ai-ic { all:unset; cursor:pointer; width:32px; height:32px; border-radius:8px; display:inline-flex; align-items:center; justify-content:center; color:var(--text-muted); flex:0 0 auto; }
+  .ai-ic:hover { background:rgba(255,255,255,.06); color:var(--text); } .ai-ic svg { width:17px; height:17px; fill:none; stroke:currentColor; stroke-width:1.9; stroke-linecap:round; stroke-linejoin:round; }
+  .ai-ic.hidden { display:none; } .ai-mic.on { color:#ff6b7a; background:rgba(229,112,122,.12); animation:aiPulse 1.2s infinite; }
+  @keyframes aiPulse { 50% { box-shadow:0 0 0 6px rgba(229,112,122,.15); } }
+  .aiBody { flex:1; overflow-y:auto; padding:16px 16px 8px; font-size:14.5px; line-height:1.55; scroll-behavior:smooth; }
+  .ai-hello { text-align:center; padding:26px 8px 8px; } .ai-hello h3 { margin:14px 0 6px; font-size:18px; color:#e9eefb; } .ai-hello p { margin:0 auto 16px; max-width:330px; color:var(--text-muted); font-size:13.5px; }
+  .ai-sugg { display:flex; flex-direction:column; gap:8px; text-align:left; }
+  .ai-sugg button { all:unset; cursor:pointer; padding:10px 13px; border-radius:11px; border:1px solid var(--card-border-2); background:rgba(255,255,255,.02); color:var(--text); font-size:13.5px; transition:all .12s; }
+  .ai-sugg button:hover { border-color:rgba(122,162,247,.5); background:rgba(122,162,247,.08); }
+  .aiMsg { display:flex; gap:9px; margin-bottom:16px; align-items:flex-start; } .aiMsg.u { justify-content:flex-end; }
+  .aiMsg.u .bub { background:var(--accent) !important; color:#0f1319 !important; padding:9px 13px; border-radius:16px 16px 4px 16px; max-width:82%; font-weight:500; }
+  .aiMsg.a .bub { background:transparent !important; padding:2px 0 0; max-width:calc(100% - 34px); color:var(--text); position:relative; }
+  .aiMsg.a .ai-orb.xs { margin-top:2px; } .aiMsg.err .bub { color:var(--red); }
+  .aiMsg.a .bub p { margin:0 0 8px; } .aiMsg.a .bub ul, .aiMsg.a .bub ol { margin:4px 0 8px; padding-left:20px; } .aiMsg.a .bub li { margin:3px 0; }
+  .aiMsg.a .bub h4 { margin:10px 0 4px; font-size:14px; color:#e9eefb; } .aiMsg.a .bub b { color:#eef2f8; } .aiMsg.a .bub a { color:#8fb3f8; }
+  .aiMsg.a .bub code { background:rgba(255,255,255,.07); padding:1px 5px; border-radius:4px; font-size:12.5px; }
+  .ai-acts { display:flex; flex-wrap:wrap; gap:6px; margin:6px 0 4px; } .ai-acts span { font-size:12px; color:#8fd4a7; background:rgba(107,196,138,.12); border:1px solid rgba(107,196,138,.3); padding:3px 9px; border-radius:20px; }
+  .ai-src { display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; } .ai-src a { font-size:11.5px; color:var(--text-muted) !important; border:1px solid var(--card-border-2); padding:2px 8px; border-radius:20px; text-decoration:none; }
+  .ai-copy { all:unset; cursor:pointer; font-size:11px; color:var(--text-dim); opacity:0; transition:opacity .15s; } .aiMsg.a:hover .ai-copy { opacity:1; }
+  .ai-typing { display:flex; align-items:center; gap:4px; color:var(--text-dim); font-size:12.5px; padding:6px 0; }
+  .ai-typing i { width:6px; height:6px; border-radius:50%; background:var(--accent); animation:aiDot 1.2s infinite ease-in-out; } .ai-typing i:nth-child(2){ animation-delay:.15s; } .ai-typing i:nth-child(3){ animation-delay:.3s; }
+  .ai-typing span { margin-left:8px; } @keyframes aiDot { 0%,80%,100% { opacity:.25; transform:translateY(0); } 40% { opacity:1; transform:translateY(-3px); } }
+  .aiInputWrap { display:flex; align-items:flex-end; gap:6px; margin:8px 12px 12px; padding:6px 6px 6px 12px; border:1px solid var(--card-border-2); border-radius:14px; background:#15181d; transition:border-color .15s; }
+  .aiInputWrap:focus-within { border-color:rgba(122,162,247,.6); box-shadow:0 0 0 3px rgba(122,162,247,.12); }
+  #aiInput { flex:1; border:none !important; background:transparent !important; outline:none; resize:none; color:var(--text); font:inherit; font-size:14.5px; line-height:1.45; padding:7px 0; max-height:140px; box-shadow:none !important; }
+  .ai-send { all:unset; cursor:pointer; width:34px; height:34px; border-radius:10px; display:inline-flex; align-items:center; justify-content:center; background:linear-gradient(135deg,#7aa2f7,#b392f0); color:#0f1319; flex:0 0 auto; }
+  .ai-send svg { width:17px; height:17px; fill:none; stroke:currentColor; stroke-width:2.2; stroke-linecap:round; stroke-linejoin:round; } .ai-send:disabled { opacity:.45; cursor:default; }
+  @media (max-width:640px){
+    #aiFab { right:14px; bottom:calc(74px + env(safe-area-inset-bottom)) !important; padding:5px; width:auto !important; height:auto !important; } .ai-fab-lbl { display:none; } #aiFab .ai-orb { width:46px; height:46px; }
+    #aiPanel, #aiPanel.big { inset:0; right:0; bottom:0; width:100%; max-width:100%; height:100%; border-radius:0; border:none; padding-top:env(safe-area-inset-top); padding-bottom:env(safe-area-inset-bottom); }
+    .ai-exp { display:none; } body.ai-open { overflow:hidden; }
+  }
 </style>
 </head>
 <body>
@@ -897,18 +952,23 @@
 </div>
 
 <!-- Floating AI assistant -->
-<button id="aiFab" class="hidden" onclick="openAI()" title="Ask AI about your data" aria-label="Ask AI">
-  <span class="aiFabIcon">✦</span>
+<button id="aiFab" class="hidden" onclick="openAI()" title="Ask Life OS (⌘J)" aria-label="Ask AI">
+  <span class="ai-orb"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5l1.9 5.6 5.6 1.9-5.6 1.9L12 17.5l-1.9-5.6L4.5 10l5.6-1.9z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z" opacity=".7"/></svg></span>
+  <span class="ai-fab-lbl">Ask Life OS <kbd>⌘J</kbd></span>
 </button>
-<div id="aiPanel" class="hidden">
+<div id="aiPanel" class="hidden" role="dialog" aria-label="Life OS AI">
   <div class="aiHead">
-    <div><span class="aiDot"></span> <strong>Ask your Life OS</strong></div>
-    <button class="mclose" onclick="closeAI()" style="position:static">×</button>
+    <span class="ai-orb sm"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5l1.9 5.6 5.6 1.9-5.6 1.9L12 17.5l-1.9-5.6L4.5 10l5.6-1.9z"/></svg></span>
+    <div class="aiTitle"><strong>Life OS AI</strong><span>Knows your dashboard · searches the web · can add tasks</span></div>
+    <button class="ai-ic" onclick="aiNew()" title="New chat"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+    <button class="ai-ic ai-exp" onclick="aiExpand()" title="Expand"><svg viewBox="0 0 24 24"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg></button>
+    <button class="ai-ic" onclick="closeAI()" title="Close (Esc)"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
   </div>
   <div id="aiBody" class="aiBody"></div>
   <div class="aiInputWrap">
-    <input id="aiInput" type="text" placeholder="Ask about your money, flying, goals…" autocomplete="off" onkeydown="if(event.key==='Enter')askAI()">
-    <button class="ebtn pri" onclick="askAI()" id="aiSend">Ask</button>
+    <textarea id="aiInput" rows="1" placeholder="Ask anything, or say “add a task to…”" autocomplete="off" oninput="aiGrow(this)" onkeydown="aiKey(event)"></textarea>
+    <button class="ai-ic ai-mic hidden" id="aiMic" onclick="aiVoice()" title="Speak"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
+    <button class="ai-send" onclick="askAI()" id="aiSend" title="Send"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
   </div>
 </div>
 
@@ -4398,27 +4458,81 @@ function palIndex(){
 function openPalette(){ $('palette').classList.remove('hidden'); var i=$('palInput'); i.value=''; PAL_SEL=0; palRender(); setTimeout(function(){i.focus();},30); }
 function closePalette(){ $('palette').classList.add('hidden'); }
 
-/* ---------- AI assistant ---------- */
-function openAI(){ $('aiPanel').classList.remove('hidden'); $('aiFab').classList.add('hidden');
-  if(!$('aiBody').getAttribute('data-init')){ $('aiBody').setAttribute('data-init','1');
-    aiPush('a','Hi Brad — ask me anything about your dashboard. A few ideas:'+aiSuggestions()); }
-  setTimeout(function(){$('aiInput').focus();},60); }
-function closeAI(){ $('aiPanel').classList.add('hidden'); $('aiFab').classList.remove('hidden'); }
-function aiSuggestions(){ var s=['Where am I overspending?','Am I on track to be acquisition-ready?','What should I do to hit 185 lb?','Any hunt deadlines coming up?','Should I refinance?'];
-  return '<div class="aiHint" style="margin-top:8px">'+s.map(function(x){return '<span class="chip" onclick="aiAskText('+JSON.stringify(x).replace(/"/g,'&quot;')+')">'+esc(x)+'</span>';}).join('')+'</div>'; }
-function aiMd(t){ t=esc(t).replace(/\*\*([^*]+)\*\*/g,'<b>$1</b>').replace(/^[\-\*]\s+(.*)$/gm,'• $1'); return t.replace(/\n/g,'<br>'); }
-function aiPush(role, html){ var b=$('aiBody'); var d=document.createElement('div'); d.className='aiMsg '+role;
-  d.innerHTML='<span class="bub">'+html+'</span>'; b.appendChild(d); b.scrollTop=b.scrollHeight; return d; }
-function aiAskText(t){ $('aiInput').value=t; askAI(); }
-async function askAI(){ var q=($('aiInput').value||'').trim(); if(!q) return; $('aiInput').value='';
-  aiPush('u', esc(q));
-  var thinking=aiPush('a','<span class="aiHint">thinking…</span>'); $('aiSend').disabled=true;
-  try{ var pw=sessionStorage.getItem(SS_PW);
-    var res=await jsonp(API_URL+'?pw='+pw+'&action=ask&q='+encodeURIComponent(q), 60000);
-    if(res&&res.ok){ thinking.querySelector('.bub').innerHTML=aiMd(res.answer); }
-    else { thinking.querySelector('.bub').innerHTML='<span style="color:var(--rose)">'+(res&&res.error==='no key'?'AI isn\'t connected yet — send me your Anthropic API key and I\'ll switch it on.':'Error: '+esc((res&&res.error)||'try again'))+'</span>'; }
-  }catch(e){ thinking.querySelector('.bub').innerHTML='<span style="color:var(--rose)">Timed out — try again.</span>'; }
-  $('aiSend').disabled=false; $('aiBody').scrollTop=$('aiBody').scrollHeight;
+/* ---------- AI assistant: memory, live data, web search, actions ---------- */
+var AI_LS='lifeos_ai_chat', AI_MSGS=[], AI_BUSY=false;
+try{ AI_MSGS=JSON.parse(localStorage.getItem(AI_LS)||'[]')||[]; }catch(e){ AI_MSGS=[]; }
+function aiSave(){ try{ localStorage.setItem(AI_LS, JSON.stringify(AI_MSGS.slice(-30))); }catch(e){} }
+function openAI(){ $('aiPanel').classList.remove('hidden'); $('aiFab').classList.add('hidden'); document.body.classList.add('ai-open');
+  if(window.SpeechRecognition||window.webkitSpeechRecognition) $('aiMic').classList.remove('hidden');
+  $('aiInput').placeholder = window.innerWidth<=640 ? 'Ask anything…' : 'Ask anything, or say “add a task to…”';
+  aiRender(); setTimeout(function(){ if(window.innerWidth>640) $('aiInput').focus(); },60); }
+function closeAI(){ $('aiPanel').classList.add('hidden'); $('aiFab').classList.remove('hidden'); document.body.classList.remove('ai-open'); }
+function aiExpand(){ $('aiPanel').classList.toggle('big'); }
+function aiNew(){ if(AI_BUSY) return; AI_MSGS=[]; aiSave(); aiRender(); $('aiInput').focus(); }
+function aiGrow(t){ t.style.height='auto'; t.style.height=Math.min(140,t.scrollHeight)+'px'; }
+function aiKey(e){ if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); askAI(); } if(e.key==='Escape') closeAI(); }
+document.addEventListener('keydown',function(e){ if((e.metaKey||e.ctrlKey)&&(e.key==='j'||e.key==='J')){ if(ROLE==='chelsea'||!DATA) return; e.preventDefault(); $('aiPanel').classList.contains('hidden')?openAI():closeAI(); } });
+function aiSuggestions(){
+  var by={overview:['What should I focus on today?','Anything I’m forgetting this week?','How am I doing overall?'],
+    home:['Where am I overspending?','Should I refinance either mortgage?','How much house equity do I have?'],
+    ventures:['Which deal is closest to working?','How much cash could I raise for a deal?','Explain my best rental option'],
+    flying:['Can I fly this weekend?','How much do I owe Jeremy?','What should I practice next lesson?'],
+    health:['How is my recovery trending?','Plan my workouts this week','How do I get to my goal weight?'],
+    life:['What car maintenance is due?','Who am I calling this week?','What home projects are open?'],
+    faith:['Give me a short prayer for today','How are my rhythms going?','Suggest a Sabbath plan']};
+  return (by[CURRENT]||by.overview).concat(['Add a task: '+(CURRENT==='flying'?'book the written test':'call the insurance agent')]); }
+function aiMd(t){
+  var out=[], list=null, flush=function(){ if(list){ out.push('<'+list.t+'>'+list.i.join('')+'</'+list.t+'>'); list=null; } };
+  var inl=function(x){ return esc(x).replace(/\[([^\]]+)\]\((https?:[^)\s]+)\)/g,'<a href="$2" target="_blank" rel="noopener">$1</a>')
+    .replace(/\*\*([^*]+)\*\*/g,'<b>$1</b>').replace(/(^|[^*])\*([^*\n]+)\*/g,'$1<i>$2</i>').replace(/`([^`]+)`/g,'<code>$1</code>'); };
+  String(t||'').split('\n').forEach(function(line){ var m;
+    if((m=line.match(/^\s*[-*•]\s+(.*)/))){ if(!list||list.t!=='ul'){ flush(); list={t:'ul',i:[]}; } list.i.push('<li>'+inl(m[1])+'</li>'); return; }
+    if((m=line.match(/^\s*\d+[.)]\s+(.*)/))){ if(!list||list.t!=='ol'){ flush(); list={t:'ol',i:[]}; } list.i.push('<li>'+inl(m[1])+'</li>'); return; }
+    flush(); if((m=line.match(/^#{1,4}\s+(.*)/))) out.push('<h4>'+inl(m[1])+'</h4>'); else if(line.trim()) out.push('<p>'+inl(line)+'</p>'); });
+  flush(); return out.join(''); }
+function aiRender(){
+  var b=$('aiBody'); if(!b) return;
+  if(!AI_MSGS.length){
+    b.innerHTML='<div class="ai-hello"><span class="ai-orb lg"><svg viewBox="0 0 24 24"><path d="M12 2.5l1.9 5.6 5.6 1.9-5.6 1.9L12 17.5l-1.9-5.6L4.5 10l5.6-1.9z"/></svg></span>'
+      +'<h3>Hi Brad. What’s on your mind?</h3><p>I can see your money, flying, health, calendar, deals and home, look things up on the web, and add tasks for you.</p>'
+      +'<div class="ai-sugg">'+aiSuggestions().map(function(x){ return '<button onclick="aiAskText(this.textContent)">'+esc(x)+'</button>'; }).join('')+'</div></div>';
+    return; }
+  b.innerHTML=AI_MSGS.map(function(m,i){
+    if(m.role==='user') return '<div class="aiMsg u"><div class="bub">'+esc(m.content).replace(/\n/g,'<br>')+'</div></div>';
+    return '<div class="aiMsg a'+(m.error?' err':'')+'"><span class="ai-orb xs"><svg viewBox="0 0 24 24"><path d="M12 2.5l1.9 5.6 5.6 1.9-5.6 1.9L12 17.5l-1.9-5.6L4.5 10l5.6-1.9z"/></svg></span><div class="bub">'
+      +(m.pending?'<div class="ai-typing"><i></i><i></i><i></i><span id="aiStatus">Reading your dashboard…</span></div>':aiMd(m.content))
+      +((m.actions||[]).length?'<div class="ai-acts">'+m.actions.map(function(a){return '<span>✓ '+esc(a)+'</span>';}).join('')+'</div>':'')
+      +((m.sources||[]).length?'<div class="ai-src">'+m.sources.map(function(s){ var h=''; try{ h=new URL(s.url).hostname.replace(/^www\./,''); }catch(e){}
+          return '<a href="'+esc(s.url)+'" target="_blank" rel="noopener" title="'+esc(s.title||'')+'">'+esc(h||'source')+'</a>'; }).join('')+'</div>':'')
+      +(!m.pending&&!m.error?'<button class="ai-copy" onclick="aiCopy('+i+')" title="Copy">Copy</button>':'')+'</div></div>';
+  }).join('');
+  b.scrollTop=b.scrollHeight; }
+function aiCopy(i){ var m=AI_MSGS[i]; if(!m) return; try{ navigator.clipboard.writeText(m.content); toast('Copied'); }catch(e){} }
+function aiAskText(t){ $('aiInput').value=t.replace(/^Add a task: /,'Add a task to ')+(t.indexOf('Add a task')===0?'':''); askAI(); }
+async function askAI(){
+  var inp=$('aiInput'), q=(inp.value||'').trim(); if(!q||AI_BUSY) return;
+  inp.value=''; aiGrow(inp); AI_BUSY=true; $('aiSend').disabled=true;
+  var hist=AI_MSGS.filter(function(m){return !m.pending&&!m.error;}).slice(-12).map(function(m){return {role:m.role, content:m.content};});
+  AI_MSGS.push({role:'user', content:q}); var pend={role:'assistant', content:'', pending:true}; AI_MSGS.push(pend); aiRender();
+  var t0=Date.now(), steps=['Reading your dashboard…','Checking the numbers…','Thinking it through…','Searching the web…','Almost there…'];
+  var tick=setInterval(function(){ var s=$('aiStatus'); if(!s) return; var k=Math.min(steps.length-1, Math.floor((Date.now()-t0)/8000)); s.textContent=steps[k]+' '+Math.round((Date.now()-t0)/1000)+'s'; },1000);
+  var res=null;
+  try{ res=await fetch(API_URL,{method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body:JSON.stringify({pw:sessionStorage.getItem(SS_PW), action:'ask', q:q, history:hist, tab:(TABS[CURRENT]||{}).title||CURRENT})}).then(function(r){return r.json();}); }
+  catch(e){ try{ res=await jsonp(API_URL+'?pw='+sessionStorage.getItem(SS_PW)+'&action=ask&q='+encodeURIComponent(q), 120000); }catch(e2){ res=null; } }
+  clearInterval(tick); pend.pending=false;
+  if(res&&res.ok){ pend.content=res.answer; pend.actions=res.actions||[]; pend.sources=res.sources||[]; if(pend.actions.length) afterWriteQuiet(); }
+  else { pend.error=true; pend.content=(res&&res.error==='no key')?'AI isn’t connected yet.':'Sorry, that didn’t go through ('+((res&&res.error)||'connection')+'). Try again.'; }
+  AI_BUSY=false; $('aiSend').disabled=false; aiSave(); aiRender();
+}
+var AI_REC=null;
+function aiVoice(){
+  var R=window.SpeechRecognition||window.webkitSpeechRecognition; if(!R) return;
+  if(AI_REC){ AI_REC.stop(); return; }
+  AI_REC=new R(); AI_REC.lang='en-US'; AI_REC.interimResults=true; var mic=$('aiMic'); mic.classList.add('on');
+  AI_REC.onresult=function(e){ var t=''; for(var i=0;i<e.results.length;i++) t+=e.results[i][0].transcript; $('aiInput').value=t; aiGrow($('aiInput'));
+    if(e.results[e.results.length-1].isFinal){ AI_REC.stop(); setTimeout(askAI,250); } };
+  AI_REC.onend=function(){ mic.classList.remove('on'); AI_REC=null; }; AI_REC.onerror=AI_REC.onend; AI_REC.start();
 }
 function palRender(){
   var q=($('palInput').value||'').trim().toLowerCase();

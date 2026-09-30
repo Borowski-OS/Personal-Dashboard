@@ -56,3 +56,7 @@
   Comp sources: Carson City recorded sales via carsoncitynv.devnetwedge.com (POST /Search/ExecuteSalesSearch, then POST /Search/SalesResults;
   parcel detail /parcel/view/<parcel#>/<year>); Humboldt County parcels at humboldt-search.gsacorp.io/parcel/<id> (sales history on each page).
   Backend action `homecomps&which=prospect|lahontan` returns RentCast property record + AVM comps (list prices, not closed sales). Re-appraise yearly.
+- AI chat (bottom-right orb, ⌘J): page POSTs {pw, action:'ask', q, history(last 12), tab} → Assistant.js aiChat_ (claude-opus-5-5, effort low,
+  web_search + tools add_next_step / log_weight / add_call_person; returns answer, actions, sources). aiContext_ = lifeContext_ + calendar, bills due,
+  flying/CFI owed/TAF line, health/sick mode, homes, pipelines, vehicles, calls, habits, trips, radar. Chat history in localStorage `lifeos_ai_chat`.
+  ~20–40 s per answer (Apps Script can't stream); the page shows a live status. Chelsea's role can't reach it (POST is Brad-only).
