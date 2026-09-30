@@ -949,6 +949,11 @@
   #aiFab:hover { box-shadow:0 12px 34px rgba(0,0,0,.55), 0 0 38px rgba(90,160,255,.5) !important; }
   canvas.ai-sphere { display:block; width:100%; height:100%; }
   .ai-hello-orb { width:150px !important; height:150px !important; margin:0 auto; }
+
+  /* orb launcher: no circle, just the floating particle sphere */
+  #aiFab { background:transparent !important; border:none !important; box-shadow:none !important; overflow:visible !important; }
+  #aiFab:hover { box-shadow:none !important; transform:scale(1.08); }
+  #aiFab canvas { filter:drop-shadow(0 0 6px rgba(90,160,255,.45)); }
 </style>
 </head>
 <body>
@@ -4688,7 +4693,7 @@ function closePalette(){ $('palette').classList.add('hidden'); }
     var ctx=cv.getContext('2d'); ctx.setTransform(dpr,0,0,dpr,0,0); ctx.clearRect(0,0,W,H);
     var R=Math.min(W,H)*0.36, cx=W/2, cy=H/2, ay=t*0.35, ax=Math.sin(t*0.23)*0.45+0.35;
     var cay=Math.cos(ay), say=Math.sin(ay), cax=Math.cos(ax), sax=Math.sin(ax), big=W>40;
-    var halo=ctx.createRadialGradient(cx,cy,R*0.1,cx,cy,R*1.35); halo.addColorStop(0,'rgba(90,150,255,.20)'); halo.addColorStop(1,'rgba(90,150,255,0)'); ctx.fillStyle=halo; ctx.beginPath(); ctx.arc(cx,cy,Math.min(W,H)/2,0,6.283); ctx.fill();
+    if(W>100){ var halo=ctx.createRadialGradient(cx,cy,R*0.1,cx,cy,R*1.35); halo.addColorStop(0,'rgba(90,150,255,.20)'); halo.addColorStop(1,'rgba(90,150,255,0)'); ctx.fillStyle=halo; ctx.beginPath(); ctx.arc(cx,cy,Math.min(W,H)/2,0,6.283); ctx.fill(); }
     ctx.globalCompositeOperation='lighter';
     for(var i=0;i<N;i++){ var p=pts[i];
       // flowing surface: each point breathes in/out and drifts along the sphere
