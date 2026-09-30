@@ -917,6 +917,31 @@
     #aiPanel, #aiPanel.big { inset:0; right:0; bottom:0; width:100%; max-width:100%; height:100%; border-radius:0; border:none; padding-top:env(safe-area-inset-top); padding-bottom:env(safe-area-inset-bottom); }
     .ai-exp { display:none; } body.ai-open { overflow:hidden; }
   }
+
+  /* AI launcher = animated hive of dots (no label) */
+  #aiFab { all:unset; position:fixed; right:22px; bottom:22px; z-index:2400; width:68px; height:68px; border-radius:50%; cursor:pointer; display:block;
+    background:radial-gradient(circle at 50% 45%, rgba(38,44,58,.95), rgba(16,19,25,.97) 70%); border:1px solid rgba(122,162,247,.35);
+    box-shadow:0 10px 30px rgba(0,0,0,.5), 0 0 26px rgba(122,162,247,.28), inset 0 0 18px rgba(179,146,240,.18); transition:transform .18s, box-shadow .18s; overflow:hidden; }
+  #aiFab:hover { transform:scale(1.07); box-shadow:0 12px 34px rgba(0,0,0,.55), 0 0 34px rgba(179,146,240,.45), inset 0 0 22px rgba(95,208,197,.22); }
+  #aiFab.hidden { display:none; } #aiHive { width:100%; height:100%; display:block; }
+  @media (max-width:640px){ #aiFab { right:14px; bottom:calc(74px + env(safe-area-inset-bottom)) !important; width:58px !important; height:58px !important; padding:0; } }
+
+  /* Taxes page */
+  .tax-alert { background:rgba(229,112,122,.07); border:1px solid rgba(229,112,122,.3); border-radius:12px; padding:14px 18px; font-size:14px; line-height:1.55; }
+  .tax-alert ol { margin:6px 0 0; padding-left:20px; } .tax-alert li { margin:3px 0; } .tax-alert a { color:#8fb3f8; }
+  .tax-move { display:flex; gap:10px; padding:11px 0; border-bottom:1px solid var(--card-border); align-items:flex-start; }
+  .tax-move:last-child { border-bottom:none; } .tax-move.done .tm-t { text-decoration:line-through; color:var(--text-dim); }
+  .tax-move.urgent .tm-t { color:#f0a0a7; } .tm-chk input { margin-top:3px; accent-color:var(--accent); width:16px; height:16px; }
+  .tm-body { flex:1; min-width:0; } .tm-t { font-weight:600; font-size:14.5px; } .tm-s { font-size:13px; color:var(--text-muted); margin-top:2px; }
+  .tm-body details summary { font-size:12.5px; color:#8fb3f8; cursor:pointer; margin-top:4px; } .tm-h { font-size:13px; color:var(--text); margin-top:4px; line-height:1.5; }
+  .tm-d { font-size:11.5px; color:var(--text-dim); white-space:nowrap; text-align:right; max-width:110px; white-space:normal; }
+  .tax-bars .tb-row { display:grid; grid-template-columns:150px 1fr 90px; gap:10px; align-items:center; margin:8px 0; font-size:13.5px; }
+  .tb-bar { height:10px; background:var(--card-2); border-radius:6px; overflow:hidden; } .tb-bar i { display:block; height:100%; background:var(--accent); border-radius:6px; }
+  .tb-row b { text-align:right; }
+  .tax-form { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px 12px; }
+  .tax-form label { display:flex; flex-direction:column; gap:3px; font-size:12px; color:var(--text-muted); }
+  .tax-form input, .tax-form select { background:#171a1f; color:var(--text); border:1px solid var(--card-border-2); border-radius:8px; padding:7px 9px; font:inherit; font-size:14px; min-width:0; }
+  @media (max-width:640px){ #navTabs .nav-tab[data-tab="taxes"] { display:none; } .tax-bars .tb-row { grid-template-columns:110px 1fr 70px; font-size:12.5px; } .tax-form { grid-template-columns:minmax(0,1fr); } }
 </style>
 </head>
 <body>
@@ -926,6 +951,7 @@
   <div class="nav-tabs" id="navTabs">
     <button class="nav-tab active" data-tab="overview" onclick="navGo('overview')"><svg class="ni" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg><span class="nt">Today</span></button>
     <button class="nav-tab" data-tab="home" onclick="navGo('home')"><svg class="ni" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="6" width="20" height="13" rx="2"/><path d="M16 12.5h2M2 10h20"/></svg><span class="nt">Money</span></button>
+    <button class="nav-tab" data-tab="taxes" onclick="navGo('taxes')"><svg class="ni" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9.5 14.5l5-5"/><circle cx="9.7" cy="9.7" r=".9"/><circle cx="14.3" cy="14.3" r=".9"/></svg><span class="nt">Taxes</span></button>
     <button class="nav-tab" data-tab="ventures" onclick="navGo('ventures')"><svg class="ni" viewBox="0 0 24 24" aria-hidden="true"><path d="M22 7l-8.5 8.5-5-5L2 17"/><path d="M16 7h6v6"/></svg><span class="nt">Ventures</span></button>
     <button class="nav-tab" data-tab="flying" onclick="navGo('flying')"><svg class="ni" viewBox="0 0 24 24" aria-hidden="true"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/></svg><span class="nt">Flying</span></button>
     <button class="nav-tab" data-tab="health" onclick="navGo('health')"><svg class="ni" viewBox="0 0 24 24" aria-hidden="true"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg><span class="nt">Health</span></button>
@@ -952,10 +978,7 @@
 </div>
 
 <!-- Floating AI assistant -->
-<button id="aiFab" class="hidden" onclick="openAI()" title="Ask Life OS (⌘J)" aria-label="Ask AI">
-  <span class="ai-orb"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5l1.9 5.6 5.6 1.9-5.6 1.9L12 17.5l-1.9-5.6L4.5 10l5.6-1.9z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z" opacity=".7"/></svg></span>
-  <span class="ai-fab-lbl">Ask Life OS <kbd>⌘J</kbd></span>
-</button>
+<button id="aiFab" class="hidden" onclick="openAI()" title="Ask Life OS (⌘J)" aria-label="Ask Life OS AI"><canvas id="aiHive" width="128" height="128"></canvas></button>
 <div id="aiPanel" class="hidden" role="dialog" aria-label="Life OS AI">
   <div class="aiHead">
     <span class="ai-orb sm"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5l1.9 5.6 5.6 1.9-5.6 1.9L12 17.5l-1.9-5.6L4.5 10l5.6-1.9z"/></svg></span>
@@ -1022,6 +1045,7 @@ var CURRENT = 'overview';
 var TABS = {
   overview:{title:'Today', sub:'What matters today — and the numbers that decide it.'},
   home:{title:'Money', sub:'Net worth, cash flow, budget, accounts, bills and giving.'},
+  taxes:{title:'Taxes', sub:'2026 estimate, housing allowance, the rental, and moves for tax efficiency.'},
   ventures:{title:'Ventures', sub:'Buy boxes, capital plan, and the live deal pipeline.'},
   flying:{title:'Flying', sub:'Weather, go/no-go, training progress, and your aircraft.'},
   health:{title:'Health & Fitness', sub:'Training rhythm, body metrics, and health admin.'},
@@ -1300,7 +1324,7 @@ function showApp(res){
   try{ localStorage.setItem(LS_DATA, JSON.stringify({data:DATA, updated:res.updated, role:ROLE})); }catch(e){}
   $('gate').classList.add('hidden');
   $('topNav').classList.remove('hidden');
-  $('aiFab').classList.remove('hidden');
+  $('aiFab').classList.remove('hidden'); if(window.aiHiveWake) aiHiveWake();
   $('app').classList.remove('hidden');
   applyBranding();
   $('stamp').textContent = fmtStamp(res.updated);
@@ -1407,7 +1431,7 @@ function render(tab){
   clearCharts();
   var el = $('panels');
   el.innerHTML = ({
-    overview: function(){ return ROLE==='chelsea'?renderChelseaHome():renderOverview(); }, home: function(){ return renderHome()+receiptsCard(); }, life: renderLife,
+    overview: function(){ return ROLE==='chelsea'?renderChelseaHome():renderOverview(); }, home: function(){ return renderHome()+receiptsCard(); }, taxes: renderTaxes, life: renderLife,
     flying: renderFlying, ventures: renderVentures, health: renderHealth, faith: renderFaith
   }[tab] || function(){return '';})();
   if(tab==='home') drawMoneyCharts();
@@ -1619,6 +1643,7 @@ function upcomingAlerts(){
   arr('ProjectTasks').forEach(function(t){ if(truthy(t.Done)||!has(t.Due)) return; var d=daysUntilDate(t.Due);
     if(d!=null&&d<=21) out.push({d:d, label:esc(t.Task), sub:esc(t.Project||'')+' task', tab:(arr('Projects').some(function(p){return p.Name===t.Project&&isFlyingProject(p);})?'flying':'projects')}); });
   try{ out=out.concat(maintAlerts()); }catch(e){}
+  try{ out=out.concat(taxAlerts()); }catch(e){}
   out.sort(function(a,b){return a.d-b.d;});
   return out;
 }
@@ -2168,7 +2193,7 @@ function printBinder(){
 function secDivider(t,id){ return '<div id="'+id+'" style="height:30px;scroll-margin-top:70px"></div><div class="section-title domain-sec">'+t+'</div>'; }
 function subnavHtml(items){ return '<div class="subnav">'+items.map(function(s){return '<a class="subpill" href="javascript:void(0)" onclick="var e=document.getElementById(\''+s[1]+'\');if(e)e.scrollIntoView({behavior:\'smooth\'})">'+s[0]+'</a>';}).join('')+'</div>'; }
 function renderHome(){
-  return subnavHtml([['Net worth & budget','sec-money'],['Bills & contacts','sec-bills']])
+  return subnavHtml([['Net worth & budget','sec-money'],['Bills & contacts','sec-bills']]).replace('</div>','<a class="subpill" href="javascript:void(0)" onclick="navGo(\'taxes\')">Taxes →</a></div>')
     + '<div id="sec-money"></div>' + renderMoney()
     + secDivider('Bills & vendor contacts','sec-bills') + renderBills();
 }
@@ -4225,6 +4250,176 @@ function callRotationCard(){
     '<div class="editbar" style="margin-bottom:8px"><button class="ebtn pri" onclick="openEditor(\'Calls\')">＋ Add a person</button></div>'+list
     +'<div class="section-title" style="margin:14px 0 6px">Next 3 weeks</div><div class="call-grid">'+cal+'</div>', '--gold');
 }
+
+/* ============================================================
+   TAXES — 2026 federal estimate (MFJ, Nevada = no state income tax), clergy-aware, with moves
+   All inputs live in the Tax kv tab (editable right on the page). Planning estimate only — not tax advice.
+   ============================================================ */
+var TAX26={ std:32200, brackets:[[24800,.10],[100800,.12],[211400,.22],[403550,.24],[512450,.32],[768700,.35],[Infinity,.37]],
+  ssWage:184500, salt:40400, ira:7500, k403:24500, rothLo:242000, rothHi:252000, charityFloor:.005, medFloor:.075, addlMedicare:250000 };
+function taxBracket(ti){ var tax=0, lo=0, mr=.10; for(var i=0;i<TAX26.brackets.length;i++){ var hi=TAX26.brackets[i][0], r=TAX26.brackets[i][1]; if(ti>lo){ tax+=(Math.min(ti,hi)-lo)*r; mr=r; } lo=hi; } return {tax:tax, marginal:mr}; }
+function taxInputs(){ var t=kv('Tax'), n=function(k,d){ var v=num(t[k]); return isNaN(v)?(d||0):v; }; return {t:t, n:n}; }
+function taxCalc(over){
+  var I=taxInputs(), n=function(k,d){ return over&&over[k]!=null?over[k]:I.n(k,d); }, seca=String((over&&over.brad_pays_se_tax)||I.t.brad_pays_se_tax||'yes').toLowerCase()!=='no';
+  var r={};
+  // housing allowance (Sec. 107): lesser of designated, actual costs, fair rental value (incl. furnishings + utilities)
+  r.frv=(n('housing_frv_rent_mo')+n('housing_frv_extras_mo'))*12; r.designated=n('brad_housing_designated'); r.actual=n('housing_actual_yr');
+  r.excl=Math.max(0,Math.min(r.designated, r.actual, r.frv)); r.excess=Math.max(0,r.designated-r.excl);
+  r.bradWages=n('brad_comp')-r.excl-n('pretax_403b');
+  r.chelseaWages=n('chelsea_wages');
+  // small businesses
+  r.asdc=n('asdc_income')-n('asdc_expenses'); r.chelseaSc=n('chelsea_sc_net');
+  // self-employment tax: Brad (minister: salary + FULL housing allowance are SE earnings) + Chelsea's side income
+  var bSE=seca?Math.max(0,(n('brad_comp')+r.asdc)*0.9235):Math.max(0,r.asdc*0.9235), cSE=Math.max(0,r.chelseaSc*0.9235);
+  r.seBrad=bSE>=400?Math.min(bSE,TAX26.ssWage)*.124+bSE*.029:0;
+  r.seChelsea=cSE>=400?Math.min(cSE,Math.max(0,TAX26.ssWage-r.chelseaWages))*.124+cSE*.029:0;
+  r.se=r.seBrad+r.seChelsea; r.halfSE=r.se/2;
+  // rental (Schedule E) + passive-loss limit
+  r.depr=n('rental_basis')*(1-n('rental_land_pct')/100)/27.5;
+  r.rentExp=n('rental_interest')+n('rental_prop_tax')+n('rental_insurance')+n('rental_lawn')+n('rental_repairs')+n('rental_other')+r.depr;
+  r.rentNet=n('rental_rent_yr')-r.rentExp;
+  var preMagi=r.chelseaWages+r.bradWages+r.asdc+r.chelseaSc-r.halfSE;
+  r.passiveAllow=Math.max(0,25000-0.5*Math.max(0,preMagi-100000));
+  r.rentAllowed=r.rentNet>=0?r.rentNet:-Math.min(-r.rentNet, r.passiveAllow); r.rentSuspended=r.rentNet<0?(-r.rentNet+r.rentAllowed):0;
+  r.agi=preMagi+r.rentAllowed;
+  // deductions
+  r.saltPaid=n('home_prop_tax')+n('sales_tax')+n('vehicle_gst'); r.salt=Math.min(r.saltPaid,TAX26.salt);
+  r.charity=Math.max(0,n('charity')-TAX26.charityFloor*r.agi); r.medical=Math.max(0,n('medical')-TAX26.medFloor*r.agi);
+  r.itemized=n('home_mortgage_interest')+r.salt+r.charity+r.medical; r.useItem=r.itemized>TAX26.std; r.deduction=Math.max(r.itemized,TAX26.std);
+  r.qbi=0.2*Math.max(0,(r.asdc+r.chelseaSc)-(r.seChelsea/2));
+  r.taxable=Math.max(0,r.agi-r.deduction-r.qbi);
+  var b=taxBracket(r.taxable); r.incomeTax=b.tax; r.marginal=b.marginal;
+  r.addlMed=Math.max(0,(r.chelseaWages+(seca?bSE:0)+cSE)-TAX26.addlMedicare)*.009;   // Brad's church pay counts once, as SE income
+  r.total=r.incomeTax+r.se+r.addlMed;
+  r.paid=n('chelsea_withholding_yr')+n('brad_withholding_ytd')+n('brad_withholding_rest')+n('eftps_paid');
+  r.balance=r.total-r.paid;
+  r.effective=r.total/Math.max(1,(n('brad_comp')+r.chelseaWages+n('rental_rent_yr')+r.asdc+r.chelseaSc));
+  // safe harbor: pay the smaller of 90% of this year or 100%/110% of last year's tax to avoid the underpayment penalty
+  var py=num(I.t.prior_year_tax), pagi=num(I.t.prior_year_agi);
+  r.safeHarbor=Math.min(0.9*r.total, isNaN(py)?Infinity:py*((!isNaN(pagi)&&pagi>150000)?1.1:1.0));
+  r.seca=seca;
+  return r;
+}
+function taxMoney(v){ return (v<0?'−':'')+'$'+Math.round(Math.abs(v)).toLocaleString(); }
+function taxSaveKv(k,v){ var o={}; o[k]=v; (DATA.Tax=DATA.Tax||{})[k]=v; apiWrite({action:'setkv',tab:'Tax',row:JSON.stringify(o)}).then(function(r){ if(!(r&&r.ok)) toast('Couldn’t save that.'); }); render(CURRENT); }
+function taxMoves(r){
+  var I=taxInputs(), t=I.t, today=ymd(laNow()), out=[], btcPx=LIVE.btc||num(t.btc_price_assumed)||84000, basis=num(t.btc_basis_per_coin);
+  var paychecks=Math.max(1,Math.round((new Date('2026-12-31')-laNow())/(15.2*864e5)));
+  if(r.balance>500) out.push({id:'catchup', urgent:true, title:'Catch up on 2026 tax now: about '+taxMoney(r.balance)+' still unpaid',
+    save:'Avoids a surprise bill in April plus underpayment penalties (~8%/yr on the shortfall)',
+    how:'Easiest: Chelsea files a new W-4 with an extra '+taxMoney(r.balance/paychecks)+' per paycheck (line 4c) for the ~'+paychecks+' paychecks left. Extra withholding counts as if you paid it all year, which erases earlier-quarter penalties. Or pay by EFTPS/IRS Direct Pay now and before Jan 15, 2027.', due:'Now → Jan 15, 2027'});
+  if(r.excess>1000) out.push({id:'housing', title:'Right-size the housing allowance for 2027 (and plan for the '+taxMoney(r.excess)+' that’s taxable this year)',
+    save:'Only '+taxMoney(r.excl)+' of the '+taxMoney(r.designated)+' designated is tax-free (capped by fair rental value). The other '+taxMoney(r.excess)+' is taxed at '+Math.round(r.marginal*100)+'% ≈ '+taxMoney(r.excess*r.marginal)+'.',
+    how:'Before Dec 31, have the church board designate the 2027 allowance (minutes/resolution). Designate your realistic housing cost; the tax-free amount is still the lesser of designated, actual spent, and fair rental value. Keep a file: rental comps/FRV letter, mortgage, utilities, furnishings, repairs and the roof/exterior/floor invoices.', due:'Designation by Dec 31, 2026'});
+  if(r.seca && r.balance>0) out.push({id:'churchwh', title:'Ask the church to withhold for you starting January',
+    save:'Stops the pay-it-later cycle: ministers can have the church voluntarily withhold enough to cover income tax and self-employment tax',
+    how:'Give payroll a W-4 with an extra flat amount of about '+taxMoney(r.total/26)+' per paycheck (if paid every two weeks). Chelsea can then return her W-4 to normal.', due:'January 2027'});
+  var give=num(t.charity)||0;
+  if(give>1000){ var gainPct=basis&&btcPx>basis?(btcPx-basis)/btcPx:0.6, saveBtc=give*gainPct*0.15;
+    out.push({id:'btcgive', title:'Give Bitcoin instead of cash for part of your tithe',
+      save:'About '+taxMoney(saveBtc)+'/yr: you deduct the full value AND never pay 15% capital-gains tax on the growth'+(basis?'':' (assumes ~60% of the price is gain; set btc_basis_per_coin for exact)'),
+      how:'Give long-held BTC (over 1 year) to the church if it takes crypto, or to a donor-advised fund (Fidelity Charitable / DAFgiving360 accept it), then grant to the church. Use the cash you would have given to buy back BTC at today’s price, which resets your cost basis higher. Gifts over $5,000 of crypto need a qualified appraisal (DAFs arrange it).', due:'Any time before Dec 31'}); }
+  var room403=TAX26.k403-num(t.pretax_403b||0);
+  if(room403>0) out.push({id:'403b', title:'Put Brad’s pay into the church 403(b), pre-tax',
+    save:'Every $10,000 saves about '+taxMoney(10000*r.marginal)+' of income tax this year (you’re in the '+Math.round(r.marginal*100)+'% bracket); limit $24,500',
+    how:'Ask the church business office for a salary-reduction agreement. Deferrals come from the salary portion, not the housing allowance. Ask the CPA whether your contributions also escape self-employment tax (they often do for ministers).', due:'Next payroll; counts for 2026 only through Dec 31'});
+  var rothLeft=(TAX26.ira-num(t.roth_brad||0))+(TAX26.ira-num(t.roth_chelsea||0));
+  if(rothLeft>0) out.push({id:'roth', title:'Fund two Roth IRAs: '+taxMoney(TAX26.ira)+' each for 2026',
+    save:'Tax-free growth forever. Your budget has $7,000 a year; the 2026 limit is $7,500 each ($15,000 for both of you). Your income is under the $242K phase-out.',
+    how:'Contribute for 2026 any time until April 15, 2027. Chelsea can use a spousal IRA.', due:'By Apr 15, 2027'});
+  out.push({id:'rental', title:'Clean up the Lahontan rental numbers (Schedule E)',
+    save:'Claims every legit expense and fixes depreciation. The loss is suspended (your income is over $150K) but carries forward and offsets tax when you sell.',
+    how:'Add insurance ('+taxMoney(num(t.rental_insurance))+'), lawn care ('+taxMoney(num(t.rental_lawn))+'), repairs, and mileage for trips to Winnemucca. Depreciate only the building: about '+taxMoney(r.depr)+'/yr (land ~'+num(t.rental_land_pct)+'% per the county), not $13,636. Use actual property tax ($1,165 per the county), not the $1,800 escrow estimate. Keep the HELOC interest out unless that money went into the rental.', due:'Before filing'});
+  var mo=parseDate(t.rental_moved_out); if(mo){ var end=new Date(mo); end.setFullYear(end.getFullYear()+3);
+    out.push({id:'sec121', title:'Lahontan sale window: tax-free gain until about '+end.toLocaleDateString('en-US',{month:'short',year:'numeric'}),
+      save:'You lived there 2+ years, so if you sell within 3 years of moving out, up to $500K of gain is tax-free (except ~25% tax on depreciation taken)',
+      how:'Factor this into “keep, pay off, or sell.” Current gain is modest (about $380K value vs $355K cost), so this matters more if prices climb. After the window, all gain is taxable (or needs a 1031 exchange).', due:end.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}); }
+  out.push({id:'cleanup', title:'Take these out of the deduction sheet: they aren’t deductible',
+    save:'Keeps your return clean and avoids adjustments',
+    how:'W-2 job expenses and work travel (not deductible for employees since 2018, now permanent) · EFTPS (that’s a tax payment, not a deduction) · medical ($2,000 is under the 7.5%-of-income floor) · the full car registration (only the Nevada “governmental services tax” part counts) · Chelsea’s training toward a new certificate (CFI training that qualifies her for a new line of work generally isn’t deductible; ask the CPA).', due:'Before filing'});
+  out.push({id:'salestax', title:'Add big-purchase sales tax to your deduction',
+    save:'Nevada has no income tax, so you deduct sales tax, including the actual tax paid on a car, truck, boat or aircraft',
+    how:'If the Maule was bought in 2026, add the Nevada sales/use tax paid on it (~8% of the price) to “sales_tax”. Also count the laptop and any other big purchases.', due:'Tax year of purchase'});
+  out.push({id:'cpa', title:'Hand this page to a clergy-savvy CPA',
+    save:'Ministers have unusual rules (dual status, housing allowance, SE tax). One review can pay for itself many times over.',
+    how:'Ask specifically: 1) Is Brad paying SE tax, or does he have an approved Form 4361 exemption? 2) Was the 2025 housing exclusion above fair rental value (amend if so)? 3) 403(b) and SE tax. 4) Chelsea’s aviation expenses.', due:'Before Jan 15, 2027'});
+  return out;
+}
+function renderTaxes(){
+  var t=kv('Tax'); if(!Object.keys(t).length) return card('Taxes','', '<div class="empty">Tax inputs not set up yet.</div>');
+  var r=taxCalc(), rAlt=taxCalc({brad_pays_se_tax: r.seca?'no':'yes'}), sheet=num(t.sheet_refund_estimate);
+  var owe=r.balance>0;
+  var tiles='<div class="grid cols-4" style="margin-bottom:22px">'
+    +statTile('2026 federal tax (est.)', taxMoney(r.total), 'income '+taxMoney(r.incomeTax)+' + self-employment '+taxMoney(r.se))
+    +statTile('Paid so far / on track', taxMoney(r.paid), 'withholding + estimated payments')
+    +'<div class="stat"><div class="label">'+(owe?'Projected amount due':'Projected refund')+'</div><div class="value" style="color:'+(owe?'var(--red)':'var(--green)')+'">'+taxMoney(Math.abs(r.balance))+'</div><div class="foot">'+(sheet?'your budget sheet shows a '+taxMoney(sheet)+' refund':'')+'</div></div>'
+    +statTile('Tax rates', Math.round(r.marginal*100)+'% bracket', 'effective '+(r.effective*100).toFixed(1)+'% of all income'+(r.seca?' · +15.3% SE on Brad’s pay':''))
+    +'</div>';
+  var diff='<div class="tax-alert"><b>Why this differs from your budget sheet:</b><ol>'
+    +'<li><b>Housing allowance:</b> only '+taxMoney(r.excl)+' of the '+taxMoney(r.designated)+' is tax-free. It’s capped at the home’s fair rental value (rent ~'+taxMoney(num(t.housing_frv_rent_mo))+'/mo + furnishings & utilities ~'+taxMoney(num(t.housing_frv_extras_mo))+'/mo).</li>'
+    +'<li><b>Rental:</b> the sheet subtracts Lahontan’s expenses but never adds its '+taxMoney(num(t.rental_rent_yr))+' of rent.</li>'
+    +(r.seca?'<li><b>Self-employment tax:</b> as a minister, Brad owes ~15.3% on salary <i>plus</i> housing allowance ('+taxMoney(r.seBrad)+'). The sheet has $0 for Brad’s taxes and no 2026 EFTPS payments.</li>':'')
+    +'<li><b>Deduction list:</b> a few items there aren’t deductible, and rental depreciation is overstated (see moves).</li></ol>'
+    +'<div class="foot" style="margin-top:6px">If Brad has an approved Form 4361 (opted out of Social Security), the estimate changes to '+taxMoney(rAlt.total)+' total, '+(rAlt.balance>0?taxMoney(rAlt.balance)+' due':taxMoney(-rAlt.balance)+' refund')+'. '
+    +'<a href="#" onclick="taxSaveKv(\'brad_pays_se_tax\',\''+(r.seca?'no':'yes')+'\');return false">Switch to “'+(r.seca?'Brad is exempt':'Brad pays SE tax')+'”</a></div></div>';
+  var moves=taxMoves(r), movesHtml=moves.map(function(m){ var done=truthy(t['move_'+m.id]);
+    return '<div class="tax-move'+(done?' done':'')+(m.urgent?' urgent':'')+'"><label class="tm-chk"><input type="checkbox"'+(done?' checked':'')+' onchange="taxSaveKv(\'move_'+m.id+'\',this.checked?\'yes\':\'\')"></label>'
+      +'<div class="tm-body"><div class="tm-t">'+esc(m.title)+'</div><div class="tm-s">'+esc(m.save)+'</div><details><summary>How</summary><div class="tm-h">'+esc(m.how)+'</div></details></div>'
+      +'<div class="tm-d">'+esc(m.due||'')+'</div></div>'; }).join('');
+  var L=function(k,v,sub,cls){ return '<div class="kv-row'+(cls?' '+cls:'')+'"><span class="k">'+k+(sub?' <span class="foot" style="display:inline;color:var(--text-dim)">'+sub+'</span>':'')+'</span><span class="v">'+v+'</span></div>'; };
+  var lines=''
+    +'<div class="section-title" style="margin:0 0 4px">Income</div>'
+    +L('Chelsea wages', taxMoney(r.chelseaWages))
+    +L('Brad wages (taxable)', taxMoney(r.bradWages), taxMoney(num(t.brad_comp))+' pay − '+taxMoney(r.excl)+' tax-free housing'+(num(t.pretax_403b)?' − 403(b)':''))
+    +L('Chelsea side income (net)', taxMoney(r.chelseaSc))+L('ASDC (net)', taxMoney(r.asdc))
+    +L('Lahontan rental', taxMoney(r.rentAllowed), 'net '+taxMoney(r.rentNet)+(r.rentSuspended?'; '+taxMoney(r.rentSuspended)+' loss carried forward':''))
+    +L('− Half of self-employment tax', taxMoney(-r.halfSE))
+    +L('<b>Adjusted gross income</b>', '<b>'+taxMoney(r.agi)+'</b>')
+    +'<div class="section-title" style="margin:12px 0 4px">Deductions: '+(r.useItem?'itemizing':'standard')+'</div>'
+    +L('Mortgage interest (Prospect)', taxMoney(num(t.home_mortgage_interest)), 'ministers may deduct this even though paid with housing allowance')
+    +L('State & local taxes', taxMoney(r.salt), 'property tax + sales tax + vehicle GST (cap $40,400)')
+    +L('Giving', taxMoney(r.charity), 'after the new 0.5%-of-income floor')
+    +L('Medical', taxMoney(r.medical), 'only above 7.5% of income')
+    +L('<b>Itemized total</b>', '<b>'+taxMoney(r.itemized)+'</b>', 'vs standard '+taxMoney(TAX26.std))
+    +L('Small-business (QBI) deduction', taxMoney(r.qbi))
+    +L('<b>Taxable income</b>', '<b>'+taxMoney(r.taxable)+'</b>')
+    +'<div class="section-title" style="margin:12px 0 4px">Tax</div>'
+    +L('Income tax', taxMoney(r.incomeTax), Math.round(r.marginal*100)+'% top bracket')
+    +L('Self-employment tax', taxMoney(r.se), (r.seca?'Brad (minister) '+taxMoney(r.seBrad)+' · ':'')+'Chelsea '+taxMoney(r.seChelsea))
+    +(r.addlMed?L('Additional Medicare', taxMoney(r.addlMed)):'')
+    +L('<b>Total 2026 tax</b>', '<b>'+taxMoney(r.total)+'</b>')
+    +L('Withholding + payments', taxMoney(-r.paid))
+    +L('<b>'+(owe?'Still to pay':'Refund')+'</b>', '<b style="color:'+(owe?'var(--red)':'var(--green)')+'">'+taxMoney(Math.abs(r.balance))+'</b>')
+    +(isFinite(r.safeHarbor)?L('Penalty-safe target', taxMoney(r.safeHarbor), 'pay at least this through withholding/estimates'):L('Penalty-safe target', '—', 'add prior_year_tax (2025 return, line 24) to see it'));
+  var housing='<div class="tax-bars">'+[['Designated by church',r.designated],['Actual housing costs',r.actual],['Fair rental value',r.frv]].map(function(x){ var m=Math.max(r.designated,r.actual,r.frv)||1;
+      return '<div class="tb-row"><span>'+x[0]+'</span><div class="tb-bar"><i style="width:'+(x[1]/m*100)+'%;'+(x[1]===r.excl?'background:var(--green)':'')+'"></i></div><b>'+taxMoney(x[1])+'</b></div>'; }).join('')+'</div>'
+    +'<p class="foot" style="color:var(--text-muted);margin:8px 0 0">Tax-free = the <b>smallest</b> of the three ('+taxMoney(r.excl)+'). The rest ('+taxMoney(r.excess)+') is taxable. Fair rental value = market rent for your home (RentCast ~$3,010/mo, range $2,610–$3,400; nearby 3-bed rentals $2,750–$3,500) plus furnishings and utilities. Actual costs = mortgage, property tax, insurance, utilities, repairs and improvements, furnishings. All of the allowance still counts for self-employment tax.</p>';
+  var rental=L('Rent', taxMoney(num(t.rental_rent_yr)))+L('Mortgage interest', taxMoney(-num(t.rental_interest)))+L('Property tax', taxMoney(-num(t.rental_prop_tax)), 'county actual')
+    +L('Insurance', taxMoney(-num(t.rental_insurance)))+L('Lawn care', taxMoney(-num(t.rental_lawn)))+(num(t.rental_repairs)?L('Repairs', taxMoney(-num(t.rental_repairs))):'')
+    +L('Depreciation', taxMoney(-r.depr), taxMoney(num(t.rental_basis))+' × '+(100-num(t.rental_land_pct))+'% building ÷ 27.5 yrs')
+    +L('<b>Net</b>', '<b>'+taxMoney(r.rentNet)+'</b>', r.rentSuspended?'loss suspended (income over $150K), carries forward':'');
+  var fields=[['Brad total church pay','brad_comp'],['Housing allowance designated','brad_housing_designated'],['Home market rent / mo (FRV)','housing_frv_rent_mo'],['Furnishings + utilities / mo','housing_frv_extras_mo'],
+    ['Actual housing costs / yr','housing_actual_yr'],['Chelsea wages (incl. bonus)','chelsea_wages'],['Chelsea federal withholding / yr','chelsea_withholding_yr'],['Chelsea side income (net)','chelsea_sc_net'],
+    ['ASDC income','asdc_income'],['ASDC expenses','asdc_expenses'],['Estimated payments made (EFTPS)','eftps_paid'],['Brad withholding so far','brad_withholding_ytd'],
+    ['Giving / tithe','charity'],['Home mortgage interest','home_mortgage_interest'],['Home property tax','home_prop_tax'],['Sales tax (table + big purchases)','sales_tax'],
+    ['Brad 403(b) pre-tax','pretax_403b'],['Roth IRA: Brad','roth_brad'],['Roth IRA: Chelsea','roth_chelsea'],['2025 total tax (for safe harbor)','prior_year_tax'],['2025 AGI','prior_year_agi'],['BTC cost basis per coin','btc_basis_per_coin']];
+  var form='<div class="tax-form">'+fields.map(function(f){ return '<label><span>'+f[0]+'</span><input type="number" inputmode="decimal" value="'+esc(t[f[1]]==null?'':t[f[1]])+'" onchange="taxSaveKv(\''+f[1]+'\', this.value)"></label>'; }).join('')
+    +'<label><span>Brad pays SE tax?</span><select onchange="taxSaveKv(\'brad_pays_se_tax\', this.value)"><option value="yes"'+(r.seca?' selected':'')+'>Yes (most ministers)</option><option value="no"'+(!r.seca?' selected':'')+'>No: Form 4361 exempt</option></select></label></div>';
+  var deadlines=[['Now','Fix the shortfall: W-4 bump or IRS payment'],['Dec 31, 2026','Church designates 2027 housing allowance · year-end giving (BTC gifts) · 403(b) deferrals'],
+    ['Jan 15, 2027','Q4 estimated payment (EFTPS / IRS Direct Pay)'],['Jan–Feb 2027','Collect W-2s, 1098s (both mortgages), 1099s, giving statements, rental records'],
+    ['Apr 15, 2027','File 2026 return (or extend) · 2026 Roth IRA deadline · Q1 2027 estimate']].map(function(d){ return L('<b>'+d[0]+'</b>', esc(d[1])); }).join('');
+  return tiles
+    + diff
+    + '<div class="grid cols-2" style="margin:22px 0">'+card('Moves to make','Ordered by impact. Check them off as you go.', movesHtml, '--accent')+card('2026 estimate, line by line','Married filing jointly · Nevada has no state income tax.', lines)+'</div>'
+    + '<div class="grid cols-2" style="margin-bottom:22px">'+card('Housing allowance check','Section 107: how much of Brad’s housing allowance is tax-free.', housing)+card('Lahontan rental (Schedule E)','What the IRS sees for the rental.', rental)+'</div>'
+    + '<div class="grid cols-2" style="margin-bottom:22px">'+card('Deadlines','', deadlines)+card('Your numbers','Change anything and the estimate updates. Saved to the Tax tab in your Life OS sheet.', form)+'</div>'
+    + '<p class="foot" style="color:var(--text-dim)">Planning estimate using 2026 IRS numbers (brackets, $32,200 standard deduction, $40,400 SALT cap, 0.5% giving floor, $7,500 IRA / $24,500 403(b) limits). It isn’t tax advice. Minister taxes have special rules, so confirm the big items with a clergy-savvy CPA. '
+    + (has(kv('Config').budget_sheet_url)?'<a href="'+esc(kv('Config').budget_sheet_url)+'" target="_blank" rel="noopener">Open your budget sheet ↗</a>':'')+'</p>';
+}
+function taxAlerts(){ try{ if(ROLE==='chelsea'||!Object.keys(kv('Tax')).length) return []; var r=taxCalc(), out=[];
+  if(r.balance>500) out.push({d:Math.max(0,Math.round((new Date('2027-01-15')-laNow())/864e5)), label:'Taxes: ~'+taxMoney(r.balance)+' still unpaid for 2026', sub:'Q4 estimate due Jan 15', tab:'taxes'});
+  var dd=Math.round((new Date('2026-12-31')-laNow())/864e5); if(dd>=0&&dd<=90&&!truthy(kv('Tax').move_housing)) out.push({d:dd, label:'Church designates 2027 housing allowance', sub:'before Dec 31', tab:'taxes'});
+  return out; }catch(e){ return []; } }
 function analyzerBody(){
   var r=ANALYZE.res, h='<div class="an-row"><input id="anUrl" type="url" inputmode="url" placeholder="Paste a Zillow, Redfin, LoopNet, Crexi or BizBuySell link" value="'+esc(ANALYZE.url)+'" onkeydown="if(event.key===\'Enter\')runAnalyze()">'
     +'<button class="ebtn pri" onclick="runAnalyze()"'+(ANALYZE.busy?' disabled':'')+'>'+(ANALYZE.busy?'Analyzing…':'Analyze')+'</button></div>';
@@ -4458,6 +4653,35 @@ function palIndex(){
 function openPalette(){ $('palette').classList.remove('hidden'); var i=$('palInput'); i.value=''; PAL_SEL=0; palRender(); setTimeout(function(){i.focus();},30); }
 function closePalette(){ $('palette').classList.add('hidden'); }
 
+
+/* ---------- AI launcher: a little "hive mind" of glowing dots swarming in color ---------- */
+(function(){
+  var cv, ctx, dots=[], t0=performance.now(), raf=null, reduce=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var COLORS=['#7aa2f7','#b392f0','#5fd0c5','#f28fad','#9ecbff','#c3a6ff'];
+  function init(){ cv=document.getElementById('aiHive'); if(!cv) return; ctx=cv.getContext('2d');
+    for(var i=0;i<30;i++) dots.push({r:10+Math.random()*40, a:Math.random()*6.283, s:(0.35+Math.random()*0.9)*(Math.random()<.5?-1:1), w:0.6+Math.random()*1.8,
+      z:Math.random()*6.283, size:2.2+Math.random()*3.2, c:COLORS[i%COLORS.length]});
+    loop(); document.addEventListener('visibilitychange', function(){ if(!document.hidden&&!raf) loop(); }); }
+  function frame(now){
+    var fab=document.getElementById('aiFab'); if(!ctx||!fab||fab.classList.contains('hidden')||document.hidden){ raf=null; return; }
+    var t=(now-t0)/1000, W=cv.width, C=W/2; ctx.clearRect(0,0,W,W);
+    var g=ctx.createRadialGradient(C,C,4,C,C,C); g.addColorStop(0,'rgba(122,162,247,.22)'); g.addColorStop(1,'rgba(122,162,247,0)'); ctx.fillStyle=g; ctx.fillRect(0,0,W,W);
+    ctx.globalCompositeOperation='lighter';
+    var pts=dots.map(function(d){ var a=d.a+t*d.s*0.8, rr=d.r+Math.sin(t*d.w+d.z)*7;
+      var wob=Math.sin(t*0.7+d.z)*0.18; return {x:C+Math.cos(a+wob)*rr, y:C+Math.sin(a-wob)*rr*0.92, d:d}; });
+    ctx.lineWidth=1;
+    for(var i=0;i<pts.length;i++) for(var j=i+1;j<pts.length;j++){ var dx=pts[i].x-pts[j].x, dy=pts[i].y-pts[j].y, dd=dx*dx+dy*dy;
+      if(dd<380){ ctx.strokeStyle='rgba(160,180,255,'+(0.28*(1-dd/380)).toFixed(3)+')'; ctx.beginPath(); ctx.moveTo(pts[i].x,pts[i].y); ctx.lineTo(pts[j].x,pts[j].y); ctx.stroke(); } }
+    pts.forEach(function(p){ var pulse=0.75+0.25*Math.sin(t*2.2+p.d.z), s=p.d.size*pulse;
+      var gg=ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,s*3); gg.addColorStop(0,p.d.c); gg.addColorStop(0.35,p.d.c+'aa'); gg.addColorStop(1,p.d.c+'00');
+      ctx.fillStyle=gg; ctx.beginPath(); ctx.arc(p.x,p.y,s*3,0,6.283); ctx.fill(); });
+    ctx.globalCompositeOperation='source-over';
+    raf=reduce?null:requestAnimationFrame(frame);
+  }
+  function loop(){ if(raf) return; raf=requestAnimationFrame(frame); }
+  window.aiHiveWake=loop;
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', init); else init();
+})();
 /* ---------- AI assistant: memory, live data, web search, actions ---------- */
 var AI_LS='lifeos_ai_chat', AI_MSGS=[], AI_BUSY=false;
 try{ AI_MSGS=JSON.parse(localStorage.getItem(AI_LS)||'[]')||[]; }catch(e){ AI_MSGS=[]; }
@@ -4466,7 +4690,7 @@ function openAI(){ $('aiPanel').classList.remove('hidden'); $('aiFab').classList
   if(window.SpeechRecognition||window.webkitSpeechRecognition) $('aiMic').classList.remove('hidden');
   $('aiInput').placeholder = window.innerWidth<=640 ? 'Ask anything…' : 'Ask anything, or say “add a task to…”';
   aiRender(); setTimeout(function(){ if(window.innerWidth>640) $('aiInput').focus(); },60); }
-function closeAI(){ $('aiPanel').classList.add('hidden'); $('aiFab').classList.remove('hidden'); document.body.classList.remove('ai-open'); }
+function closeAI(){ $('aiPanel').classList.add('hidden'); $('aiFab').classList.remove('hidden'); document.body.classList.remove('ai-open'); if(window.aiHiveWake) aiHiveWake(); }
 function aiExpand(){ $('aiPanel').classList.toggle('big'); }
 function aiNew(){ if(AI_BUSY) return; AI_MSGS=[]; aiSave(); aiRender(); $('aiInput').focus(); }
 function aiGrow(t){ t.style.height='auto'; t.style.height=Math.min(140,t.scrollHeight)+'px'; }

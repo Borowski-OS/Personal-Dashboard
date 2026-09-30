@@ -60,3 +60,9 @@
   web_search + tools add_next_step / log_weight / add_call_person; returns answer, actions, sources). aiContext_ = lifeContext_ + calendar, bills due,
   flying/CFI owed/TAF line, health/sick mode, homes, pipelines, vehicles, calls, habits, trips, radar. Chat history in localStorage `lifeos_ai_chat`.
   ~20–40 s per answer (Apps Script can't stream); the page shows a live status. Chelsea's role can't reach it (POST is Brad-only).
+- AI launcher: #aiFab is a canvas "hive" of glowing dots (no label), animated only while visible; aiHiveWake() restarts it.
+- Taxes tab (sidebar under Money; Money subnav "Taxes →" on phones): inputs in the Tax kv tab (private sheet; never hard-code numbers here).
+  taxCalc(): 2026 MFJ federal (TAX26 constants: brackets, $32,200 std, $40,400 SALT, 0.5% charity floor, IRA $7,500, 403(b) $24,500, SS base $184,500),
+  clergy rules — Sec.107 housing exclusion = min(designated, actual, FRV incl. furnishings+utilities); minister pay incl. full allowance is SE income
+  (Tax kv brad_pays_se_tax=no for Form 4361); rental Sch E with land-split depreciation + passive-loss phase-out; itemized vs standard; QBI; safe harbor.
+  taxMoves() = prioritized actions (checkbox state in Tax kv move_<id>); taxAlerts() feed Today. Planning estimate, not advice — keep the CPA caveat.
