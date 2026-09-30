@@ -4305,7 +4305,11 @@ function taxSaveKv(k,v){ var o={}; o[k]=v; (DATA.Tax=DATA.Tax||{})[k]=v; apiWrit
 function taxMoves(r){
   var I=taxInputs(), t=I.t, today=ymd(laNow()), out=[], btcPx=LIVE.btc||num(t.btc_price_assumed)||84000, basis=num(t.btc_basis_per_coin);
   var paychecks=Math.max(1,Math.round((new Date('2026-12-31')-laNow())/(15.2*864e5)));
-  if(r.balance>500) out.push({id:'catchup', urgent:true, title:'Catch up on 2026 tax now: about '+taxMoney(r.balance)+' still unpaid',
+  var safe=isFinite(r.safeHarbor)&&r.paid>=r.safeHarbor, moToApr=Math.max(1,Math.round((new Date('2027-04-15')-laNow())/(30.4*864e5)));
+  if(r.balance>500&&safe) out.push({id:'setaside', title:'Set aside about '+taxMoney(r.balance)+' for April 15 (no penalty risk)',
+    save:'Chelsea’s withholding ('+taxMoney(r.paid)+') already beats last year’s total tax ('+taxMoney(num(t.prior_year_tax))+'), the “safe harbor.” So there’s no underpayment penalty, but you’ll still owe about '+taxMoney(r.balance)+' when you file.',
+    how:'Move about '+taxMoney(r.balance/moToApr)+'/mo into savings until April, or have Chelsea add about '+taxMoney(r.balance/Math.max(1,Math.round((new Date('2027-04-15')-laNow())/(15.2*864e5))))+' per paycheck on her W-4 (line 4c) so April comes out even. Paying early doesn’t save money here; it just avoids a lump sum. Double-check her year-to-date federal withholding on her latest paystub.', due:'By Apr 15, 2027'});
+  if(r.balance>500&&!safe) out.push({id:'catchup', urgent:true, title:'Catch up on 2026 tax now: about '+taxMoney(r.balance)+' still unpaid',
     save:'Avoids a surprise bill in April plus underpayment penalties (~8%/yr on the shortfall)',
     how:'Easiest: Chelsea files a new W-4 with an extra '+taxMoney(r.balance/paychecks)+' per paycheck (line 4c) for the ~'+paychecks+' paychecks left. Extra withholding counts as if you paid it all year, which erases earlier-quarter penalties. Or pay by EFTPS/IRS Direct Pay now and before Jan 15, 2027.', due:'Now → Jan 15, 2027'});
   if(r.excess>1000) out.push({id:'housing', title:'Right-size the housing allowance for 2027 (and plan for the '+taxMoney(r.excess)+' that’s taxable this year)',
@@ -4322,7 +4326,7 @@ function taxMoves(r){
   var room403=TAX26.k403-num(t.pretax_403b||0);
   if(room403>0) out.push({id:'403b', title:'Put Brad’s pay into the church 403(b), pre-tax',
     save:'Every $10,000 saves about '+taxMoney(10000*r.marginal)+' of income tax this year (you’re in the '+Math.round(r.marginal*100)+'% bracket); limit $24,500',
-    how:'Ask the church business office for a salary-reduction agreement. Deferrals come from the salary portion, not the housing allowance. Ask the CPA whether your contributions also escape self-employment tax (they often do for ministers).', due:'Next payroll; counts for 2026 only through Dec 31'});
+    how:'Ask the church business office for a salary-reduction agreement. Deferrals come from the salary portion, not the housing allowance.'+(r.seca?' Ask the CPA whether your contributions also escape self-employment tax (they often do for ministers).':' It also lowers your AGI, which helps the Roth IRA limit and future-year safe harbor.'), due:'Next payroll; counts for 2026 only through Dec 31'});
   var rothLeft=(TAX26.ira-num(t.roth_brad||0))+(TAX26.ira-num(t.roth_chelsea||0));
   if(rothLeft>0) out.push({id:'roth', title:'Fund two Roth IRAs: '+taxMoney(TAX26.ira)+' each for 2026',
     save:'Tax-free growth forever. The 2026 limit is $7,500 each ($15,000 for both of you), and your income is under the $242K phase-out.',
@@ -4342,7 +4346,7 @@ function taxMoves(r){
     how:'If the Maule was bought in 2026, add the Nevada sales/use tax paid on it (~8% of the price) to “sales_tax”. Also count the laptop and any other big purchases.', due:'Tax year of purchase'});
   out.push({id:'cpa', title:'Hand this page to a clergy-savvy CPA',
     save:'Ministers have unusual rules (dual status, housing allowance, SE tax). One review can pay for itself many times over.',
-    how:'Ask specifically: 1) Is Brad paying SE tax, or does he have an approved Form 4361 exemption? 2) Was the 2025 housing exclusion above fair rental value (amend if so)? 3) 403(b) and SE tax. 4) Chelsea’s aviation expenses.', due:'Before Jan 15, 2027'});
+    how:'Ask specifically: '+(r.seca?'1) Is Brad paying SE tax, or does he have an approved Form 4361 exemption? ':'1) Confirm the Form 4361 exemption covers only ministerial pay (side businesses like ASDC still owe SE tax). ')+'2) Was the 2025 housing exclusion above fair rental value (amend if so)? 3) 403(b) strategy. 4) Chelsea’s aviation expenses.', due:'Before Jan 15, 2027'});
   return out;
 }
 function renderTaxes(){
@@ -4417,7 +4421,9 @@ function renderTaxes(){
     + (has(kv('Config').budget_sheet_url)?'<a href="'+esc(kv('Config').budget_sheet_url)+'" target="_blank" rel="noopener">Open your budget sheet ↗</a>':'')+'</p>';
 }
 function taxAlerts(){ try{ if(ROLE==='chelsea'||!Object.keys(kv('Tax')).length) return []; var r=taxCalc(), out=[];
-  if(r.balance>500) out.push({d:Math.max(0,Math.round((new Date('2027-01-15')-laNow())/864e5)), label:'Taxes: ~'+taxMoney(r.balance)+' still unpaid for 2026', sub:'Q4 estimate due Jan 15', tab:'taxes'});
+  var safe=isFinite(r.safeHarbor)&&r.paid>=r.safeHarbor, dApr=Math.round((new Date('2027-04-15')-laNow())/864e5);
+  if(r.balance>500&&!safe) out.push({d:Math.max(0,Math.round((new Date('2027-01-15')-laNow())/864e5)), label:'Taxes: ~'+taxMoney(r.balance)+' still unpaid for 2026', sub:'Q4 estimate due Jan 15', tab:'taxes'});
+  if(r.balance>500&&safe&&dApr<=45) out.push({d:dApr, label:'Taxes: ~'+taxMoney(r.balance)+' due with your return', sub:'Apr 15', tab:'taxes'});
   var dd=Math.round((new Date('2026-12-31')-laNow())/864e5); if(dd>=0&&dd<=90&&!truthy(kv('Tax').move_housing)) out.push({d:dd, label:'Church designates 2027 housing allowance', sub:'before Dec 31', tab:'taxes'});
   return out; }catch(e){ return []; } }
 function analyzerBody(){
