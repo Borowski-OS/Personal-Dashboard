@@ -4280,7 +4280,7 @@ function taxCalc(over){
   r.bradWages=n('brad_comp')-r.excl-n('pretax_403b');
   r.chelseaWages=n('chelsea_wages');
   // small businesses
-  r.asdc=n('asdc_income')-n('asdc_expenses'); r.chelseaSc=n('chelsea_sc_net');
+  r.asdc=n('asdc_income')-n('asdc_expenses'); r.chelseaSc=n('chelsea_sc_net')-n('chelsea_aviation_yr');
   // self-employment tax: Brad (minister: salary + FULL housing allowance are SE earnings) + Chelsea's side income
   var bSE=seca?Math.max(0,(n('brad_comp')+r.asdc)*0.9235):Math.max(0,r.asdc*0.9235), cSE=Math.max(0,r.chelseaSc*0.9235);
   r.seBrad=bSE>=400?Math.min(bSE,TAX26.ssWage)*.124+bSE*.029:0;
@@ -4358,20 +4358,17 @@ function taxMoves(r){
     how:'Ask the church to adopt or expand a written accountable reimbursement plan (a board resolution and a yearly budget). Turn in receipts within 60 days (books, conferences, ministry travel and mileage, phone/internet business share, meals with a ministry purpose, laptop). The church reimburses and it never shows on your W-2. Money you earn directly (weddings, funerals, guest preaching, ASDC) goes on Schedule C, and those expenses ARE deductible there.', due:'Before Jan 1, 2027 (plan) · receipts within 60 days'});
   out.push({id:'cleanup', title:'Take these out of the deduction sheet: they aren’t deductible',
     save:'Keeps your return clean and avoids adjustments',
-    how:'W-2 job expenses and work travel: for income tax a church-paid minister is an employee, and employee expenses haven’t been deductible since 2018 (now permanent). Clergy count as self-employed only for Social Security, which your Form 4361 covers. Use the church reimbursement plan instead · EFTPS (that’s a tax payment, not a deduction) · medical ($2,000 is under the 7.5%-of-income floor) · the full car registration (only the Nevada “governmental services tax” part counts) · Chelsea’s flight training toward a new certificate or rating (see her business card below).', due:'Before filing'});
+    how:'W-2 job expenses and work travel: for income tax a church-paid minister is an employee, and employee expenses haven’t been deductible since 2018 (now permanent). Clergy count as self-employed only for Social Security, which your Form 4361 covers. Use the church reimbursement plan instead · EFTPS (that’s a tax payment, not a deduction) · medical ($2,000 is under the 7.5%-of-income floor) · the full car registration (only the Nevada “governmental services tax” part counts) · personal (non-business) Maule flying.', due:'Before filing'});
   var cRate=r.marginal+0.153*0.9235;
-  out.push({id:'chelseabiz', title:'Chelsea’s ground-instruction business: what counts (and what doesn’t)',
-    save:'Expenses on her Schedule C cut both income tax and her 15.3% self-employment tax, so every $1,000 of real business expense saves about '+taxMoney(1000*cRate)+'.',
-    how:'DEDUCTIBLE (her advanced ground instructor business): books, test-prep and software she teaches with, the business share of ForeFlight/iPad/phone, supplies, advertising and website, liability insurance for instructing, a home office used only for it, miles driving to students or classes, and FAA seminars that keep her teaching sharp. '
-      +'NOT DEDUCTIBLE: 1) costs of her Assistant DO job: she’s a W-2 employee there, so ask the company to pay or reimburse instead (tax-free to her). 2) Flight training toward a new certificate or rating (instrument, commercial, CFI): the IRS treats training that qualifies you for a new line of work as personal, and teaching ground school doesn’t require flying. 3) Maule costs for personal or proficiency flying. '
-      +'THE MAULE counts only for flights that are part of a business (flying to teach a class, or paid flight instruction if she becomes a CFI). Then the business-use % of fuel, maintenance, insurance, hangar and depreciation is deductible, backed by a log (date, route, purpose, Hobbs). Under 50% business use means slow straight-line depreciation only. '
-      +'ASK THE CPA to look at the flight-training deduction on the 2024 return; if it was training toward a new certificate, it may be worth amending before an audit finds it.', due:'Start the log now · before filing'});
+  out.push({id:'chelseabiz', title:'Chelsea’s aviation costs: deduct them on her business (CPA-approved)',
+    save:'Every $1,000 of her flight training and business flying saves about '+taxMoney(1000*cRate)+' (income tax plus her 15.3% self-employment tax).'+(num(t.chelsea_aviation_yr)?' Counted so far: '+taxMoney(num(t.chelsea_aviation_yr))+'.':' Enter her yearly total in “Chelsea aviation costs” below.'),
+    how:'Your CPA’s position: her ratings improve skills in the aviation field she already works in (Assistant DO, ground instructor), not a new line of work. Keep that defensible: 1) Write a one-paragraph note for the tax file on how each rating helps her teach and manage operations. 2) Keep receipts for training, rentals, checkride and written-test fees, headsets and charts. 3) Keep a Maule log (date, route, purpose, Hobbs) and split it: training/business flights are deductible (fuel, maintenance, insurance, hangar, depreciation by business %), family trips aren’t. Under 50% business use means straight-line depreciation only. 4) Run it all through her ground-instruction business; anything her employer will pay or reimburse is better still (tax-free).', due:'Keep the log all year · before filing'});
   out.push({id:'salestax', title:'Add big-purchase sales tax to your deduction',
     save:'Nevada has no income tax, so you deduct sales tax, including the actual tax paid on a car, truck, boat or aircraft',
     how:'If the Maule was bought in 2026, add the Nevada sales/use tax paid on it (~8% of the price) to “sales_tax”. Also count the laptop and any other big purchases.', due:'Tax year of purchase'});
   out.push({id:'cpa', title:'Hand this page to a clergy-savvy CPA',
     save:'Ministers have unusual rules (dual status, housing allowance, SE tax). One review can pay for itself many times over.',
-    how:'Ask specifically: '+(r.seca?'1) Is Brad paying SE tax, or does he have an approved Form 4361 exemption? ':'1) Confirm the Form 4361 exemption covers only ministerial pay (side businesses like ASDC still owe SE tax). ')+'2) Housing file: 2025 costs (down payment, roof, furnishings) and 2026 costs vs. the furnished-rent opinion. 3) Roth vs 403(b) at your bracket. 4) Chelsea’s Schedule C (ground instruction) and the 2024 flight-training deduction.', due:'Before Jan 15, 2027'});
+    how:'Ask specifically: '+(r.seca?'1) Is Brad paying SE tax, or does he have an approved Form 4361 exemption? ':'1) Confirm the Form 4361 exemption covers only ministerial pay (side businesses like ASDC still owe SE tax). ')+'2) Housing file: 2025 costs (down payment, roof, furnishings) and 2026 costs vs. the furnished-rent opinion. 3) Roth vs 403(b) at your bracket. 4) Chelsea’s Schedule C: her aviation costs and the Maule business-use %.', due:'Before Jan 15, 2027'});
   return out;
 }
 function renderTaxes(){
@@ -4431,7 +4428,7 @@ function renderTaxes(){
     +L('<b>Net</b>', '<b>'+taxMoney(r.rentNet)+'</b>', r.rentSuspended?'loss suspended (income over $150K), carries forward':'');
   
   var fields=[['Brad total church pay','brad_comp'],['Housing allowance designated','brad_housing_designated'],['Fair rental value / mo (furnished + utilities)','housing_frv_rent_mo'],['Extra FRV / mo (if not included above)','housing_frv_extras_mo'],
-    ['Actual housing costs / yr','housing_actual_yr'],['Chelsea wages (incl. bonus)','chelsea_wages'],['Chelsea federal withholding / yr','chelsea_withholding_yr'],['Chelsea side income (net)','chelsea_sc_net'],
+    ['Actual housing costs / yr','housing_actual_yr'],['Chelsea wages (incl. bonus)','chelsea_wages'],['Chelsea federal withholding / yr','chelsea_withholding_yr'],['Chelsea side income (net)','chelsea_sc_net'],['Chelsea aviation costs / yr','chelsea_aviation_yr'],
     ['ASDC income','asdc_income'],['ASDC expenses','asdc_expenses'],['Estimated payments made (EFTPS)','eftps_paid'],['Brad withholding so far','brad_withholding_ytd'],
     ['Giving / tithe','charity'],['Home mortgage interest','home_mortgage_interest'],['Home property tax','home_prop_tax'],['Sales tax (table + big purchases)','sales_tax'],
     ['Brad 403(b) pre-tax','pretax_403b'],['Roth IRA: Brad','roth_brad'],['Roth IRA: Chelsea','roth_chelsea'],['2025 total tax (for safe harbor)','prior_year_tax'],['2025 AGI','prior_year_agi'],['BTC cost basis per coin','btc_basis_per_coin']];
