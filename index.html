@@ -838,6 +838,31 @@
   .pipe-row:last-child { border-bottom:none; } .pipe-main { flex:1 1 200px; min-width:0; }
   .pipe-k { display:flex; gap:12px; font-size:13px; color:var(--text-muted); flex-wrap:wrap; } .pipe-k .dk-l { color:var(--text-dim); font-size:11px; text-transform:uppercase; letter-spacing:.05em; }
   .pipe-sel { background:var(--card-2); color:var(--text); border:1px solid var(--card-border-2); border-radius:8px; padding:6px 8px; font:inherit; font-size:13px; }
+  .down-banner { padding:11px 14px; margin-bottom:18px; border-radius:10px; background:rgba(220,179,94,.10); border:1px solid rgba(220,179,94,.35); font-size:14px; color:var(--text); }
+  .faq-chips { display:flex; flex-wrap:wrap; gap:6px; margin:4px 0 10px; }
+  .faq-chip { font:inherit; font-size:12.5px; padding:5px 11px; border-radius:999px; border:1px solid var(--card-border); background:transparent; color:var(--text-muted); cursor:pointer; }
+  .faq-chip.on { background:var(--accent); border-color:var(--accent); color:#10131a; font-weight:600; }
+  .faq-score { display:flex; justify-content:space-between; align-items:center; font-size:13px; color:var(--text-muted); margin-bottom:10px; }
+  .faq-score .linkbtn { background:none; border:none; color:var(--text-dim); cursor:pointer; font:inherit; text-decoration:underline; }
+  .faq-card { padding:16px; border-radius:12px; background:rgba(255,255,255,.03); border:1px solid var(--card-border); }
+  .faq-meta { font-size:12px; color:var(--text-dim); margin-bottom:8px; }
+  .faq-q { font-size:16.5px; line-height:1.5; margin-bottom:10px; }
+  .faq-fig { display:inline-block; font-size:13px; margin:0 8px 10px 0; color:var(--accent); }
+  .faq-opts { display:grid; gap:8px; }
+  .faq-opt { display:flex; gap:12px; align-items:flex-start; text-align:left; font:inherit; font-size:15px; line-height:1.4; padding:11px 13px; border-radius:10px; border:1px solid var(--card-border); background:var(--card-bg); color:var(--text); cursor:pointer; }
+  .faq-opt b { color:var(--text-dim); min-width:14px; }
+  .faq-opt:hover { border-color:var(--accent); }
+  .faq-opt.ok { border-color:var(--green); background:rgba(107,196,138,.12); }
+  .faq-opt.bad { border-color:var(--red); background:rgba(229,112,122,.12); }
+  .faq-opt.dim { opacity:.55; }
+  .faq-why { margin-top:12px; font-size:14.5px; line-height:1.5; color:var(--text-muted); }
+  .faq-more { margin-top:14px; }
+  .faq-more summary { cursor:pointer; font-weight:600; font-size:14px; }
+  .faq-list { margin:8px 0 0; padding-left:20px; font-size:14px; line-height:1.55; color:var(--text-muted); }
+  .faq-list li { margin-bottom:6px; }
+  .faq-tbl { width:100%; border-collapse:collapse; margin-top:8px; font-size:13.5px; }
+  .faq-tbl th, .faq-tbl td { text-align:left; padding:6px 8px; border-bottom:1px solid var(--card-border); vertical-align:top; }
+  .faq-tbl th { color:var(--text-dim); font-weight:600; }
   .book-bar { display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; padding:10px 12px; margin-bottom:10px; border-radius:10px; background:rgba(107,196,138,.08); border:1px solid rgba(107,196,138,.25); font-size:13.5px; }
   .book-btns { display:flex; gap:8px; flex-wrap:wrap; } a.ebtn { text-decoration:none !important; }
   .al-list, .al-steps { padding-left:20px; line-height:1.55; font-size:14px; } .al-list li, .al-steps li { margin:5px 0; }
@@ -1448,7 +1473,7 @@ function render(tab){
   }[tab] || function(){return '';})();
   if(tab==='home') drawMoneyCharts();
   if(tab==='ventures') setTimeout(wiRun,0);
-  if(tab==='flying'){ fetchAirports(); fetchNwsFc(); xcMount(); atMount(); }
+  if(tab==='flying'){ fetchAirports(); fetchNwsFc(); xcMount(); atMount(); faqDraw(); }
   applyLive();
 }
 
@@ -1654,6 +1679,7 @@ function upcomingAlerts(){
     if(d!=null&&d>=0&&d<=90) out.push({d:d, label:esc(t.Trip||t.Destination), sub:'trip · '+esc(String(t.StartDate)), tab:'travel'}); });
   arr('ProjectTasks').forEach(function(t){ if(truthy(t.Done)||!has(t.Due)) return; var d=daysUntilDate(t.Due);
     if(d!=null&&d<=21) out.push({d:d, label:esc(t.Task), sub:esc(t.Project||'')+' task', tab:(arr('Projects').some(function(p){return p.Name===t.Project&&isFlyingProject(p);})?'flying':'projects')}); });
+  try{ var wi=writtenInfo(); if(wi&&wi.days>=0) out.push({d:wi.days, label:'FAA written test', sub:'study cards on Flying', tab:'flying'}); }catch(e){}
   try{ out=out.concat(maintAlerts()); }catch(e){}
   try{ out=out.concat(taxAlerts()); }catch(e){}
   out.sort(function(a,b){return a.d-b.d;});
@@ -3448,6 +3474,8 @@ function renderFlying(){
   var gap='<div style="height:22px"></div>';
   // Top: go/no-go, live airport weather (METARs), 7-day outlook — then the cross-country planner
   return (EDIT?'<div class="editbar">'+kvEditBtn('Flying')+'</div>':'')
+    + planesDownBanner()
+    + (writtenInfo()?writtenCard()+gap:'')
     + '<div class="grid cols-2">' + goNoGoCard() + vfrWindowCard() + '</div>'
     + gap
     + '<div id="atHost"></div>'
@@ -3953,7 +3981,104 @@ function jeremyLinks(fromSec, toSec, msg){
       +'&location='+encodeURIComponent('Minden-Tahoe Airport (KMEV)')+'&details='+encodeURIComponent('Booked from Life OS. Check the TAF and IMSAFE before you go.'),
     sms:'sms:'+phone+'&body='+encodeURIComponent(msg||('Hey Jeremy, are you free to fly '+day+' around '+hhmm(fromSec)+'? The Minden forecast looks good.'))};
 }
+/* ---------- Planes down (Flying kv aircraft_down) + FAA written test prep (Flying kv written_date) ---------- */
+function planesDown(){ return String(kv('Flying').aircraft_down||'').split(/[,;\s]+/).filter(Boolean).map(function(s){return s.toUpperCase();}); }
+function trainerDown(){ var t=String(kv('Flying').cfi_aircraft||'N3207A').toUpperCase(); return planesDown().indexOf(t)>=0; }
+function planesDownBanner(){
+  var d=planesDown(), f=kv('Flying'); if(!d.length) return '';
+  return '<div class="down-banner">🔧 <b>'+esc(d.join(' & '))+' '+(d.length>1?'are':'is')+' down</b>: '+esc(f.aircraft_down_note||'out of service')
+    +(has(f.aircraft_down_since)?' (since '+esc(shortDay(f.aircraft_down_since))+')':'')+'. Lesson booking and fly-window alerts are paused until '+(d.length>1?'they’re':'it’s')+' back.</div>';
+}
+function writtenInfo(){
+  var f=kv('Flying'), d=parseDate(f.written_date); if(!d) return null;
+  if(/pass|done|complete/i.test(String(f.written_status||''))) return null;
+  var days=Math.round((new Date(d.getFullYear(),d.getMonth(),d.getDate())-new Date(new Date().toDateString()))/864e5);
+  return days<-1?null:{date:d, days:days};
+}
+var FAQ={topic:'All', i:0, picked:null, order:null};
+function faqState(){ try{ return JSON.parse(localStorage.getItem('lifeos_faa')||'{}'); }catch(e){ return {}; } }
+function faqSave(s){ try{ localStorage.setItem('lifeos_faa', JSON.stringify(s)); }catch(e){} }
+function faqLoad(){
+  if(window.FAA_PAR) return Promise.resolve();
+  return new Promise(function(res,rej){ var s=document.createElement('script'); s.src='faa-par.js?v=1'; s.onload=res; s.onerror=rej; document.head.appendChild(s); });
+}
+function faqPool(){
+  var st=faqState(), all=window.FAA_PAR||[];
+  if(FAQ.topic==='Missed') return all.filter(function(q){ return st[q[0]]===0; });
+  return FAQ.topic==='All'?all:all.filter(function(q){ return q[1]===FAQ.topic; });
+}
+function faqShuffle(){ var p=faqPool().map(function(q){return q[0];}); for(var i=p.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)), t=p[i]; p[i]=p[j]; p[j]=t; } FAQ.order=p; FAQ.i=0; FAQ.picked=null; }
+function faqTopic(t){ FAQ.topic=t; faqShuffle(); faqDraw(); }
+function faqPick(k){
+  if(FAQ.picked!=null) return; var q=faqCur(); if(!q) return;
+  FAQ.picked=k; var st=faqState(); st[q[0]]=(k===q[4])?1:0; faqSave(st); faqDraw();
+}
+function faqNext(){ FAQ.i++; FAQ.picked=null; if(FAQ.i>=FAQ.order.length) faqShuffle(); faqDraw(); }
+function faqCur(){ var n=FAQ.order&&FAQ.order[FAQ.i]; return (window.FAA_PAR||[]).filter(function(q){return q[0]===n;})[0]; }
+function faqReset(){ if(!confirm('Clear your flashcard history?')) return; faqSave({}); faqShuffle(); faqDraw(); }
+function faqDraw(){
+  var host=$('faqHost'); if(!host) return;
+  if(!window.FAA_PAR){ host.innerHTML='<div class="empty">Loading FAA questions…</div>'; faqLoad().then(function(){ faqShuffle(); faqDraw(); }).catch(function(){ host.innerHTML='<div class="empty">Couldn’t load the questions. Check your connection.</div>'; }); return; }
+  if(!FAQ.order) faqShuffle();
+  var st=faqState(), all=window.FAA_PAR, ans=all.filter(function(q){return st[q[0]]!=null;}), right=ans.filter(function(q){return st[q[0]]===1;}).length, missed=ans.length-right;
+  var topics=['All'].concat(all.map(function(q){return q[1];}).filter(function(t,i,a){return a.indexOf(t)===i;}));
+  if(missed) topics.push('Missed');
+  var chips='<div class="faq-chips">'+topics.map(function(t){ return '<button class="faq-chip'+(FAQ.topic===t?' on':'')+'" onclick="faqTopic(\''+t.replace(/'/g,"\\'")+'\')">'+esc(t)+(t==='Missed'?' ('+missed+')':'')+'</button>'; }).join('')+'</div>';
+  var score='<div class="faq-score"><span><b>'+ans.length+'</b> of '+all.length+' tried · <b style="color:var(--green)">'+(ans.length?Math.round(right/ans.length*100):0)+'%</b> right'+(missed?' · <span style="color:var(--red)">'+missed+' to review</span>':'')+'</span><button class="linkbtn" onclick="faqReset()">reset</button></div>';
+  var q=faqCur();
+  if(!q){ host.innerHTML=chips+score+'<div class="empty">'+(FAQ.topic==='Missed'?'Nothing left to review. Nice work.':'No questions here.')+'</div>'; return; }
+  var L='ABC', body='<div class="faq-card"><div class="faq-meta">FAA PAR sample Q'+q[0]+' · '+esc(q[1])+' · '+(FAQ.i+1)+'/'+FAQ.order.length+'</div>'
+    +'<div class="faq-q">'+esc(q[2].replace(/`/g,'’'))+'</div>'
+    +(q[6]?'<a class="faq-fig" href="faa/fig'+q[6]+'.jpg" target="_blank" rel="noopener">📄 Figure '+q[6]+'</a>'+(q[6]==='32'?' <a class="faq-fig" href="faa/fig33.jpg" target="_blank" rel="noopener">Figure 33</a>':''):'')
+    +'<div class="faq-opts">'+q[3].map(function(o,k){
+      var cls=FAQ.picked==null?'':(k===q[4]?' ok':(k===FAQ.picked?' bad':' dim'));
+      return '<button class="faq-opt'+cls+'" onclick="faqPick('+k+')"><b>'+L[k]+'</b><span>'+esc(o.replace(/`/g,'’'))+'</span></button>'; }).join('')+'</div>'
+    +(FAQ.picked!=null?'<div class="faq-why"><b>'+(FAQ.picked===q[4]?'✓ Correct.':'✗ Answer: '+L[q[4]]+'.')+'</b> '+esc(q[5])+'</div><div style="text-align:right;margin-top:10px"><button class="ebtn pri" onclick="faqNext()">Next →</button></div>':'')
+    +'</div>';
+  host.innerHTML=chips+score+body;
+}
+document.addEventListener('keydown', function(e){
+  if(!$('faqHost')||/input|textarea|select/i.test((e.target||{}).tagName||'')) return;
+  var k=e.key.toUpperCase(); if(FAQ.picked==null && 'ABC'.indexOf(k)>=0 && k.length===1){ faqPick('ABC'.indexOf(k)); } else if(FAQ.picked!=null && (e.key==='Enter'||e.key===' '||e.key==='ArrowRight')){ e.preventDefault(); faqNext(); }
+});
+function writtenCard(){
+  var w=writtenInfo(); if(!w) return '';
+  var when=w.days>1?w.days+' days':w.days===1?'tomorrow':w.days===0?'today':'yesterday';
+  var day=w.date.toLocaleDateString('en-US',{weekday:'long',month:'short',day:'numeric'});
+  var mins='<table class="faq-tbl"><tr><th>Airspace</th><th>Visibility</th><th>Cloud clearance</th></tr>'
+    +'<tr><td>Class B</td><td>3 SM</td><td>Clear of clouds</td></tr>'
+    +'<tr><td>Class C, D, E (below 10,000 MSL)</td><td>3 SM</td><td>500 below · 1,000 above · 2,000 horiz</td></tr>'
+    +'<tr><td>Class E at/above 10,000 MSL</td><td>5 SM</td><td>1,000 below · 1,000 above · 1 SM horiz</td></tr>'
+    +'<tr><td>Class G, 1,200 AGL or less: day</td><td>1 SM</td><td>Clear of clouds</td></tr>'
+    +'<tr><td>Class G, 1,200 AGL or less: night</td><td>3 SM</td><td>500 · 1,000 · 2,000</td></tr>'
+    +'<tr><td>Class G, above 1,200 AGL, below 10,000 MSL</td><td>Day 1 SM · night 3 SM</td><td>500 · 1,000 · 2,000</td></tr>'
+    +'<tr><td>Class G, above 1,200 AGL and at/above 10,000 MSL</td><td>5 SM</td><td>1,000 · 1,000 · 1 SM</td></tr></table>';
+  var facts='<ul class="faq-list">'
+    +'<li><b>Light gun:</b> steady green = cleared to land (air) / take off (ground) · flashing green = return for landing / cleared to taxi · steady red = give way, keep circling / stop · flashing red = airport unsafe, don’t land / taxi clear of runway · flashing white = return to start (ground) · alternating red/green = extreme caution.</li>'
+    +'<li><b>Inspections:</b> annual every 12 calendar months · 100-hour if for hire or flight instruction · transponder 24 calendar months · ELT 12 calendar months; battery at 50% life or 1 hr cumulative use.</li>'
+    +'<li><b>Codes:</b> 1200 VFR · 7500 hijack · 7600 lost comms · 7700 emergency.</li>'
+    +'<li><b>VFR fuel reserve:</b> 30 min day, 45 min night. <b>Passenger currency:</b> 3 takeoffs and landings in 90 days (full stop in a tailwheel or at night).</li>'
+    +'<li><b>Winds aloft</b> are TRUE and knots; the <b>METAR/TAF</b> wind is true; <b>ATIS and tower</b> winds are magnetic.</li></ul>';
+  var plan='<ol class="faq-list">'
+    +'<li><b>Every day:</b> run all the flashcards until you’re 90%+ on the “All” deck, then clear the “Missed” deck.</li>'
+    +'<li><b>Chart work:</b> with the figure open, work every figure question by hand (sectionals, chart supplement, W&B, performance). These are where points get lost.</li>'
+    +'<li><b>Finish The Finer Points</b> lessons and quizzes you haven’t done, and take at least one full timed practice test on <a href="https://faa.psiexams.com/FAA/login" target="_blank" rel="noopener">PSI</a> (the real test is 60 questions, 2½ hours, 70% to pass).</li>'
+    +'<li><b>Night before:</b> light review only (minimums table, light gun, codes), then sleep.</li></ol>';
+  var bring='<ul class="faq-list faq-check">'
+    +'<li><b>Endorsement</b> to take the test, from The Finer Points (ground-school completion) or from Jeremy. You can’t test without it.</li>'
+    +'<li>Government <b>photo ID</b> and your <b>FTN</b> (from IACRA).</li>'
+    +'<li><b>E6B</b> (or an approved electronic flight computer), <b>plotter</b>, and a simple calculator. The center provides the testing supplement and scratch paper.</li>'
+    +'<li>Arrive early. After the test, keep the <b>score report</b>: missed topics (ACS codes) must be reviewed with Jeremy before the checkride.</li></ul>';
+  return card('📝 FAA written test: '+day+' ('+when+')', 'Every flashcard is an FAA Private Pilot sample question (FAA PAR set), answers worked from the FAA testing supplement. Keys A/B/C answer, Enter for next.',
+    '<div id="faqHost"><div class="empty">Loading FAA questions…</div></div>'
+    +'<details class="faq-more" open><summary>Plan for the next '+Math.max(1,w.days)+' day'+(w.days>1?'s':'')+'</summary>'+plan+'</details>'
+    +'<details class="faq-more"><summary>Test-day checklist</summary>'+bring+'</details>'
+    +'<details class="faq-more"><summary>Must-know: VFR weather minimums (§91.155)</summary>'+mins+'</details>'
+    +'<details class="faq-more"><summary>Must-know: quick facts</summary>'+facts+'</details>'
+    +'<div class="foot" style="margin-top:12px">Official sources: <a href="https://www.faa.gov/sites/faa.gov/files/training_testing/testing/test_questions/par_questions.pdf" target="_blank" rel="noopener">FAA PAR sample questions</a> · <a href="https://www.faa.gov/training_testing/testing/supplements/media/sport_rec_private_akts.pdf" target="_blank" rel="noopener">Testing supplement FAA-CT-8080-2H</a> (large PDF) · <a href="https://www.faa.gov/training_testing/testing/acs/media/private_airplane_acs_change_1.pdf" target="_blank" rel="noopener">Private Pilot ACS</a></div>', '--sky');
+}
 function bookBar(){
+  if(trainerDown()) return '';
   var nf=tafNextFly(); if(!nf||nf.none) return '';
   var from=nf.f.from, L=jeremyLinks(from, Math.min(nf.f.to, from+2*3600));
   return '<div class="book-bar"><span><b>Next good window:</b> '+dayLbl(nf.f.from)+' '+hhmm(nf.f.from)+' – '+hhmm(nf.f.to)+'</span>'

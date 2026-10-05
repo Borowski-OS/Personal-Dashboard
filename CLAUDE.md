@@ -68,3 +68,7 @@
   taxMoves() = prioritized actions (checkbox state in Tax kv move_<id>); taxAlerts() feed Today. Planning estimate, not advice — keep the CPA caveat.
 - AI orb: canvas.ai-sphere elements (launcher #aiHive + chat welcome) share one rAF loop drawing a ~1,200-point Fibonacci particle sphere
   (3D rotation + flowing radius), Apple-setup style; only visible canvases animate. Tax kv rental_ledger (JSON rows) drives the Schedule E card. Chelsea's flight training + business share of the Maule are deductible on her ground-instruction Sch C (CPA-approved: improves skills in her existing aviation field); Tax kv chelsea_aviation_yr is subtracted from chelsea_sc_net.
+- Planes down: Flying kv `aircraft_down` ("N51207, N3207A"), `aircraft_down_note`, `aircraft_down_since` → Flying banner, bookBar hidden, and Alerts.js trainerDown_
+  skips fly-window/lesson-weather alerts while cfi_aircraft is listed. Clear the kv when the annuals are done.
+- Written test prep (Flying): writtenCard shows while Flying kv `written_date` is set and `written_status` isn't pass/done. Flashcards = FAA PAR sample
+  questions only (faa-par.js, verbatim from faa.gov par_questions.pdf; answers worked from FAA-CT-8080-2H), figures in faa/figNN.jpg; progress in localStorage `lifeos_faa`.
