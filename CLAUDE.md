@@ -21,7 +21,7 @@
   Planes from Flying kv `tracked_aircraft` ("N51207 = Brad & Chelsea; N6058A = …"), else `AT_DEFAULT_TAILS`.
 - CFI balance: Flying kv `cfi_rate`, `cfi_aircraft` (tail), `cfi_paid_through` (date). Owed = hours in that tail after the date × rate; "Mark paid" advances the date.
 - Medical tab (Start, End, Kind, What, Symptoms, Treatment, Notes). An Illness row with no End = "sick mode": training targets paused, recovery plan on Health, IMSAFE grounding on Today/Flying.
-- Drive inbox ("Life OS Inbox", link in Config `inbox_url`, set by running `setupDriveInbox` once): importInbox_ reads ForeFlight + Cronometer CSVs (daily nutrition/servings → Nutrition tab; biometrics weight → HealthLog + Health weight; WHOOP/Apple recovery, HRV, RHR, sleep → Recovery tab). Web action `importcsv` imports CSV text directly.
+- Drive inbox ("Life OS Inbox", link in Config `inbox_url`, set by running `setupDriveInbox` once): importInbox_ reads ForeFlight + Cronometer CSVs (daily nutrition/servings → Nutrition tab; a servings export with only Day,Time,Group,Food Name,Amount → Nutrition.Foods (what was eaten; in AI context); biometrics weight → HealthLog + Health weight; WHOOP/Apple recovery, HRV, RHR, sleep → Recovery tab). Web action `importcsv` imports CSV text directly.
 - Known backend bug (Apps Script `action=apt`, not in this repo): a batch containing non-airport codes (VORs like FMG,
   GPS fixes like BODAD) comes back `ok:false` with "TypeError: (arr || []).forEach is not a function" — likely
   aviationweather.gov answering HTTP 204 (empty) when nothing matches. The page now works around it (per-code retry,
