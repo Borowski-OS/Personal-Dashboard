@@ -1,14 +1,13 @@
 name: Deploy to GitHub Pages
 
 # The dashboard is a single static index.html that fetches its data at runtime from
-# a Google Apps Script web app. There is no build. We deploy on a schedule + on push
-# so the published page always reflects the latest committed shell.
+# a Google Apps Script web app. There is no build. We deploy on push (and by hand).
+# No schedule: the page only changes on push, and a 15-minute schedule turned every
+# GitHub runner hiccup into a "Run failed" email.
 on:
   push:
     branches: [ main ]
   workflow_dispatch:
-  schedule:
-    - cron: '*/15 * * * *'
 
 permissions:
   contents: read
@@ -22,6 +21,7 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
