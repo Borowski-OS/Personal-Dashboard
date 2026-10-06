@@ -210,6 +210,9 @@
   .tw-t { flex:1; font-weight:500; color:var(--text-muted); min-width:0; overflow-wrap:anywhere; } .tw-row.fired .tw-t { color:var(--text); font-weight:600; }
   .tw-note { display:block; font-size:12.5px; color:var(--amber); font-weight:500; margin-top:2px; }
   .tw-act .ebtn { padding:2px 8px; font-size:11.5px; }
+  .tw-card h2 { font-size:16px; } .tw-card .sub { font-size:13px; margin-bottom:8px; }
+  .tw-card .tw-row { padding:5px 0; font-size:13px; line-height:1.35; } .tw-card .tw-dot { margin-top:5px; }
+  .tw-card .kv-row { padding:5px 0; font-size:13px; line-height:1.35; } .tw-card .tw-note { font-size:12px; }
   .pv-item { padding:9px 0; border-bottom:1px solid #2c323a; } .pv-item:last-child { border-bottom:none; }
   .pv-k { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--text-dim); margin-bottom:3px; }
   .pv-v { font-size:14px; color:var(--text); line-height:1.5; overflow-wrap:anywhere; }
@@ -254,7 +257,7 @@
   .deal-o { font-size:13.5px; color:var(--text-muted); } .deal-notes { font-size:14px; line-height:1.55; color:var(--text-muted); }
   .deal-notes a { color:#a5b4fc; text-decoration:none; font-weight:600; }
   .deal-f { display:flex; justify-content:space-between; align-items:center; gap:10px; margin-top:auto; }
-  .vbadge { font-size:12px; font-weight:600; color:var(--text-dim); } .vbadge.ok { color:var(--green); }
+  .vbadge { font-size:12px; font-weight:600; color:var(--text-dim); } .vbadge.ok { color:var(--green); } .vbadge.warn { color:var(--amber); }
   .refbox { border:1px solid var(--card-border); border-radius:14px; padding:16px 20px; background:var(--card-bg); }
   .refbox summary { cursor:pointer; font-weight:700; font-size:16px; } .refbox summary span { font-weight:500; font-size:13px; color:var(--text-dim); margin-left:8px; }
   .num { text-align:right; font-family:inherit; font-weight:600; font-variant-numeric:tabular-nums; white-space:nowrap; }
@@ -1965,8 +1968,10 @@ function goNoGoCard(){
 /* ---------- Overview: the top idea from each venture track (Deals, Properties, side income) ---------- */
 function ventureBestBetsCard(){
   var live=function(r){ return !/(pass|dead)/i.test(String(r.Stage||'')); };
-  var deal=arr('Deals').filter(function(r){return has(r.Name)&&live(r);})[0];
-  var prop=arr('Properties').filter(function(r){return has(r.Address)&&live(r);})[0];
+  // #1 pick must carry a "[Verified live …]" stamp from the Monday search — an unverified listing is never promoted to Today
+  var deals=arr('Deals').filter(function(r){return has(r.Name)&&live(r);}), props=arr('Properties').filter(function(r){return has(r.Address)&&live(r);});
+  var deal=deals.filter(isVerifiedLive)[0], prop=props.filter(isVerifiedLive)[0];
+  var unvDeals=deals.length-deals.filter(isVerifiedLive).length, unvProps=props.length-props.filter(isVerifiedLive).length;
   var v=kv('Ventures'), f=function(k){ return num(v['Funnel|'+k]); };
   var coach=f('Coaching clients now')||0, coachGoal=f('Coaching goal')||6, web=f('Church web clients now')||0, webGoal=f('Church web goal')||20;
   var side=(coach*(f('Coaching $/mo each')||400))+(web*(f('Church web $/mo each')||125));
@@ -1975,11 +1980,11 @@ function ventureBestBetsCard(){
     +'<strong>'+title+'</strong>'+(sub?'<div class="foot" style="color:var(--text-dim)">'+sub+'</div>':'')+'</span></div>'; };
   var out='';
   out+= deal ? row('📈','Business to buy',esc(deal.Name)+(has(deal.Location)?' · '+esc(deal.Location):''),
-      [has(deal.Price)?money(deal.Price)+' ask':'', has(deal.SDE)?money(deal.SDE)+' SDE':'', has(deal.CashNeeded)?'~'+money(deal.CashNeeded)+' cash in':'', has(deal.MonthlyNet)?'~'+money(deal.MonthlyNet)+'/mo net':'', has(deal.Stage)?esc(deal.Stage):''].filter(Boolean).join(' · '))
-    : row('📈','Business to buy','No live deals','Add candidates on the Ventures tab');
+      [has(deal.Price)?money(deal.Price)+' ask':'', has(deal.SDE)?money(deal.SDE)+' SDE':'', has(deal.CashNeeded)?'~'+money(deal.CashNeeded)+' cash in':'', has(deal.MonthlyNet)?'~'+money(deal.MonthlyNet)+'/mo net':'', has(deal.Stage)?esc(deal.Stage):''].filter(Boolean).join(' · ')+'<br>'+splitVerified(deal.Notes).badge)
+    : row('📈','Business to buy', unvDeals?'No verified deal this week':'No live deals', unvDeals?unvDeals+' in the pipeline couldn’t be verified live — not promoted until a link is confirmed':'Add candidates on the Ventures tab');
   out+= prop ? row('🏘️','Real estate investment',esc(prop.Address)+(has(prop.Area)?' · '+esc(prop.Area):''),
-      [has(prop.Price)?money(prop.Price):'', has(prop.CapRate)?esc(prop.CapRate)+' cap':'', has(prop.CashFlowMo)?money(prop.CashFlowMo)+'/mo cash flow':'', has(prop.Appreciation5yr)?esc(prop.Appreciation5yr)+' 5-yr equity':'', has(prop.Stage)?esc(prop.Stage):''].filter(Boolean).join(' · '))
-    : row('🏘️','Real estate investment','Nothing cash-flows at today’s rates','2–4 units within an hour of Carson · the Monday search keeps looking');
+      [has(prop.Price)?money(prop.Price):'', has(prop.CapRate)?esc(prop.CapRate)+' cap':'', has(prop.CashFlowMo)?money(prop.CashFlowMo)+'/mo cash flow':'', has(prop.Appreciation5yr)?esc(prop.Appreciation5yr)+' 5-yr equity':'', has(prop.Stage)?esc(prop.Stage):''].filter(Boolean).join(' · ')+'<br>'+splitVerified(prop.Notes).badge)
+    : row('🏘️','Real estate investment', unvProps?'No verified rental this week':'Nothing cash-flows at today’s rates', unvProps?unvProps+' in the pipeline couldn’t be verified live':'2–4 units within an hour of Carson · the Monday search keeps looking');
   out+= row('💡','Side income (start now)','Anchor Soul Coaching + church websites',
       coach+'/'+coachGoal+' coaching clients · '+web+'/'+webGoal+' church sites · '+money(side)+'/mo recurring now');
   return card('🎯 Best bets','The top idea from each venture track — tap for the full pipeline.', out, '--indigo') + '<div style="height:22px"></div>';
@@ -3896,8 +3901,10 @@ function grpKv(obj, accentVar){
   }).join('');
 }
 function stageTone(st){ st=String(st||''); return /(pass|dead)/i.test(st)?'blocked':(/(offer|dilig|loi|clos|call)/i.test(st)?'active':'planning'); }
+function isVerifiedLive(r){ return /\[Verified live/i.test(String(r.Notes||'')); }
 function splitVerified(notes){ var n=String(notes||''), m=n.match(/\s*\[(Verified live[^\]]*|Couldn't verify[^\]]*)\]/), badge='';
-  if(m){ n=n.replace(m[0],''); badge=/^Verified/.test(m[1])?'<span class="vbadge ok">✓ '+esc(m[1])+'</span>':'<span class="vbadge">? '+esc(m[1].replace(/: site blocks.*$/,''))+'</span>'; }
+  if(m){ n=n.replace(m[0],''); badge=/^Verified/.test(m[1])?'<span class="vbadge ok">✓ '+esc(m[1])+'</span>':'<span class="vbadge warn">⚠ '+esc(m[1].replace(/: site blocks.*$/,''))+' — link may be dead, check before you call</span>'; }
+  else badge='<span class="vbadge warn">⚠ Not verified — link may be dead, check before you call</span>';
   return {text:n.trim(), badge:badge}; }
 function dealCardHtml(r){
   var sv=splitVerified(r.Notes), mult=(num(r.Price)&&num(r.SDE))?(num(r.Price)/num(r.SDE)).toFixed(1)+'×':'';
@@ -4630,7 +4637,8 @@ function analyzerBody(){
 function renderVentures(){
   var v=kv('Ventures');
   var live=function(r){ return !/(pass|dead)/i.test(String(r.Stage||'')); };
-  var deals=arr('Deals').filter(function(r){return live(r)&&!inPipe(r);}), props=arr('Properties').filter(function(r){return live(r)&&!inPipe(r);});
+  var vFirst=function(a,b){ return (isVerifiedLive(b)?1:0)-(isVerifiedLive(a)?1:0); };   // verified listings first, unverified sink
+  var deals=arr('Deals').filter(function(r){return live(r)&&!inPipe(r);}).sort(vFirst), props=arr('Properties').filter(function(r){return live(r)&&!inPipe(r);}).sort(vFirst);
   // live capital sources
   var cash=arr('Accounts').reduce(function(s,a){var n=num(a.Balance);var t=String(a.Type||'').toLowerCase();return s+(isNaN(n)||t.indexOf('credit')>=0?0:n);},0);
   var crypto=arr('Investments').filter(function(i){return /crypto|btc|bitcoin/i.test(String(i.Type)+' '+String(i.Name));}).reduce(function(s,i){return s+(num(i.Value)||0);},0);
@@ -4937,15 +4945,15 @@ function teslaWatchCard(){
   var next=dates.filter(function(x){return x.d!=null&&x.d>=0;}).sort(function(a,b){return a.d-b.d;})[0];
   var datesHtml=dates.map(function(x){ return '<div class="kv-row"><span class="k"><strong>'+esc(x.t)+'</strong><br><span style="color:var(--text-dim);font-size:12.5px">'+esc(x.s)+'</span></span><span class="v '+dueClass(x.d)+'">'+(x.d!=null?fmtDue(x.d):'')+'</span></div>'; }).join('');
   var firedN=TESLA_TRIGGERS.filter(function(t){return has(cfg['tesla_fired_'+t.id]);}).length, upd=cfg.tesla_watch_updated;
-  var sub=(firedN?firedN+' trigger'+(firedN===1?'':'s')+' fired. ':'No triggers fired. ')+(next?'Next: '+next.t.toLowerCase()+' '+fmtDue(next.d)+'. ':'')+'A danger means order early to lock in.';
-  var foot='<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-top:14px">'
+  var sub=(firedN?firedN+' trigger'+(firedN===1?'':'s')+' fired':'No triggers fired')+(next?' · next: '+next.t.toLowerCase()+' '+fmtDue(next.d):'')+' · a danger means order early to lock in.';
+  var foot='<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-top:8px">'
     +'<span class="foot" style="color:var(--text-dim)">Last updated '+(has(upd)?esc(upd):'—')+' · '+statusTag(vehStatus(v))+'</span>'
     +'<span style="display:flex;gap:6px;flex-wrap:wrap"><button class="ebtn" onclick="teslaChecked()">Checked today, no change</button><button class="ebtn" onclick="navGo(\'vehicles\')">Open vehicle →</button></span></div>';
-  var body='<div class="grid cols-3" style="gap:18px">'
+  var body='<div class="grid cols-3" style="gap:14px">'
     +'<div><div class="tw-h" style="color:var(--red)">Dangers — act fast</div>'+dangers+'</div>'
     +'<div><div class="tw-h" style="color:var(--green)">Positive triggers</div>'+goods+'</div>'
     +'<div><div class="tw-h" style="color:var(--sky)">Key dates</div>'+datesHtml+'</div></div>'+foot;
-  return card('🔋 Tesla watch', sub, body, '--rose');
+  return card('🔋 Tesla watch', sub, body, '--rose').replace('<div class="card"','<div class="card tw-card"');
 }
 async function teslaSet(obj){ obj.tesla_watch_updated=ymd(laNow());
   var res=await apiWrite({action:'setkv',tab:'Config',row:JSON.stringify(obj)});
