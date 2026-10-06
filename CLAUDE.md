@@ -82,3 +82,9 @@
   rebate_closed, apr_down, incentive) and `tesla_watch_updated`. To mark a trigger fired from a Claude session: the Config
   kv editor on the page, the page console (`teslaFire('apr_up','promo ends Nov 30')`, `teslaClear('apr_up')`, `teslaChecked()`),
   or the API: `action=setkv&tab=Config&row={"tesla_fired_apr_up":"2026-11-03 — note","tesla_watch_updated":"2026-11-03"}` (setkv merges).
+- Outbound listing links: the page sends no referrer (`<meta name="referrer" content="no-referrer">`). businessbroker.net answers 403 to any
+  click whose referrer is this dashboard, which looked like dead links (Oct 6). Don't remove the tag.
+- "[Verified live]" in the Monday search only proves the page answered HTTP 200. Liberty Group (thelibertygroupofnevada.com) keeps SOLD
+  listings online with "This Listing is SOLD" in the body, so two stamped-live Watch deals were sold (Oct 6). The backend check
+  (Ventures.js, in Brad's Google account — not reachable with the clasp login on this Mac) should also scan page text for
+  SOLD / under contract / pending / no longer available before stamping. The page itself only promotes stamped-live rows to Today.

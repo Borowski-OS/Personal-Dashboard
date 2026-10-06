@@ -4948,7 +4948,7 @@ function teslaWatchCard(){
   var firedN=TESLA_TRIGGERS.filter(function(t){return has(cfg['tesla_fired_'+t.id]);}).length, upd=cfg.tesla_watch_updated;
   var sub=(firedN?firedN+' trigger'+(firedN===1?'':'s')+' fired':'No triggers fired')+(next?' · next: '+next.t.toLowerCase()+' '+fmtDue(next.d):'')+' · a danger means order early to lock in.';
   var foot='<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-top:8px">'
-    +'<span class="foot" style="color:var(--text-dim)">Last updated '+(has(upd)?esc(upd):'—')+' · '+statusTag(vehStatus(v))+'</span>'
+    +'<span class="foot" style="color:var(--text-dim)">Last updated '+(has(upd)?esc(prettyIso(String(upd)).slice(0,24)):'—')+' · '+statusTag(vehStatus(v))+'</span>'
     +'<span style="display:flex;gap:6px;flex-wrap:wrap"><button class="ebtn" onclick="teslaChecked()">Checked today, no change</button><button class="ebtn" onclick="navGo(\'vehicles\')">Open vehicle →</button></span></div>';
   var body='<div class="grid cols-3" style="gap:14px">'
     +'<div><div class="tw-h" style="color:var(--red)">Dangers — act fast</div>'+dangers+'</div>'
