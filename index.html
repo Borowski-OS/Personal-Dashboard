@@ -872,7 +872,6 @@
   .faq-tbl th { color:var(--text-dim); font-weight:600; }
   .book-bar { display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; padding:10px 12px; margin-bottom:10px; border-radius:10px; background:rgba(107,196,138,.08); border:1px solid rgba(107,196,138,.25); font-size:13.5px; }
   .book-btns { display:flex; gap:8px; flex-wrap:wrap; } a.ebtn { text-decoration:none !important; }
-  .al-on { margin:12px 0 4px; padding:10px 12px; border-radius:10px; background:rgba(107,196,138,.10); border:1px solid rgba(107,196,138,.3); }
   .al-list, .al-steps { padding-left:20px; line-height:1.55; font-size:14px; } .al-list li, .al-steps li { margin:5px 0; }
   .al-topic { display:flex; gap:8px; align-items:center; margin-top:6px; } .al-topic code { background:#171a1f; border:1px solid var(--card-border-2); border-radius:6px; padding:6px 9px; font-size:13px; overflow-wrap:anywhere; }
 
@@ -4108,49 +4107,28 @@ function bookBar(){
     +'<span class="book-btns"><a class="ebtn pri" href="'+esc(L.cal)+'" target="_blank" rel="noopener">＋ Add lesson to calendar</a><a class="ebtn" href="'+esc(L.sms)+'">Text Jeremy</a></span></div>'; }
 
 /* ---------- Phone alerts (ntfy) ---------- */
-var ALERT_PO=null;   // true when alerts go to Brad's Pushover app (keys live server-side only)
 function openAlerts(){
-  var topic=kv('Config').ntfy_topic, po=ALERT_PO;
-  var list='<ul class="al-list"><li><b>7 AM Mon–Thu:</b> who to call on your drive, with a tap-to-call button</li>'
-    +'<li><b>8 AM:</b> a bill that isn’t on autopay is due in 3 days</li><li><b>9 AM:</b> 30-yr mortgage rates drop below your refi trigger</li>'
-    +'<li><b>6 PM:</b> a good flying window tomorrow that fits your calendar · <b>any time:</b> weather turning bad before a lesson</li><li><b>~5 AM:</b> the daily search finds a new rental that cash-flows</li></ul>';
-  var poOn='<div class="al-on">✓ Alerts go to your <b>Pushover</b> app.</div>'
-    +'<div class="eactions"><button class="ebtn" onclick="savePushover(true)">Turn off Pushover</button><span class="spacer"></span><span class="esaved" id="alMsg"></span><button class="ebtn pri" onclick="sendTestAlert()">Send test alert</button></div>';
-  var poForm='<div class="section-title" style="margin:16px 0 6px">Use your Pushover app</div>'
-    +'<ol class="al-steps"><li>On <a href="https://pushover.net/" target="_blank" rel="noopener">pushover.net</a> (log in), copy <b>Your User Key</b> from the top right of the page.</li>'
-    +'<li>Tap <a href="https://pushover.net/apps/build" target="_blank" rel="noopener">Create an Application/API Token</a>, name it <b>Life OS</b>, agree to the terms, and copy the <b>API Token</b>.</li>'
-    +'<li>Paste both here and tap Save. They’re checked with Pushover and stored privately on your server, never on this page.</li></ol>'
-    +'<div class="efield"><label>User Key</label><input id="poUser" type="text" autocomplete="off" autocapitalize="off" spellcheck="false"></div>'
-    +'<div class="efield"><label>API Token</label><input id="poToken" type="text" autocomplete="off" autocapitalize="off" spellcheck="false"></div>'
-    +'<div class="eactions"><span class="spacer"></span><span class="esaved" id="alMsg"></span><button class="ebtn pri" onclick="savePushover()">Save &amp; send test</button></div>';
-  var ntfy='<details style="margin-top:14px"><summary class="foot" style="cursor:pointer">Or use the free ntfy app instead</summary>'
-    +(topic?'<ol class="al-steps"><li>Install <a href="https://apps.apple.com/us/app/ntfy/id1625396347" target="_blank" rel="noopener">ntfy</a>, tap <b>＋</b>, paste this topic and Subscribe:<div class="al-topic"><code id="alTopic">'+esc(topic)+'</code><button class="ebtn" onclick="copyTopic()">Copy</button></div></li></ol>'
-      +'<div class="eactions"><span class="spacer"></span><span class="esaved" id="alMsg2"></span><button class="ebtn" onclick="sendTestAlert(\'alMsg2\')">Send test via ntfy</button></div>'
-      :'<div class="eactions"><span class="spacer"></span><span class="esaved" id="alMsg2"></span><button class="ebtn" onclick="sendTestAlert(\'alMsg2\')">Create my ntfy channel</button></div>')+'</details>';
+  var topic=kv('Config').ntfy_topic;
+  var steps=topic
+    ? '<ol class="al-steps"><li>Install the free <a href="https://apps.apple.com/us/app/ntfy/id1625396347" target="_blank" rel="noopener">ntfy app</a> and allow notifications.</li>'
+      +'<li>In ntfy tap <b>＋</b>, paste this topic name, then tap Subscribe:<div class="al-topic"><code id="alTopic">'+esc(topic)+'</code><button class="ebtn" onclick="copyTopic()">Copy</button></div></li>'
+      +'<li>Tap <b>Send test alert</b> below. It should reach your phone within a few seconds.</li></ol>'
+      +'<div class="eactions"><span class="spacer"></span><span class="esaved" id="alMsg"></span><button class="ebtn pri" onclick="sendTestAlert()">Send test alert</button></div>'
+    : '<p>First, make your private alert channel:</p><div class="eactions"><span class="spacer"></span><span class="esaved" id="alMsg"></span><button class="ebtn pri" onclick="sendTestAlert()">Create my alert channel</button></div>';
   $('modalSheet').innerHTML='<button class="mclose" onclick="closeModal()">×</button><div class="mhead"><h2>Phone alerts</h2></div>'
-    +'<p class="foot" style="color:var(--text-muted);font-size:14px">A few alerts that matter, sent to your phone:</p>'+list
-    +(po==null?'<div class="esaved" style="margin:10px 0">Checking your alert setup…</div>':po?poOn:poForm+ntfy)
-    +'<p class="foot" style="color:var(--text-dim);margin-top:14px">Quiet from 9 PM to 6 AM. Alerts never include balances or account numbers.</p>';
+    +'<p class="foot" style="color:var(--text-muted);font-size:14px">A few alerts that matter, sent to your phone through the free ntfy app:</p>'
+    +'<ul class="al-list"><li><b>6 PM:</b> a good flying window tomorrow that fits your calendar, with one tap to add the lesson or text Jeremy</li>'
+    +'<li><b>Any time:</b> the forecast turning bad before a lesson on your calendar</li><li><b>8 AM:</b> a bill that isn’t on autopay is due in 3 days</li><li><b>~5 AM:</b> the daily search finds a new rental that cash-flows</li></ul>'
+    +steps+'<p class="foot" style="color:var(--text-dim);margin-top:14px">Quiet from 9 PM to 6 AM. Alerts never include balances or account numbers. Anyone with the topic name could read them, so keep it private.</p>';
   $('modal').classList.remove('hidden');
-  if(po==null) apiWrite({action:'alertstatus'}).then(function(r){ ALERT_PO=!!(r&&r.pushover); if(r&&r.topic){ DATA.Config=DATA.Config||{}; DATA.Config.ntfy_topic=r.topic; } if(!$('modal').classList.contains('hidden')) openAlerts(); }).catch(function(){ ALERT_PO=false; openAlerts(); });
-}
-async function savePushover(off){
-  var m=$('alMsg'), user=off?'':(($('poUser')||{}).value||'').trim(), token=off?'':(($('poToken')||{}).value||'').trim();
-  if(!off && (!user||!token)){ m.textContent='Paste both keys.'; return; }
-  m.textContent=off?'Turning off…':'Checking with Pushover…';
-  var r=null;
-  try{ var res=await fetch(API_URL,{method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body:JSON.stringify({pw:sessionStorage.getItem(SS_PW), action:'setpushover', user:user, token:token})}); r=await res.json(); }catch(e){}
-  if(!r||!r.ok){ m.textContent=(r&&r.error)||'Couldn’t reach the server. Try again.'; return; }
-  ALERT_PO=!!r.pushover; openAlerts();
-  if(ALERT_PO) sendTestAlert();
 }
 function copyTopic(){ var t=$('alTopic'); if(!t) return; try{ navigator.clipboard.writeText(t.textContent); toast('Copied'); }catch(e){ window.prompt('Copy this:', t.textContent); } }
-async function sendTestAlert(msgId){
-  var m=$(msgId||'alMsg'); if(m) m.textContent='Sending…';
+async function sendTestAlert(){
+  var m=$('alMsg'), isNew=!kv('Config').ntfy_topic; if(m) m.textContent=isNew?'Creating…':'Sending…';
   var r=await apiWrite({action:'testalert'});
-  if(r&&r.topic){ DATA.Config=DATA.Config||{}; DATA.Config.ntfy_topic=r.topic; }
-  var m2=$(msgId||'alMsg'); if(!m2) return;
-  m2.textContent = !r ? 'Couldn’t reach the server. Try again.' : r.ok ? 'Sent ✓ Check your phone.' : 'Couldn’t send. Try again.';
+  if(r&&r.topic){ DATA.Config=DATA.Config||{}; DATA.Config.ntfy_topic=r.topic; openAlerts(); }
+  var m2=$('alMsg'); if(!m2) return;
+  m2.textContent = !(r&&r.topic) ? 'Couldn’t reach the server. Try again.' : isNew ? 'Channel ready. Do steps 1–2, then send a test.' : (r.ok?'Sent ✓ Check your phone.':'Couldn’t send. Try again.');
 }
 
 /* ============================================================
