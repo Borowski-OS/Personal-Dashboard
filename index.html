@@ -4128,7 +4128,7 @@ async function sendTestAlert(){
   var r=await apiWrite({action:'testalert'});
   if(r&&r.topic){ DATA.Config=DATA.Config||{}; DATA.Config.ntfy_topic=r.topic; openAlerts(); }
   var m2=$('alMsg'); if(!m2) return;
-  m2.textContent = !(r&&r.topic) ? 'Couldn’t reach the server. Try again.' : isNew ? 'Channel ready. Do steps 1–2, then send a test.' : (r.ok?'Sent ✓ Check your phone.':'Couldn’t send. Try again.');
+  m2.textContent = !(r&&r.topic) ? 'Couldn’t reach the server. Try again.' : isNew ? 'Channel ready. Do steps 1–2, then send a test.' : (r.ok?(r.via==='email'?'ntfy was busy, so it went to your email instead ✓':'Sent ✓ Check your phone.'):'Couldn’t send. Try again.');
 }
 
 /* ============================================================
