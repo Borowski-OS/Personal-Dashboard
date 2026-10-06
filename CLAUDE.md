@@ -33,7 +33,7 @@
   Watching; pipeline stages Watching → Analyzing → Offer made → Pass. keepRow_ keeps watch/analy/offer-made rows so daily refreshes never drop them.
 - Phone alerts (Alerts.js): ntfy.sh topic in Config `ntfy_topic` (made by action `testalert`); hourlyAlerts trigger (action `alerttrigger`), quiet 9 PM–6 AM.
   6 PM tomorrow fly window (free on calendar; skipped in sick mode), lesson-weather warnings (calendar titles like lesson/Jeremy/CFI/N3207A),
-  8 AM non-autopay bills due in 3 days, new cash-flowing rentals (from refreshProperties_). `alertcheck&hour=18` = dry run.
+  8 AM non-autopay bills due in 3 days, 9 AM refi alert when Config market_mortgage_30yr < refi_alert_rate (6.5; once per weekly reading), new cash-flowing rentals (from refreshProperties_). `alertcheck&hour=18` = dry run.
   Minden TAF is part-time (valid ~5 AM–5 AM), so hours it doesn't cover use the Open-Meteo hourly model. Keep alert text free of balances/account numbers.
 - Book with Jeremy: Flying TAF card "Next good window" bar → Google Calendar template link + sms: link (Flying kv `cfi_phone` fills the number).
 - Checkride tracker (Flying): ppl109Card + checkrideForecastHtml — pace (last 60 days), projected date at Flying kv `ppl_target_hours` (60) and at 40,
