@@ -71,4 +71,4 @@
 - Planes down: Flying kv `aircraft_down` ("N51207, N3207A"), `aircraft_down_note`, `aircraft_down_since` → Flying banner, bookBar hidden, and Alerts.js trainerDown_
   skips fly-window/lesson-weather alerts while cfi_aircraft is listed. Clear the kv when the annuals are done.
 - Written test prep (Flying): writtenCard shows while Flying kv `written_date` is set and `written_status` isn't pass/done. Flashcards = FAA PAR sample
-  questions only (faa-par.js, verbatim from faa.gov par_questions.pdf; answers worked from FAA-CT-8080-2H), figures in faa/figNN.jpg; progress in localStorage `lifeos_faa`.
+  questions only (faa-par.js, verbatim from faa.gov par_questions.pdf; answers worked from FAA-CT-8080-2H), figures in faa/figNN.jpg; progress in localStorage `lifeos_faa`; rounds (each card once per round, survives app reopen) in `lifeos_faa_pass`.

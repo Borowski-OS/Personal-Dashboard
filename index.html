@@ -4014,15 +4014,20 @@ function faqPool(){
   if(FAQ.topic==='Missed') return all.filter(function(q){ return st[q[0]]===0; });
   return FAQ.topic==='All'?all:all.filter(function(q){ return q[1]===FAQ.topic; });
 }
-function faqShuffle(){ var p=faqPool().map(function(q){return q[0];}); for(var i=p.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)), t=p[i]; p[i]=p[j]; p[j]=t; } FAQ.order=p; FAQ.i=0; FAQ.picked=null; }
+/* rounds: each question shows once per round (remembered across app opens in lifeos_faa_pass) until you've seen the whole deck */
+function faqPass(){ try{ return JSON.parse(localStorage.getItem('lifeos_faa_pass')||'[]'); }catch(e){ return []; } }
+function faqPassSave(a){ try{ localStorage.setItem('lifeos_faa_pass', JSON.stringify(a)); }catch(e){} }
+function faqNewRound(){ var ids=faqPool().map(function(q){return q[0];}); faqPassSave(faqPass().filter(function(n){ return ids.indexOf(n)<0; })); faqShuffle(); faqDraw(); }
+function faqShuffle(){ var done=FAQ.topic==='Missed'?[]:faqPass(); var p=faqPool().map(function(q){return q[0];}).filter(function(n){ return done.indexOf(n)<0; }); for(var i=p.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)), t=p[i]; p[i]=p[j]; p[j]=t; } FAQ.order=p; FAQ.i=0; FAQ.picked=null; }
 function faqTopic(t){ FAQ.topic=t; faqShuffle(); faqDraw(); }
 function faqPick(k){
   if(FAQ.picked!=null) return; var q=faqCur(); if(!q) return;
-  FAQ.picked=k; var st=faqState(); st[q[0]]=(k===q[4])?1:0; faqSave(st); faqDraw();
+  FAQ.picked=k; var st=faqState(); st[q[0]]=(k===q[4])?1:0; faqSave(st);
+  var ps=faqPass(); if(ps.indexOf(q[0])<0){ ps.push(q[0]); faqPassSave(ps); } faqDraw();
 }
 function faqNext(){ FAQ.i++; FAQ.picked=null; if(FAQ.i>=FAQ.order.length) faqShuffle(); faqDraw(); }
 function faqCur(){ var n=FAQ.order&&FAQ.order[FAQ.i]; return (window.FAA_PAR||[]).filter(function(q){return q[0]===n;})[0]; }
-function faqReset(){ if(!confirm('Clear your flashcard history?')) return; faqSave({}); faqShuffle(); faqDraw(); }
+function faqReset(){ if(!confirm('Clear your flashcard history?')) return; faqSave({}); faqPassSave([]); faqShuffle(); faqDraw(); }
 function faqDraw(){
   var host=$('faqHost'); if(!host) return;
   if(!window.FAA_PAR){ host.innerHTML='<div class="empty">Loading FAA questions…</div>'; faqLoad().then(function(){ faqShuffle(); faqDraw(); }).catch(function(){ host.innerHTML='<div class="empty">Couldn’t load the questions. Check your connection.</div>'; }); return; }
@@ -4033,8 +4038,12 @@ function faqDraw(){
   var chips='<div class="faq-chips">'+topics.map(function(t){ return '<button class="faq-chip'+(FAQ.topic===t?' on':'')+'" onclick="faqTopic(\''+t.replace(/'/g,"\\'")+'\')">'+esc(t)+(t==='Missed'?' ('+missed+')':'')+'</button>'; }).join('')+'</div>';
   var score='<div class="faq-score"><span><b>'+ans.length+'</b> of '+all.length+' tried · <b style="color:var(--green)">'+(ans.length?Math.round(right/ans.length*100):0)+'%</b> right'+(missed?' · <span style="color:var(--red)">'+missed+' to review</span>':'')+'</span><button class="linkbtn" onclick="faqReset()">reset</button></div>';
   var q=faqCur();
-  if(!q){ host.innerHTML=chips+score+'<div class="empty">'+(FAQ.topic==='Missed'?'Nothing left to review. Nice work.':'No questions here.')+'</div>'; return; }
-  var L='ABC', body='<div class="faq-card"><div class="faq-meta">FAA PAR sample Q'+q[0]+' · '+esc(q[1])+' · '+(FAQ.i+1)+'/'+FAQ.order.length+'</div>'
+  if(!q){ var poolN=faqPool().length;
+    host.innerHTML=chips+score+(FAQ.topic!=='Missed'&&poolN?'<div class="faq-card" style="text-align:center"><div class="faq-q">🎉 Round complete: you’ve seen all '+poolN+' '+(FAQ.topic==='All'?'':esc(FAQ.topic)+' ')+'questions.</div>'
+      +(missed?'<p class="foot" style="margin:0 0 12px">Clear your '+missed+' missed ones next, then start a fresh round.</p>':'')
+      +'<button class="ebtn pri" onclick="faqNewRound()">Start a new round</button>'+(missed?' <button class="ebtn" onclick="faqTopic(\'Missed\')">Review missed</button>':'')+'</div>'
+      :'<div class="empty">'+(FAQ.topic==='Missed'?'Nothing left to review. Nice work.':'No questions here.')+'</div>'); return; }
+  var L='ABC', body='<div class="faq-card"><div class="faq-meta">FAA PAR sample Q'+q[0]+' · '+esc(q[1])+' · '+(FAQ.order.length-FAQ.i)+' left this round</div>'
     +'<div class="faq-q">'+esc(q[2].replace(/`/g,'’'))+'</div>'
     +(q[6]?'<button class="faq-fig" onclick="faqFig(\''+q[6]+'\')">📄 Figure '+q[6]+'</button>'+(q[6]==='32'?'<button class="faq-fig" onclick="faqFig(\'33\')">📄 Figure 33</button>':''):'')
     +'<div class="faq-opts">'+q[3].map(function(o,k){
@@ -4046,7 +4055,7 @@ function faqDraw(){
 }
 document.addEventListener('keydown', function(e){
   if(!$('faqHost')||/input|textarea|select/i.test((e.target||{}).tagName||'')) return;
-  var k=e.key.toUpperCase(); if(FAQ.picked==null && 'ABC'.indexOf(k)>=0 && k.length===1){ faqPick('ABC'.indexOf(k)); } else if(FAQ.picked!=null && (e.key==='Enter'||e.key===' '||e.key==='ArrowRight')){ e.preventDefault(); faqNext(); }
+  var k=e.key.toUpperCase(); if(FAQ.picked==null && 'ABC'.indexOf(k)>=0 && k.length===1){ faqPick('ABC'.indexOf(k)); } else if(FAQ.picked!=null && (e.key==='ArrowRight'||((e.key==='Enter'||e.key===' ')&&!/button|a/i.test((e.target||{}).tagName||'')))){ e.preventDefault(); faqNext(); }
 });
 /* in-page figure viewer: works in the home-screen app (no browser back button); +/− zoom since page pinch-zoom is off */
 var FIGZ=1;
