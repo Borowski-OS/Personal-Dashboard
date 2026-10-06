@@ -4940,7 +4940,7 @@ function teslaWatchCard(){
       +'<span class="tw-act">'+(f?'<button class="ebtn" title="Un-fire this trigger" onclick="teslaClear(\''+tr.id+'\')">clear</button>':'<button class="ebtn" title="Mark fired, with a note" onclick="teslaFire(\''+tr.id+'\')">mark fired</button>')+'</span></div>'; }
   var dangers=TESLA_TRIGGERS.filter(function(t){return t.kind==='danger';}).map(row).join('');
   var goods=TESLA_TRIGGERS.filter(function(t){return t.kind==='good';}).map(row).join('');
-  var dates=[{t:'Weekly deal watch', s:'Mondays 7:45am PT · push/email only on changes', d:null}];
+  var dates=[{t:'Daily deal watch', s:'7:45 AM PT · Claude checks Tesla + NV Energy, marks triggers here, pings your phone only on changes', d:null}];
   var rem=spec(v,'Reminder'); if(has(rem)) dates.push({t:'Order window reminder', s:rem, d:daysUntilDate(rem)});
   var tgt=spec(v,'Target order'); if(has(tgt)) dates.push({t:'Order by', s:tgt+(has(spec(v,'Delivery by'))?' · delivery by '+spec(v,'Delivery by'):''), d:daysUntilDate(tgt)});
   var next=dates.filter(function(x){return x.d!=null&&x.d>=0;}).sort(function(a,b){return a.d-b.d;})[0];
