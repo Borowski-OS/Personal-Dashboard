@@ -88,3 +88,8 @@
   listings online with "This Listing is SOLD" in the body, so two stamped-live Watch deals were sold (Oct 6). The backend check
   (Ventures.js, in Brad's Google account — not reachable with the clasp login on this Mac) should also scan page text for
   SOLD / under contract / pending / no longer available before stamping. The page itself only promotes stamped-live rows to Today.
+- Tesla deal watch: a Claude Code scheduled task on Brad's Mac (`~/.claude/scheduled-tasks/tesla-deal-watch/SKILL.md`, daily 7:45 AM PT)
+  opens the dashboard in the built-in browser pane (auto-unlocks from the remembered password), reads the baselines from the Tesla
+  Vehicles row, checks tesla.com/modely/design (APR line, Premium AWD cash price, Wall Connector) + NV Energy's charger incentive +
+  news, then calls teslaFire(id, note) / teslaChecked() on the page and pings Brad's ntfy topic only on a change. If the pane is ever
+  locked, the task pushes "unlock once" instead of guessing. Runs only while the Claude desktop app is open.
