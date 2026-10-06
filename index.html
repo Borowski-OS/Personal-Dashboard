@@ -4282,7 +4282,7 @@ function maintFor(v){
   });
   return {v:v, est:est, perDay:perDay, fromLog:fromLog, items:items};
 }
-function maintVehicles(){ return arr('Vehicles').filter(function(v){ return !isAircraft(v); }).map(maintFor); }
+function maintVehicles(){ return arr('Vehicles').filter(function(v){ return !isAircraft(v) && !isPotential(v); }).map(maintFor); }   // a car Brad hasn't bought yet has no maintenance
 function maintDone(vname, item, est){
   var today=ymd(laNow());
   apiWrite({action:'upsert', tab:'VehicleService', row:JSON.stringify({Vehicle:vname, Date:today, Mileage:est||'', Service:item, Cost:'', Shop:'', NextDue:'', Notes:'Marked done on the dashboard'})})
