@@ -72,3 +72,13 @@
   skips fly-window/lesson-weather alerts while cfi_aircraft is listed. Clear the kv when the annuals are done.
 - Written test prep (Flying): writtenCard shows while Flying kv `written_date` is set and `written_status` isn't pass/done. Flashcards = FAA PAR sample
   questions only (faa-par.js, verbatim from faa.gov par_questions.pdf; answers worked from FAA-CT-8080-2H), figures in faa/figNN.jpg; progress in localStorage `lifeos_faa`; rounds (each card once per round, survives app reopen) in `lifeos_faa_pass`.
+- Potential vehicles (something Brad is considering buying, e.g. the 2026 Tesla Model Y): an ordinary Vehicles row whose Specs
+  field holds the plan as `Label: value | Label: value` — Status, Target order, Reminder, Delivery by, Price, Price note, APR, Term,
+  Payment, Baseline, Fuel savings, Wall Connector, Plan, Why, Must have, Fallback, Build, Hitch, Charging. `Status: Considering`
+  → plan + checklist view on Home & Life and the 🔋 Tesla watch card on Today; change Status to `Purchased` and it becomes a
+  normal car and the card hides itself. Checklist = ProjectTasks rows whose Project equals the vehicle's Name. Every price and
+  rate lives in the sheet, never in index.html.
+- Tesla watch state is Config kv: `tesla_fired_<id>` = `YYYY-MM-DD — note` (blank = not fired; ids apr_up, price_up, charger_up,
+  rebate_closed, apr_down, incentive) and `tesla_watch_updated`. To mark a trigger fired from a Claude session: the Config
+  kv editor on the page, the page console (`teslaFire('apr_up','promo ends Nov 30')`, `teslaClear('apr_up')`, `teslaChecked()`),
+  or the API: `action=setkv&tab=Config&row={"tesla_fired_apr_up":"2026-11-03 — note","tesla_watch_updated":"2026-11-03"}` (setkv merges).

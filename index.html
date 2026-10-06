@@ -202,6 +202,17 @@
   .chk { appearance:none; width:24px; height:24px; flex:0 0 24px; border-radius:7px; border:2px solid #4b525d; background:transparent; color:#111; font-weight:800; font-size:14px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; }
   .chk:hover { border-color:var(--green); } .chk.on, .chk:disabled { background:var(--green); border-color:var(--green); }
   .chk-auto { border:none; color:var(--text-dim); cursor:default; }
+  /* potential-vehicle plan + Tesla watch rows */
+  .tw-h { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; margin-bottom:4px; }
+  .tw-row { display:flex; align-items:flex-start; gap:10px; padding:9px 0; border-bottom:1px solid #2c323a; font-size:14px; line-height:1.4; }
+  .tw-row:last-child { border-bottom:none; }
+  .tw-dot { width:9px; height:9px; border-radius:50%; background:#3a414b; flex:0 0 9px; margin-top:6px; }
+  .tw-t { flex:1; font-weight:500; color:var(--text-muted); min-width:0; overflow-wrap:anywhere; } .tw-row.fired .tw-t { color:var(--text); font-weight:600; }
+  .tw-note { display:block; font-size:12.5px; color:var(--amber); font-weight:500; margin-top:2px; }
+  .tw-act .ebtn { padding:2px 8px; font-size:11.5px; }
+  .pv-item { padding:9px 0; border-bottom:1px solid #2c323a; } .pv-item:last-child { border-bottom:none; }
+  .pv-k { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--text-dim); margin-bottom:3px; }
+  .pv-v { font-size:14px; color:var(--text); line-height:1.5; overflow-wrap:anywhere; }
   .rh { display:flex; align-items:center; gap:12px; padding:11px 0; border-bottom:1px solid #2a2f37; }
   .rh:last-child { border-bottom:none; } .rh-done .rh-t { color:var(--text-dim); text-decoration:line-through; }
   .rh-t { flex:1; font-size:15px; font-weight:600; } .rh-c { display:block; font-size:12px; font-weight:500; color:var(--text-dim); }
@@ -2170,6 +2181,7 @@ function agendaCard(){
 }
 function renderOverview(){
   var nw=netWorth(), h=kv('Health'), cur=num(h.weight), goal=num(h.weight_goal), wk=trainingWeek().sessions;
+  var tw=teslaWatchCard();   // only while a Tesla is still 'Considering' (see Config tesla_* keys)
   var trends='<div class="grid cols-3" style="margin-bottom:22px">'
     + trendCard('Net worth', nw?money2(nw):'—', nwSeries(), '--emerald', 'tracking')
     + trendCard('Weight', (!isNaN(cur)?cur+' lb':'—'), weightSeries(), '--pink', 'toward '+(isNaN(goal)?'goal':goal+' lb'))
@@ -2182,6 +2194,7 @@ function renderOverview(){
     + card('📡 Radar','What changed out there that affects your plans, money, and flying.', radarHtml(), '--gold')
     + ventureBestBetsCard().replace('<div style="height:22px"></div>','')
     + '</div>'
+    + (tw?tw+'<div style="height:22px"></div>':'')
     + trends
     + '<div class="grid cols-2" style="margin-bottom:22px">' + agendaCard() + card('Goal progress','Where you stand on the big ones.', goalsHtml(), '--gold') + '</div>';
 }
@@ -4741,6 +4754,7 @@ function renderVehicles(mode){   // mode 'air' = aircraft only (Flying tab); def
   var vs=all.map(function(v,i){ return {v:v,i:i}; }).filter(function(o){ return mode==='air'?isAircraft(o.v):!isAircraft(o.v); });
   if(!vs.length) return mode==='air'?'':card('Vehicles','', '<div class="empty">Add your vehicles in the Vehicles tab — mileage, registration & insurance renewals, loan.</div>','--rose');
   var cards=vs.map(function(o){ var v=o.v, idx=o.i;
+    if(isPotential(v)) return potentialVehicleCard(v, idx);   // something Brad is considering buying — plan, not mileage
     var air=isAircraft(v);
     var val = has(v.Value)? money(v.Value) : '—';
     var loanTxt = (has(v.LoanBalance)&&num(v.LoanBalance)>0) ? money(v.LoanBalance)+' owed' : 'Paid off';
@@ -4762,6 +4776,7 @@ function renderVehicles(mode){   // mode 'air' = aircraft only (Flying tab); def
 function mkv(label,val){ return has(val)?'<div class="kv-row"><span class="k">'+esc(label)+'</span><span class="v">'+esc(val)+'</span></div>':''; }
 function openVehicle(idx){
   var v=(window.__vehicles||[])[idx]; if(!v) return;
+  if(isPotential(v)) return openPotentialVehicle(v);
   var air=isAircraft(v);
   var svc=arr('VehicleService').filter(function(x){return String(x.Vehicle||'').trim()===String(v.Name||'').trim();});
   var loanTxt = (has(v.LoanBalance)&&num(v.LoanBalance)>0) ? money(v.LoanBalance)+(has(v.LoanLender)?' · '+esc(v.LoanLender):'') : 'Paid off';
@@ -4812,6 +4827,133 @@ function openVehicle(idx){
   if(!air && has(v.VIN)) decodeVin(v.VIN);
 }
 function closeModal(){ $('modal').classList.add('hidden'); $('modalSheet').innerHTML=''; }
+
+/* ============================================================
+   POTENTIAL VEHICLES + TESLA WATCH
+   A vehicle Brad is *considering* is an ordinary Vehicles row. Its Specs field carries the plan as
+   "Label: value | Label: value" — Status, Target order, Reminder, Price, Price note, APR, Term, Payment,
+   Baseline, Fuel savings, Wall Connector, Delivery by, Plan, Why, Must have, Fallback, Build, Hitch, Charging.
+   Status: Considering → plan view + Tesla watch card on Today; Status: Purchased → normal vehicle card, watch card hidden.
+   Checklist = ProjectTasks rows whose Project equals the vehicle's Name (one-tap check-off).
+   Every dollar figure and rate comes from the sheet; nothing financial lives in this file.
+   ============================================================ */
+function vehSpecs(v){ var o={}, order=[];
+  String((v&&v.Specs)||'').split('|').forEach(function(p){ var i=p.indexOf(':'); if(i<0) return; var k=p.slice(0,i).trim(), val=p.slice(i+1).trim(); if(!k) return; o[k.toLowerCase()]=val; order.push(k); });
+  o.__order=order; return o; }
+function spec(v,key){ return vehSpecs(v)[String(key).toLowerCase()]||''; }
+function vehStatus(v){ return String(spec(v,'Status')||'').trim(); }
+function isPurchased(v){ return /purchas|bought|deliver|owned|done/i.test(vehStatus(v)); }
+function isPotential(v){ return /consider|watch|shopping|research|order/i.test(vehStatus(v)) && !isPurchased(v); }
+function vehTasks(v){ var n=String(v.Name||'').trim().toLowerCase();
+  return arr('ProjectTasks').filter(function(t){ return has(t.Task) && String(t.Project||'').trim().toLowerCase()===n; }); }
+function moneyK(v){ var n=num(v); if(isNaN(n)) return '—'; return Math.abs(n)>=1000?'$'+(n/1000).toFixed(1).replace(/\.0$/,'')+'k':money(n); }
+function statusTag(st){ var s=String(st||'').toLowerCase(), cls=/purchas|bought|deliver/.test(s)?'active':(/order/.test(s)?'planning':'');
+  return '<span class="tag '+cls+'"'+(cls?'':' style="background:rgba(251,113,133,.15);color:#fda4af"')+'>'+esc(st||'Considering')+'</span>'; }
+/* "~$X/mo · N mo @ R% · ~$Yk" — every number from the sheet */
+function vehFinanceLine(v){ var p=spec(v,'Payment'), term=spec(v,'Term'), apr=spec(v,'APR'), price=spec(v,'Price'), parts=[];
+  if(has(p)) parts.push('~'+money(p)+'/mo');
+  if(has(term)||has(apr)) parts.push([has(term)?term+' mo':'', has(apr)?'@ '+apr+'%':''].filter(Boolean).join(' '));
+  if(has(price)) parts.push('~'+moneyK(price)+(has(spec(v,'Price note'))?'*':''));   // * = see the price note in the sheet view
+  return parts.join(' · '); }
+
+function potentialVehicleCard(v, idx){
+  var ts=vehTasks(v), done=ts.filter(function(t){return truthy(t.Done);}).length, rows=[];
+  var fin=vehFinanceLine(v); if(fin) rows.push(['Financing', fin]);
+  var tgt=spec(v,'Target order'); if(has(tgt)){ var d=daysUntilDate(tgt); rows.push(['Target order', tgt+(d!=null?' · '+fmtDue(d):'')]); }
+  if(has(spec(v,'Fuel savings'))) rows.push(['Fuel savings', '~'+money(spec(v,'Fuel savings'))+'/yr']);
+  if(ts.length) rows.push(['Checklist', done+' of '+ts.length+' done']);
+  var pay=spec(v,'Payment');
+  return '<div class="card" style="border-top:3px solid var(--rose);cursor:pointer" onclick="openVehicle('+idx+')">'
+    +'<div style="display:flex;justify-content:space-between;gap:12px;align-items:start">'
+    +'<div><h2>'+esc(vehName(v))+'</h2><div class="sub" style="margin-bottom:8px">'+esc((has(v.Trim)?v.Trim+' · ':'')+'potential vehicle')+'</div>'+statusTag(vehStatus(v))+'</div>'
+    +'<div style="text-align:right"><div class="mono" style="font-size:20px;font-weight:700">'+(has(pay)?'~'+money(pay)+'<span style="font-size:13px;font-weight:500;color:var(--text-dim)">/mo</span>':'—')+'</div><div class="foot">est. payment</div></div></div>'
+    +'<div style="margin-top:10px">'+rows.map(function(r){return '<div class="kv-row"><span class="k">'+esc(r[0])+'</span><span class="v">'+esc(r[1])+'</span></div>';}).join('')+'</div>'
+    +(has(spec(v,'Plan'))?'<p class="foot" style="margin:10px 0 0;color:var(--text-muted)">'+esc(spec(v,'Plan'))+'</p>':'')
+    +'<div style="margin-top:12px;display:flex;justify-content:space-between;align-items:center"><span class="foot" style="color:var(--sky)">Open the plan &amp; checklist →</span>'+editBtn('Vehicles',v.__row)+'</div></div>';
+}
+function openPotentialVehicle(v){
+  var ts=vehTasks(v), done=ts.filter(function(t){return truthy(t.Done);}).length;   // sheet order = the order Brad wrote the steps
+  var s=vehSpecs(v), used={};
+  function take(k){ used[k.toLowerCase()]=1; return s[k.toLowerCase()]||''; }
+  var st=take('Status'), tgt=take('Target order'), rem=take('Reminder'), price=take('Price'), pnote=take('Price note'), apr=take('APR'), term=take('Term'),
+      pay=take('Payment'), base=take('Baseline'), fuel=take('Fuel savings'), wc=take('Wall Connector'), deliv=take('Delivery by');
+  var dT=daysUntilDate(tgt);
+  var numbers='<div class="kv-row"><span class="k">Status</span><span class="v">'+statusTag(st)+'</span></div>'
+    + mkv('Target order', has(tgt)?tgt+(dT!=null?' · '+fmtDue(dT):''):'')
+    + mkv('Delivery by', deliv)
+    + mkv('Est. payment', has(pay)?'~'+money(pay)+'/mo':'')
+    + mkv('Financing', [has(term)?term+' mo':'', has(apr)?'@ '+apr+'% promo':''].filter(Boolean).join(' ')+(has(base)?' (as of '+base+')':''))
+    + (has(price)?'<div class="kv-row"><span class="k">Price</span><span class="v">~'+money(price)+(has(pnote)?'<span class="foot" style="display:block;color:var(--text-dim);font-weight:500">'+esc(pnote)+'</span>':'')+'</span></div>':'')
+    + mkv('Fuel savings', has(fuel)?'~'+money(fuel)+'/yr':'')
+    + mkv('Wall Connector', has(wc)?money(wc):'')
+    + mkv('Order reminder', rem);
+  var PLAN=[['Plan','Approach'],['Why','Why'],['Must have','Hard requirement'],['Fallback','Fallback'],['Build','Order build'],['Hitch','Hitch'],['Charging','Home charging']];
+  var plan=PLAN.map(function(p){ var val=take(p[0]); return has(val)?'<div class="pv-item"><div class="pv-k">'+esc(p[1])+'</div><div class="pv-v">'+linkify(val)+'</div></div>':''; }).join('');
+  var rest=(s.__order||[]).filter(function(k){return !used[k.toLowerCase()];}).map(function(k){return mkv(k, s[k.toLowerCase()]);}).join('');
+  var list=ts.length?ts.map(function(t){ var d=daysUntilDate(t.Due), dn=truthy(t.Done);
+      return '<div class="rh'+(dn?' rh-done':'')+'"><button class="chk'+(dn?' on':'')+'" '+(dn?'disabled':'onclick="this.disabled=true;this.classList.add(\'on\');this.textContent=\'✓\';taskDoneToggle('+t.__row+')"')+'>'+(dn?'✓':'')+'</button>'
+        +'<span class="rh-t">'+esc(t.Task)+(has(t.Notes)?'<span class="rh-c">'+esc(t.Notes)+'</span>':'')+'</span>'
+        +'<span class="'+(dn?'':dueClass(d))+'" style="font-size:13px;white-space:nowrap;color:var(--text-dim)">'+(dn?'done':(d!=null?fmtDue(d):esc(t.Due||'')))+'</span></div>'; }).join('')
+    : '<div class="empty" style="padding:6px 0">No checklist yet — add ProjectTasks rows with Project = '+esc(v.Name||'')+'.</div>';
+  var html='<button class="mclose" onclick="closeModal()">×</button>'
+    + '<button class="ebtn pri" style="position:absolute;top:16px;right:56px;z-index:2" onclick="openEditor(\'Vehicles\','+v.__row+')">✎ Edit</button>'
+    + '<div class="mhead"><div><h2>'+esc(vehName(v))+'</h2><div class="sub">'+esc((has(v.Trim)?v.Trim+' · ':'')+'potential vehicle')+'</div></div>'
+    + '<div class="mval"><div class="big">'+(has(pay)?'~'+money(pay):'—')+'</div><div class="sm">'+(has(pay)?'est. per month':'est. payment')+'</div></div></div>'
+    + '<div class="msec"><div class="h">Numbers</div><div class="mgrid">'+numbers+'</div></div>'
+    + '<div class="msec"><div class="h">Checklist · '+done+' of '+ts.length+' done</div>'+(ts.length?goalBar('', done/ts.length*100, '', '--rose'):'')+list+'</div>'
+    + (plan?'<div class="msec"><div class="h">The plan</div>'+plan+'</div>':'')
+    + (rest?'<div class="msec"><div class="h">More</div><div class="mgrid">'+rest+'</div></div>':'')
+    + (has(v.Notes)?'<div class="msec"><div class="h">Notes</div><div style="font-size:13.5px;color:var(--text-muted);line-height:1.5">'+linkify(v.Notes)+'</div></div>':'');
+  $('modalSheet').innerHTML=html; $('modal').classList.remove('hidden');
+}
+
+/* ---------- Tesla watch (Today) ----------
+   Triggers worth acting on while the Tesla is still "Considering". Thresholds (APR, price, charger price) are read
+   from the vehicle row's Specs. Fired state lives in Config kv:  tesla_fired_<id> = "YYYY-MM-DD — note"  (blank = not fired)
+   and tesla_watch_updated = YYYY-MM-DD. ids: apr_up, price_up, charger_up, rebate_closed, apr_down, incentive.
+   Mark one from the page (buttons), from the browser console — teslaFire('apr_up','promo ends Nov 30') / teslaClear('apr_up') —
+   or by writing those Config keys with action=setkv&tab=Config (merges). The card hides itself once Status is Purchased. */
+var TESLA_TRIGGERS=[
+  {id:'apr_up',        kind:'danger', t:function(v){ var a=spec(v,'APR'); return 'APR rises above '+(has(a)?a+'%':'the promo rate')+' or promo end announced'; }},
+  {id:'price_up',      kind:'danger', t:function(v){ return (has(v.Trim)?esc(v.Trim)+' ':'')+'price increase'+(has(spec(v,'Price'))?' (baseline ~'+moneyK(spec(v,'Price'))+')':''); }},
+  {id:'charger_up',    kind:'danger', t:function(v){ var w=spec(v,'Wall Connector'); return 'Wall Connector price above '+(has(w)?money(w):'baseline'); }},
+  {id:'rebate_closed', kind:'danger', t:function(){ return 'NV Energy charger rebate closes or runs out of funds'; }},
+  {id:'apr_down',      kind:'good',   t:function(v){ var a=spec(v,'APR'); return 'APR drops below '+(has(a)?a+'%':'the promo rate'); }},
+  {id:'incentive',     kind:'good',   t:function(){ return 'Price cut or new incentives — free Supercharging, free upgrades, cash/inventory discounts, year-end deals'; }}
+];
+function teslaVehicle(){ return arr('Vehicles').filter(function(v){ return /tesla/i.test(String(v.Make||'')+' '+String(v.Name||'')) && isPotential(v); })[0]||null; }
+function teslaWatchCard(){
+  var v=teslaVehicle(); if(!v) return '';   // no Tesla under consideration (or it's been purchased) → no card
+  var cfg=kv('Config');
+  function row(tr){ var f=String(cfg['tesla_fired_'+tr.id]||'').trim(), col=tr.kind==='danger'?'--red':'--green';
+    return '<div class="tw-row'+(f?' fired':'')+'"><span class="tw-dot"'+(f?' style="background:var('+col+')"':'')+'></span>'
+      +'<span class="tw-t">'+tr.t(v)+(f?'<span class="tw-note">Fired '+esc(f)+'</span>':'')+'</span>'
+      +'<span class="tw-act">'+(f?'<button class="ebtn" title="Un-fire this trigger" onclick="teslaClear(\''+tr.id+'\')">clear</button>':'<button class="ebtn" title="Mark fired, with a note" onclick="teslaFire(\''+tr.id+'\')">mark fired</button>')+'</span></div>'; }
+  var dangers=TESLA_TRIGGERS.filter(function(t){return t.kind==='danger';}).map(row).join('');
+  var goods=TESLA_TRIGGERS.filter(function(t){return t.kind==='good';}).map(row).join('');
+  var dates=[{t:'Weekly deal watch', s:'Mondays 7:45am PT · push/email only on changes', d:null}];
+  var rem=spec(v,'Reminder'); if(has(rem)) dates.push({t:'Order window reminder', s:rem, d:daysUntilDate(rem)});
+  var tgt=spec(v,'Target order'); if(has(tgt)) dates.push({t:'Order by', s:tgt+(has(spec(v,'Delivery by'))?' · delivery by '+spec(v,'Delivery by'):''), d:daysUntilDate(tgt)});
+  var next=dates.filter(function(x){return x.d!=null&&x.d>=0;}).sort(function(a,b){return a.d-b.d;})[0];
+  var datesHtml=dates.map(function(x){ return '<div class="kv-row"><span class="k"><strong>'+esc(x.t)+'</strong><br><span style="color:var(--text-dim);font-size:12.5px">'+esc(x.s)+'</span></span><span class="v '+dueClass(x.d)+'">'+(x.d!=null?fmtDue(x.d):'')+'</span></div>'; }).join('');
+  var firedN=TESLA_TRIGGERS.filter(function(t){return has(cfg['tesla_fired_'+t.id]);}).length, upd=cfg.tesla_watch_updated;
+  var sub=(firedN?firedN+' trigger'+(firedN===1?'':'s')+' fired. ':'No triggers fired. ')+(next?'Next: '+next.t.toLowerCase()+' '+fmtDue(next.d)+'. ':'')+'A danger means order early to lock in.';
+  var foot='<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-top:14px">'
+    +'<span class="foot" style="color:var(--text-dim)">Last updated '+(has(upd)?esc(upd):'—')+' · '+statusTag(vehStatus(v))+'</span>'
+    +'<span style="display:flex;gap:6px;flex-wrap:wrap"><button class="ebtn" onclick="teslaChecked()">Checked today, no change</button><button class="ebtn" onclick="navGo(\'vehicles\')">Open vehicle →</button></span></div>';
+  var body='<div class="grid cols-3" style="gap:18px">'
+    +'<div><div class="tw-h" style="color:var(--red)">Dangers — act fast</div>'+dangers+'</div>'
+    +'<div><div class="tw-h" style="color:var(--green)">Positive triggers</div>'+goods+'</div>'
+    +'<div><div class="tw-h" style="color:var(--sky)">Key dates</div>'+datesHtml+'</div></div>'+foot;
+  return card('🔋 Tesla watch', sub, body, '--rose');
+}
+async function teslaSet(obj){ obj.tesla_watch_updated=ymd(laNow());
+  var res=await apiWrite({action:'setkv',tab:'Config',row:JSON.stringify(obj)});
+  if(res&&res.ok) await afterWrite(); else alert('Could not save — try again.'); }
+async function teslaFire(id, note){ if(note==null){ note=window.prompt('What happened? (saved with today’s date)'); if(note==null) return; }
+  var o={}; o['tesla_fired_'+id]=ymd(laNow())+(String(note).trim()?' — '+String(note).trim():''); await teslaSet(o); }
+async function teslaClear(id){ if(!window.confirm('Clear this trigger?')) return; var o={}; o['tesla_fired_'+id]=''; await teslaSet(o); }
+async function teslaChecked(){ await teslaSet({}); }
 
 /* ---------- Command palette (⌘K / Ctrl-K) ---------- */
 var PAL_SEL=0, PAL_ITEMS=[];
