@@ -67,7 +67,8 @@
   taxCalc(): 2026 MFJ federal (TAX26 constants: brackets, $32,200 std, $40,400 SALT, 0.5% charity floor, IRA $7,500, 403(b) $24,500, SS base $184,500),
   clergy rules — Sec.107 housing exclusion = min(designated, actual, FRV incl. furnishings+utilities); minister pay incl. full allowance is SE income
   (Tax kv brad_pays_se_tax=no for Form 4361); rental Sch E with land-split depreciation + passive-loss phase-out; itemized vs standard; QBI; safe harbor.
-  taxMoves() = prioritized actions (checkbox state in Tax kv move_<id>); taxAlerts() feed Today. Planning estimate, not advice — keep the CPA caveat.
+  Page = 3 tiles + taxPlaybook(r) (ranked year-end to-dos with $ saved: each item has cut = taxable-income reduction and/or extra = SE/cap-gains savings; total combines cuts through the brackets) + everything else in a "Details" <details>. Checkboxes in Tax kv move_<id>.
+  taxMoves() = older notes (inside Details); taxAlerts() feed Today. Planning estimate, not advice — keep the CPA caveat.
 - AI orb: canvas.ai-sphere elements (launcher #aiHive + chat welcome) share one rAF loop drawing a ~1,200-point Fibonacci particle sphere
   (3D rotation + flowing radius), Apple-setup style; only visible canvases animate. Tax kv rental_ledger (JSON rows) drives the Schedule E card. Chelsea's flight training + business share of the Maule are deductible on her ground-instruction Sch C (CPA-approved: improves skills in her existing aviation field); Tax kv chelsea_aviation_yr is subtracted from chelsea_sc_net.
 - Planes down: Flying kv `aircraft_down` ("N51207, N3207A"), `aircraft_down_note`, `aircraft_down_since` → Flying banner, bookBar hidden, and Alerts.js trainerDown_

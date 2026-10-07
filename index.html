@@ -975,6 +975,17 @@
   @media (max-width:640px){ #aiFab { right:14px; bottom:calc(74px + env(safe-area-inset-bottom)) !important; width:58px !important; height:58px !important; padding:0; } }
 
   /* Taxes page */
+  .pb-card { margin-bottom:18px; }
+  .pb-head { display:flex; justify-content:space-between; align-items:flex-start; gap:16px; margin-bottom:8px; }
+  .pb-total { text-align:right; flex:none; } .pb-total-v { font-size:26px; font-weight:700; color:var(--green); } .pb-total-l { font-size:12px; color:var(--text-dim); }
+  .pb-item { display:flex; gap:12px; padding:14px 0; border-top:1px solid var(--card-border); align-items:flex-start; }
+  .pb-item.done .pb-t, .pb-item.done .pb-w { opacity:.5; text-decoration:line-through; }
+  .pb-body { flex:1; min-width:0; } .pb-t { font-weight:650; font-size:15.5px; line-height:1.35; } .pb-w { font-size:13.5px; color:var(--text-muted); margin-top:4px; line-height:1.5; }
+  .pb-n { display:inline-flex; width:22px; height:22px; border-radius:50%; background:var(--card-2,#2a2f37); color:var(--text-muted); font-size:12px; align-items:center; justify-content:center; margin-right:8px; vertical-align:1px; }
+  .pb-body details summary { font-size:13px; color:#8fb3f8; cursor:pointer; margin-top:6px; } .pb-body ul { margin:6px 0 0; padding-left:18px; font-size:13.5px; line-height:1.5; } .pb-body li { margin:3px 0; }
+  .pb-side { flex:none; text-align:right; min-width:92px; } .pb-save { font-weight:700; color:var(--green); font-size:14.5px; white-space:nowrap; } .pb-free { color:var(--sky,#7aa2f7); font-weight:600; font-size:13px; } .pb-due { font-size:12px; color:var(--text-dim); margin-top:3px; }
+  details.tax-more > summary { cursor:pointer; font-weight:600; color:var(--text-muted); padding:12px 2px; }
+  @media (max-width:640px){ .pb-head { flex-direction:column; } .pb-total { text-align:left; } .pb-item { flex-wrap:wrap; } .pb-side { min-width:0; text-align:left; display:flex; gap:10px; align-items:baseline; padding-left:32px; } }
   .tax-alert { background:rgba(229,112,122,.07); border:1px solid rgba(229,112,122,.3); border-radius:12px; padding:14px 18px; font-size:14px; line-height:1.55; }
   .tax-alert ol { margin:6px 0 0; padding-left:20px; } .tax-alert li { margin:3px 0; } .tax-alert a { color:#8fb3f8; }
   .tax-move { display:flex; gap:10px; padding:11px 0; border-bottom:1px solid var(--card-border); align-items:flex-start; }
@@ -4644,15 +4655,73 @@ function taxMoves(r){
     how:'Ask specifically: '+(r.seca?'1) Is Brad paying SE tax, or does he have an approved Form 4361 exemption? ':'1) Confirm the Form 4361 exemption covers only ministerial pay (side businesses like ASDC still owe SE tax). ')+'2) Housing file: 2025 costs (down payment, roof, furnishings) and 2026 costs vs. the furnished-rent opinion. 3) Roth vs 403(b) at your bracket. 4) Chelsea’s Schedule C: her aviation costs and the Maule business-use %.', due:'Before Jan 15, 2027'});
   return out;
 }
+/* ---------- Year-end tax playbook: ranked, dollar-valued to-dos computed from the Tax kv (no figures hard-coded) ---------- */
+function taxSaveFor(r, cut){ var lo=Math.max(0,r.taxable-Math.max(0,cut)); return taxBracket(r.taxable).tax-taxBracket(lo).tax; }
+function taxPlaybook(r){
+  var t=kv('Tax'), n=function(k){ var v=num(t[k]); return isNaN(v)?0:v; }, out=[], M=taxMoney, pct=Math.round(r.marginal*100);
+  var line12=TAX26.brackets[1][0], over12=Math.max(0,r.taxable-line12);
+  var btcPx=n('btc_price_assumed'), btcBasis=n('btc_basis_per_coin');
+  // 1) housing allowance: actual costs are the lowest of the three → spend/document more on the Prospect house (and raise FRV if it caps you)
+  var gapNow=Math.max(0,Math.min(r.designated,r.frv)-r.actual), gapAll=Math.max(0,r.designated-r.excl);
+  if(r.excl<r.designated && (gapNow>0 || r.frv<r.designated)) out.push({id:'pb_housing', cut:gapNow||Math.min(gapAll,2500), save:taxSaveFor(r,gapNow||Math.min(gapAll,2500)), due:'Dec 31',
+    title:gapNow>0?'Prospect house: spend and document '+taxMoney(gapNow)+' more on housing before Dec 31':'Prospect house: raise your housing ceiling',
+    why:'Only '+M(r.excl)+' of your '+M(r.designated)+' housing allowance is tax-free, because it’s capped by the lowest of: what the church designated ('+M(r.designated)+'), your actual housing costs ('+M(r.actual)+') and the furnished rental value ('+M(r.frv)+'). '
+      +(gapNow>0?'Your actual costs are the lowest, so every housing dollar you pay in 2026, up to '+M(Math.min(r.designated,r.frv))+', becomes tax-free. ':'')
+      +(r.frv<r.designated?'Past that, a documented higher rental value unlocks up to '+M(gapAll)+' in total (worth up to ~'+M(taxSaveFor(r,gapAll))+').':''),
+    how:[].concat(gapNow>0?['Easiest: pay the January 2027 mortgage payment in late December. Ministers count housing costs when paid, so it lands in 2026.','Or finish a house project: materials, contractor bills, furniture, appliances, décor, landscaping and repairs all count.']:[],
+      r.frv<r.designated?['To go past '+M(r.frv)+': get a one-page opinion from a local property manager of the home’s furnished monthly rent with utilities, at least '+M(Math.ceil(r.designated/12/50)*50)+'/mo (the common CPA method is about 2× unfurnished rent). Then update “Fair rental value” below.']:[],
+      ['Save receipts in Snap & file and update “Actual housing costs” below.'])});
+  // 3) pre-tax 403(b) from the rest of this year's paychecks
+  var salaryPart=Math.max(0,n('brad_comp')-r.designated), room=Math.max(0,Math.min(TAX26.k403-n('pretax_403b'), Math.round(salaryPart*3/12*0.5/500)*500));
+  if(room>0) out.push({id:'pb_403b', cut:room, save:taxSaveFor(r,room), due:'Next payroll', title:'Defer '+M(room)+' into the church 403(b) from Oct–Dec paychecks',
+    why:'Pre-tax deferrals come off the top at your '+pct+'% rate. That’s about half the salary part of your last three paychecks; any amount helps, at about '+M(r.marginal*1000)+' saved per $1,000.',
+    how:['Email the church business office a salary-reduction agreement for the remaining 2026 paychecks (deferrals come from salary, not the housing allowance).','Ask whether the plan is a 403(b)(9) church plan. If so, money taken out in retirement can be designated as housing allowance and come out tax-free.']});
+  // 4) Chelsea: deductible traditional IRA (she has no workplace plan; MAGI is under the spouse phase-out)
+  if(String(t.chelsea_employer_plan||'none')==='none' && r.agi<TAX26.rothLo && !truthy(t.move_pb_chelsea_ira)) out.push({id:'pb_chelsea_ira', cut:TAX26.ira, save:taxSaveFor(r,TAX26.ira), due:'Apr 15, 2027', title:'Chelsea: put '+M(TAX26.ira)+' in a traditional IRA for 2026 (deductible)',
+    why:'Chelsea has no retirement plan at work and your income is under the '+M(TAX26.rothLo)+' limit, so her whole IRA contribution is deductible at '+pct+'%. The Roth gives no deduction now; at 22% the deduction usually wins this year.',
+    how:['Open a traditional IRA for her (same brokerage as her Roth is fine) and fund it by April 15, 2027, marked “for 2026.”','Keep Brad’s Roth as planned. Revisit Roth vs traditional each year: Roth wins when you’re back in the 12% bracket.']});
+  // 5) Chelsea's business: aviation costs not yet entered
+  if(!n('chelsea_aviation_yr')) out.push({id:'pb_chelsea_biz', cut:Math.min(n('chelsea_sc_net'),5000), extra:Math.min(n('chelsea_sc_net'),5000)*0.153*0.9235*0.85, save:Math.min(n('chelsea_sc_net'),5000)*(r.marginal+0.153*0.9235*0.85), due:'Dec 31', title:'Log Chelsea’s 2026 aviation costs on her business (up to ~'+M(Math.min(n('chelsea_sc_net'),5000)*(r.marginal+0.153*0.9235*0.85))+')',
+    why:'Her ground-instruction income is taxed at about '+Math.round((r.marginal+0.141)*100)+'% (income tax + self-employment tax). Her flight training and the business share of the Maule are deductible (CPA-approved), but none are entered yet.',
+    how:['Add up training, rental, written/checkride fees, headsets, charts and the business share of Maule costs; enter it in “Chelsea aviation costs” below.','Keep a flight log (date, route, purpose, Hobbs). If business use of the Maule is over 50%, ask the CPA about deducting its business share of the purchase price this year (bonus depreciation). That could be the largest single deduction you have.']});
+  // 6) Lahontan: rental shows a profit → bring it to ~$0 with repairs and trips (beyond $0 the loss is suspended)
+  if(r.rentNet>200){ var miles=n('rental_trip_miles')||390, trips=2, mileage=Math.round(miles*trips*0.76);
+    out.push({id:'pb_lahontan', cut:r.rentNet, save:taxSaveFor(r,r.rentNet), due:'Dec 31', title:'Lahontan: spend about '+M(r.rentNet)+' on the rental before Dec 31',
+    why:'The rental shows a '+M(r.rentNet)+' profit, taxed at '+pct+'%. Repairs and trips bring it to zero. Past zero there’s no 2026 savings (your income is too high to use rental losses), but the loss carries forward to offset the sale.',
+    how:['Log both planned Winnemucca trips (~'+(miles*trips)+' mi ≈ '+M(mileage)+' at 76¢/mi), with date and purpose.','Spend the rest on repairs or upgrades: paint, fixtures, appliances. Items $2,500 or less per invoice can be written off this year (de minimis safe harbor); bigger improvements get depreciated over 27.5 years.','Only improve it because it raises rent or value; the tax part alone is worth '+pct+'¢ per dollar, and only up to the profit.']}); }
+  // 7) tithe with Bitcoin instead of cash
+  if(btcPx>btcBasis && btcBasis){ var q4=Math.round(n('charity')/4/100)*100, gain=q4*(btcPx-btcBasis)/btcPx, cg=r.taxable>98900?0.15:0;
+    if(cg>0) out.push({id:'pb_btc', extra:gain*cg, save:gain*cg, due:'Dec 31', title:'Give your Q4 tithe (~'+M(q4)+') in Bitcoin instead of cash',
+    why:'You still deduct the full value, and nobody ever pays the 15% capital-gains tax on the ~'+M(gain)+' of growth in those coins. Then use the cash you would have given to buy BTC back at a fresh, higher cost basis.',
+    how:['Ask the church whether it accepts crypto directly (or use a donor-advised fund that does, e.g. Fidelity Charitable).','Give coins held over a year. Over $5,000 in a year needs a qualified appraisal for crypto; staying under keeps it simple.']}); }
+  // 8) accountable reimbursement plan (tax-free ministry expenses)
+  out.push({id:'pb_accountable', save:0, due:'Dec 31', title:'Run ministry expenses through a church reimbursement plan', why:'Reimbursements under an accountable plan are 100% tax-free (books, conferences, ministry mileage, phone/internet share). Unreimbursed, they aren’t deductible at all.', how:['Ask the board to adopt or confirm a written accountable plan.','Turn in receipts within 60 days.']});
+  // 9) designate 2027 housing allowance
+  out.push({id:'pb_designate', save:0, due:'Dec 31', title:'Have the church designate your 2027 housing allowance before Jan 1', why:'It must be designated in advance. Set it at your best estimate of 2027 housing costs plus a cushion; any unused part is just taxable pay.', how:['Projected 2027 costs: mortgage, property tax, insurance, utilities, furnishings, repairs and planned projects. Add 10–15%.']});
+  out.sort(function(a,b){ return (b.save||0)-(a.save||0); });
+  return out;
+}
+function taxPlaybookHtml(r){
+  var t=kv('Tax'), items=taxPlaybook(r), open=items.filter(function(m){return !truthy(t['move_'+m.id]);});
+  // combined: all deductions together step down through the brackets (22% then 12%), plus non-bracket extras (SE tax, capital gains)
+  var total=taxSaveFor(r, open.reduce(function(s,m){return s+(m.cut||0);},0))+open.reduce(function(s,m){return s+(m.extra||0);},0);
+  var rows=items.map(function(m,i){ var done=truthy(t['move_'+m.id]);
+    return '<div class="pb-item'+(done?' done':'')+'"><label class="tm-chk"><input type="checkbox"'+(done?' checked':'')+' onchange="taxSaveKv(\'move_'+m.id+'\',this.checked?\'yes\':\'\')"></label>'
+      +'<div class="pb-body"><div class="pb-t"><span class="pb-n">'+(i+1)+'</span>'+esc(m.title)+'</div><div class="pb-w">'+esc(m.why)+'</div>'
+      +'<details><summary>How to do it</summary><ul>'+m.how.map(function(h){return '<li>'+esc(h)+'</li>';}).join('')+'</ul></details></div>'
+      +'<div class="pb-side">'+(m.save>=20?'<div class="pb-save">saves ~'+taxMoney(Math.round(m.save/10)*10)+'</div>':'<div class="pb-save pb-free">tax-free $</div>')+'<div class="pb-due">'+esc(m.due)+'</div></div></div>'; }).join('');
+  return '<div class="card pb-card"><div class="pb-head"><div><h2>Your year-end tax playbook</h2><div class="sub">Ranked by dollars saved. Do the top ones before December 31. Check them off as you go.</div></div>'
+    +'<div class="pb-total"><div class="pb-total-v">~'+taxMoney(Math.round(total/50)*50)+'</div><div class="pb-total-l">still on the table</div></div></div>'+rows+'</div>';
+}
 function renderTaxes(){
   var t=kv('Tax'); if(!Object.keys(t).length) return card('Taxes','', '<div class="empty">Tax inputs not set up yet.</div>');
   var r=taxCalc(), rAlt=taxCalc({brad_pays_se_tax: r.seca?'no':'yes'}), sheet=num(t.sheet_refund_estimate);
   var owe=r.balance>0;
-  var tiles='<div class="grid cols-4" style="margin-bottom:22px">'
-    +statTile('2026 federal tax (est.)', taxMoney(r.total), 'income '+taxMoney(r.incomeTax)+' + self-employment '+taxMoney(r.se))
-    +statTile('Paid so far / on track', taxMoney(r.paid), 'withholding + estimated payments')
-    +'<div class="stat"><div class="label">'+(owe?'Projected amount due':'Projected refund')+'</div><div class="value" style="color:'+(owe?'var(--red)':'var(--green)')+'">'+taxMoney(Math.abs(r.balance))+'</div><div class="foot">'+(sheet?'your budget sheet shows a '+taxMoney(sheet)+' refund':'')+'</div></div>'
-    +statTile('Tax rates', Math.round(r.marginal*100)+'% bracket', 'effective '+(r.effective*100).toFixed(1)+'% of all income'+(r.seca?' · +15.3% SE on Brad’s pay':''))
+  var over12=Math.max(0,r.taxable-TAX26.brackets[1][0]);
+  var tiles='<div class="grid cols-3" style="margin-bottom:18px">'
+    +statTile('2026 federal tax (est.)', taxMoney(r.total), 'effective '+(r.effective*100).toFixed(1)+'% of all income')
+    +'<div class="stat"><div class="label">'+(owe?'Due in April':'Refund')+'</div><div class="value" style="color:'+(owe?'var(--amber)':'var(--green)')+'">'+taxMoney(Math.abs(r.balance))+'</div><div class="foot">'+(owe&&isFinite(r.safeHarbor)&&r.paid>=r.safeHarbor?'no penalty: you’ve met the safe harbor':owe?'set aside or adjust withholding':'from withholding')+'</div></div>'
+    +statTile('Your bracket', Math.round(r.marginal*100)+'%', over12>0&&r.marginal>0.12?taxMoney(over12)+' of income above the 12% line: deductions save 22¢ per $ until then':'each $1,000 deducted saves ~'+taxMoney(r.marginal*1000))
     +'</div>';
   var diff='<div class="tax-alert"><b>Why this differs from your budget sheet:</b><ol>'
     +'<li><b>Housing allowance:</b> only '+taxMoney(r.excl)+' of the '+taxMoney(r.designated)+' is tax-free. It’s capped at the <b>smaller</b> of your actual housing costs ('+taxMoney(r.actual)+') and the home’s furnished rental value with utilities ('+taxMoney(r.frv)+').</li>'
@@ -4711,10 +4780,13 @@ function renderTaxes(){
     ['Jan 15, 2027','Q4 estimated payment (EFTPS / IRS Direct Pay)'],['Jan–Feb 2027','Collect W-2s, 1098s (both mortgages), 1099s, giving statements, rental records'],
     ['Apr 15, 2027','File 2026 return (or extend) · 2026 Roth IRA deadline · Q1 2027 estimate']].map(function(d){ return L('<b>'+d[0]+'</b>', esc(d[1])); }).join('');
   return tiles
-    + diff
-    + '<div class="grid cols-2" style="margin:22px 0">'+card('Moves to make','Ordered by impact. Check them off as you go.', movesHtml, '--accent')+card('2026 estimate, line by line','Married filing jointly · Nevada has no state income tax.', lines)+'</div>'
-    + '<div class="grid cols-2" style="margin-bottom:22px">'+card('Housing allowance check','Section 107: how much of Brad’s housing allowance is tax-free.', housing)+card('Lahontan rental (Schedule E)','What the IRS sees for the rental.', rental)+'</div>'
-    + '<div class="grid cols-2" style="margin-bottom:22px">'+card('Deadlines','', deadlines)+card('Your numbers','Change anything and the estimate updates. Saved to the Tax tab in your Life OS sheet.', form)+'</div>'
+    + taxPlaybookHtml(r)
+    + '<details class="tax-more"><summary>Details: the full estimate, housing allowance, rental and your numbers</summary>'
+    + '<div style="margin-top:16px">'+diff+'</div>'
+    + '<div class="grid cols-2" style="margin:22px 0">'+card('2026 estimate, line by line','Married filing jointly · Nevada has no state income tax.', lines)+card('Housing allowance check','Section 107: how much of Brad’s housing allowance is tax-free.', housing)+'</div>'
+    + '<div class="grid cols-2" style="margin-bottom:22px">'+card('Lahontan rental (Schedule E)','What the IRS sees for the rental.', rental)+card('Your numbers','Change anything and the estimate updates. Saved to the Tax tab in your Life OS sheet.', form)+'</div>'
+    + '<div class="grid cols-2" style="margin-bottom:22px">'+card('Deadlines','', deadlines)+card('Other notes','Older moves and reminders.', movesHtml, '--accent')+'</div>'
+    + '</details>'
     + '<p class="foot" style="color:var(--text-dim)">Planning estimate using 2026 IRS numbers (brackets, $32,200 standard deduction, $40,400 SALT cap, 0.5% giving floor, $7,500 IRA / $24,500 403(b) limits). It isn’t tax advice. Minister taxes have special rules, so confirm the big items with a clergy-savvy CPA. '
     + (has(kv('Config').budget_sheet_url)?'<a href="'+esc(kv('Config').budget_sheet_url)+'" target="_blank" rel="noopener">Open your budget sheet ↗</a>':'')+'</p>';
 }
