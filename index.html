@@ -1850,7 +1850,10 @@ function statTile(label,value,foot,tab,accentVar){
 /* ---------- money math shared by Overview + Money ---------- */
 function billMonthly(b){ var n=num(b.Amount); if(isNaN(n)) return 0; var f=String(b.Frequency||'monthly').toLowerCase();
   if(f.indexOf('year')>=0||f.indexOf('ann')>=0) return n/12; if(f.indexOf('quart')>=0) return n/3;
-  if(f.indexOf('week')>=0) return n*4.33; return n; }
+  if(/bi-?week|every (two|2) ?week|fortnight|2 ?wk/.test(f)) return n*26/12;        // 26 payments a year
+  if(/semi-?month|twice a month|2x\/mo/.test(f)) return n*2;
+  if(/day|daily/.test(f)) return n*365/12;
+  if(f.indexOf('week')>=0) return n*52/12; return n; }
 function totalMonthlyBills(){ return arr('Bills').reduce(function(s,b){return s+billMonthly(b);},0); }
 function netWorth(){
   var a=arr('Accounts').reduce(function(s,x){var n=num(x.Balance); var t=String(x.Type||'').toLowerCase();
