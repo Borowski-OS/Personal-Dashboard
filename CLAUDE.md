@@ -107,3 +107,9 @@
   only. Check-offs move_roth_chelsea / move_roth_brad (new) and move_403b / move_housing (shared with the Taxes tab). Facts that shape
   the moves: Chelsea has NO employer retirement plan and no HSA (on Brad's plan); NV PERS is a pension; keep the iTrust pre-tax IRA as-is
   (pro-rata). Update TAX26 each January.
+- Look (Oct 7 2026): "command deck" Today page — 76px icon rail (desktop ≥900px; the gold emblem icon-192.png is the logo), a
+  `.deck-strip` greeting + actions line, a `.deck-gauges` row (fly window, Reno=work + Carson City=home weather from Open-Meteo via
+  `fetchTownWx`/`TOWNS`, calendar, recovery, training, rhythm ring — no air-quality chip by Brad's choice), then Top 3 | Daily rhythm |
+  `.deck-pulse` trend tiles (net worth, cash buffer vs Tax kv `cash_buffer_target` default 35k, weight, workouts, 90-day flight hours).
+  Theme tokens live in the "Pro redesign" :root plus the "Refinement" and "Command deck" CSS blocks at the end of <style>; keep new
+  greys on that token scale. Brad wants a heads-up + PDF mockup before any further layout change.
