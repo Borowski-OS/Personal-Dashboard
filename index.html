@@ -2296,7 +2296,7 @@ function todayHero(){
     qTxt='<div class="hero-q">“'+esc(q.Quote)+'” <span>— '+esc(q.Author||'Unknown')+'</span></div>'; }
   var timeTxt=n.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
   return '<div class="deck-strip"><div><div class="hero-date">'+esc(dateTxt)+' · '+timeTxt+'</div><h1 class="hero-h">'+greet+', '+esc(name)+'.</h1></div>'
-    +'<div class="hero-actions"><button class="ebtn pri" onclick="quickAdd()">＋ Quick add</button><button class="ebtn" onclick="snapPick()">📷 Snap &amp; file</button><button class="ebtn" onclick="printReview()">Weekly review</button>'+inboxLink()+cronoLink()+'</div></div>'
+    +'<div class="hero-actions"><button class="ebtn pri" onclick="quickAdd()">＋ Quick add</button><button class="ebtn" onclick="snapPick()">📷 Snap &amp; file</button><button class="ebtn" onclick="printReview()">Weekly review</button>'+inboxLink()+'<button class="ebtn b-only" id="syncInboxBtn" onclick="syncInboxNow(this)" title="Import the ForeFlight / Cronometer files sitting in the Drive inbox right now (the nightly sync also does this at ~4 AM)">⟳ Sync inbox</button>'+cronoLink()+'</div></div>'
     +'<div class="bchips deck-gauges">'+chips.join('')+'</div>'+(qTxt?'<div class="deck-q">'+qTxt+'</div>':'');
 }
 async function markActionDone(rownum){
@@ -5554,6 +5554,15 @@ function medicalHistoryCard(){
 /* ---------- Drive inbox (ForeFlight + Cronometer CSV drop) and nutrition from Cronometer ---------- */
 function inboxUrl(){ var u=String(kv('Config').inbox_url||''); return /^https:\/\/drive\.google\.com\//.test(u)?u:'https://drive.google.com/drive/search?q=%22Life%20OS%20Inbox%22'; }
 function cronoLink(label){ return '<a class="ebtn" href="https://cronometer.com/#account" target="_blank" rel="noopener" style="text-decoration:none">'+(label||'Cronometer export')+'</a>'; }
+/* "Sync inbox now": asks the Apps Script (action=syncinbox → importInbox_) to import whatever is in the Drive inbox, then reloads the data. */
+async function syncInboxNow(btn){ if(!btn||btn.disabled) return; btn.disabled=true; var label=btn.textContent; btn.textContent='Syncing inbox…';
+  try{ var res=await apiWrite({action:'syncinbox'});
+    if(res&&res.ok){ var n=(res.imported||[]).length, names=(res.imported||[]).map(function(x){return typeof x==='string'?x:(x.name||'');}).filter(Boolean);
+      btn.textContent=n?('Imported '+n+' file'+(n===1?'':'s')+' ✓'):'Inbox empty ✓'; btn.title=names.join(', ')||btn.title;
+      if(n){ await reload(); var b2=document.getElementById('syncInboxBtn'); if(b2){ b2.textContent='Imported '+n+' file'+(n===1?'':'s')+' ✓'; b2.disabled=true; setTimeout(function(){ b2.disabled=false; b2.textContent=label; }, 6000); return; } }
+    } else { btn.textContent=(res&&/unknown|action/i.test(String(res.error||''))?'Backend needs the syncinbox action':'Sync failed — try again'); }
+  }catch(e){ btn.textContent='Sync failed — try again'; }
+  setTimeout(function(){ btn.disabled=false; btn.textContent=label; }, 6000); }
 function inboxLink(label){ return '<a class="ebtn" href="'+inboxUrl()+'" target="_blank" rel="noopener" style="text-decoration:none">'+(label||'Drive inbox')+'</a>'; }
 function nutritionWeek(){
   var today=ymd(laNow()), cut=ymd(new Date(laNow().getTime()-7*864e5));
