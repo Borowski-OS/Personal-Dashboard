@@ -98,3 +98,9 @@
   cash_buffer_target; check-offs raise_move_<id>. It computes take-home from taxCalc's marginal rate + FICA and runs a waterfall:
   tithe 10% → cleaners → two Roth IRAs → cash buffer (to target) → HELOC → extra principal/acquisition fund. taxCalc's chelsea_wages
   is the 2026 W-2 estimate (raise months included) and must be refreshed from her paystub. No figures in this file.
+- Income & Roth IRA eligibility panel (Money tab, rothEligibilityCard; from the Oct 6 2026 tax handoff): MAGI ≈ Brad (base + bonus −
+  usable housing − 403(b)) + Chelsea wages + side net, vs TAX26.rothLo/rothHi. Inputs are Tax kv: brad_comp, brad_salary_2027, brad_bonus,
+  pretax_403b (2026 actual) / plan_403b (2027), housing_usable_plan, side_net_est, chelsea_* (shared with the raise card). Sliders preview
+  only. Check-offs move_roth_chelsea / move_roth_brad (new) and move_403b / move_housing (shared with the Taxes tab). Facts that shape
+  the moves: Chelsea has NO employer retirement plan and no HSA (on Brad's plan); NV PERS is a pension; keep the iTrust pre-tax IRA as-is
+  (pro-rata). Update TAX26 each January.
