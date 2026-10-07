@@ -977,6 +977,7 @@
   .tax-alert { background:rgba(229,112,122,.07); border:1px solid rgba(229,112,122,.3); border-radius:12px; padding:14px 18px; font-size:14px; line-height:1.55; }
   .tax-alert ol { margin:6px 0 0; padding-left:20px; } .tax-alert li { margin:3px 0; } .tax-alert a { color:#8fb3f8; }
   .tax-move { display:flex; gap:10px; padding:11px 0; border-bottom:1px solid var(--card-border); align-items:flex-start; }
+  .rp-dim .tm-t, .rp-dim .tm-s { opacity:.55; }
   .tax-move:last-child { border-bottom:none; } .tax-move.done .tm-t { text-decoration:line-through; color:var(--text-dim); }
   .tax-move.urgent .tm-t { color:#f0a0a7; } .tm-chk input { margin-top:3px; accent-color:var(--accent); width:16px; height:16px; }
   .tm-body { flex:1; min-width:0; } .tm-t { font-weight:600; font-size:14.5px; } .tm-s { font-size:13px; color:var(--text-muted); margin-top:2px; }
@@ -3699,6 +3700,44 @@ function rentalReturnHtml(r){
 /* ============================================================
    MONEY & BUDGET
    ============================================================ */
+/* ---------- Chelsea's raise: where the new money goes (Money tab) ----------
+   Inputs live in the private Tax kv tab: chelsea_salary / chelsea_salary_prev, chelsea_bonus_mo / chelsea_bonus_mo_prev (monthly),
+   raise_effective, cleaners_mo, chelsea_pretax_pct (PERS/457 share withheld pre-tax, if any), cash_buffer_target.
+   Check-offs are Tax kv raise_move_<id>. The waterfall below is computed from live sheet data; no figures live in this file. */
+function raisePlanCard(){
+  var I=taxInputs(), t=I.t, n=I.n;
+  if(!(n('chelsea_salary')>0&&n('chelsea_salary_prev')>0)) return '';
+  var grossYr=(n('chelsea_salary')-n('chelsea_salary_prev'))+12*(n('chelsea_bonus_mo')-n('chelsea_bonus_mo_prev')); if(grossYr<=0) return '';
+  var r=taxCalc(), marg=r.marginal||0.22, pretax=Math.max(0,Math.min(0.5,n('chelsea_pretax_pct')/100));
+  var grossMo=grossYr/12, netMo=grossMo*(1-pretax)*(1-marg-0.0765);
+  var oldYr=n('chelsea_salary_prev')+12*n('chelsea_bonus_mo_prev'), newYr=n('chelsea_salary')+12*n('chelsea_bonus_mo');
+  var tax26=r.total-taxCalc({chelsea_wages:oldYr}).total, rFull=taxCalc({chelsea_wages:newYr}), taxFull=rFull.total-taxCalc({chelsea_wages:oldYr}).total;
+  var cash=liquidCash(), target=n('cash_buffer_target')||35000;
+  var helocRow=arr('Debts').filter(function(d){return /heloc/i.test(String(d.Type)+' '+String(d.Name));})[0], heloc=helocRow?(num(helocRow.Balance)||0):0;
+  var tithe=Math.round(grossMo*0.10), cleaners=n('cleaners_mo'), roth=Math.round(2*TAX26.ira/12);
+  var rest=Math.round(netMo-tithe-cleaners-roth);
+  var phase=cash<target?'buffer':(heloc>0?'heloc':'principal');
+  var moBuf=rest>0?Math.ceil(Math.max(0,target-cash)/rest):null, moHeloc=rest>0?Math.ceil(heloc/rest):null;
+  function row(id,title,amt,how,opts){ opts=opts||{}; var done=opts.auto!=null?opts.auto:truthy(t['raise_move_'+id]);
+    var chk=opts.auto!=null?'<span class="chk chk-auto" style="margin-top:2px" title="Tracked automatically">'+(done?'✓':'•')+'</span>'
+      :'<label class="tm-chk"><input type="checkbox"'+(done?' checked':'')+' onchange="taxSaveKv(\'raise_move_'+id+'\',this.checked?\'yes\':\'\')"></label>';
+    return '<div class="tax-move'+(done?' done':'')+(opts.dim?' rp-dim':'')+'">'+chk+'<div class="tm-body"><div class="tm-t" style="display:flex;justify-content:space-between;gap:10px"><span>'+title+'</span>'+(amt!=null?'<span class="mono" style="white-space:nowrap">'+(amt>=0?'+':'−')+money(Math.abs(amt))+'/mo</span>':'')+'</div>'
+      +(how?'<div class="tm-s">'+how+'</div>':'')+(opts.bar||'')+'</div></div>'; }
+  function bar(pct,color){ pct=Math.max(0,Math.min(100,Math.round(pct))); return '<div class="bar" style="margin-top:6px"><span style="width:'+pct+'%;background:var('+color+')"></span></div>'; }
+  var rows='';
+  rows+=row('tithe','Tithe on the raise', tithe, 'Giving stays at 10% of household gross. The Giving line in the monthly plan is now '+money((arr('BudgetCategories').filter(function(c){return /giving|tithe/i.test(String(c.Category||''));})[0]||{}).MonthlyBudget)+'. Update the recurring church gift.');
+  rows+=row('cleaners','Home cleaners', cleaners, '$'+Math.round(cleaners/2)+' every two weeks. Added as a Bills row and a “Home Cleaners” budget line so Monarch can track it.');
+  rows+=row('roth','Roth IRAs for both of you', roth, '$'+TAX26.ira.toLocaleString()+' each for 2026 ($'+Math.round(TAX26.ira/12)+'/mo each), fund by Apr 15, 2027. Do this first: next year’s income lands near the $'+(TAX26.rothLo/1000)+'k Roth phase-out, so 2026 room is the easy year.'+(num(t.roth_brad)||num(t.roth_chelsea)?' Contributed so far: '+money(num(t.roth_brad)||0)+' + '+money(num(t.roth_chelsea)||0)+'.':''));
+  rows+=row('buffer','Cash buffer → '+money(target), phase==='buffer'?rest:null, (phase==='buffer'?'Everything left over goes here first: '+money(cash)+' liquid now'+(moBuf?', about '+moBuf+' month'+(moBuf===1?'':'s')+' to go at '+money(rest)+'/mo.':'.'):'Done — '+money(cash)+' liquid.'), {auto:cash>=target, bar:bar(cash/target*100,'--emerald')});
+  rows+=row('heloc','Kill the Lahontan HELOC', phase==='heloc'?rest:null, heloc>0?('Balance '+money(heloc)+'. '+(phase==='heloc'?'The buffer is full, so the leftover '+money(rest)+'/mo goes here: gone in about '+moHeloc+' months.':'Starts after the buffer is full'+(moBuf&&moHeloc?' (~'+(moBuf+moHeloc)+' months total). ':'. ')+'Idle savings above the buffer can jump-start it.')):'Paid off.', {auto:heloc<=0, dim:phase==='buffer'});
+  rows+=row('principal','Then: extra principal on Prospect (7.25%) or the acquisition fund', phase==='principal'?rest:null, 'Once the HELOC is gone, the same '+money(rest)+'/mo either pre-pays the 7.25% mortgage (a guaranteed 7.25% return until a refi) or builds the business-acquisition fund. Decide then.', {dim:phase!=='principal'});
+  rows+=row('paystub','Taxes: withholding should rise on its own — confirm it on the first new paystub', null, 'The raise adds about '+taxMoney(tax26)+' of federal tax for the rest of 2026 and about '+taxMoney(taxFull)+'/yr going forward (you’re in the '+Math.round(rFull.marginal*100)+'% bracket). Her employer withholds on the new salary automatically and bonuses at a flat 22%, so no W-4 change should be needed. Check YTD federal withholding on the paystub and update the Taxes tab; the April set-aside recomputes from it.');
+  rows+=row('pretax','Chelsea: ask HR about pre-tax contributions (457(b) / 403(b) / PERS plan)', null, 'Every $10,000 she defers pre-tax saves about '+taxMoney(10000*rFull.marginal)+' of federal tax and keeps your income under the Roth phase-out. If she already contributes, set chelsea_pretax_pct on the Taxes tab so the take-home estimate is right.');
+  var warn=rest<0?'<div class="foot" style="color:var(--amber);margin-top:8px">The committed lines add up to more than the take-home increase by '+money(-rest)+'/mo — trim one.</div>':'';
+  var rothWarn=rFull.agi>TAX26.rothLo-25000?'<div class="foot" style="color:var(--amber);margin-top:8px">Heads-up: at the new pay your full-year income lands around '+taxMoney(rFull.agi)+' vs the '+taxMoney(TAX26.rothLo)+' Roth IRA phase-out. Pre-tax deferrals (403(b), 457(b)) are the lever that keeps the Roth door open.</div>':'';
+  var sub='+'+money(grossYr)+'/yr gross ('+money(grossMo)+'/mo) ≈ +'+money(Math.round(netMo))+'/mo take-home after ~'+Math.round(marg*100)+'% federal + 7.65% FICA'+(pretax?' + '+Math.round(pretax*100)+'% pre-tax':'')+' (Nevada: no state tax). Effective '+(has(t.raise_effective)?esc(prettyIso(String(t.raise_effective)).slice(0,12)):'—')+'. Tick each line as you set it up.';
+  return card('💵 Chelsea’s raise — where the new money goes', sub, rows+warn+rothWarn, '--emerald') + '<div style="height:22px"></div>';
+}
 function renderMoney(){
   var bt=budgetTotals(), nw=netWorth();
   var accounts=arr('Accounts'), debts=arr('Debts'), inv=arr('Investments'), goals=arr('SavingsGoals');
@@ -3813,6 +3852,7 @@ function renderMoney(){
   var budgetLink = has(budgetUrl) ? '<div class="editbar" style="justify-content:flex-start;margin-bottom:16px"><a class="ebtn pri" href="'+esc(budgetUrl)+'" target="_blank" rel="noopener" style="text-decoration:none">📊 Open Borowski budget sheet →</a></div>' : '';
   return budgetLink
     + tiles
+    + raisePlanCard()
     + mkt
     + nwCard
     + '<div class="grid cols-2">'

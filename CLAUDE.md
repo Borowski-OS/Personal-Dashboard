@@ -93,3 +93,8 @@
   Vehicles row, checks tesla.com/modely/design (APR line, Premium AWD cash price, Wall Connector) + NV Energy's charger incentive +
   news, then calls teslaFire(id, note) / teslaChecked() on the page and pings Brad's ntfy topic only on a change. If the pane is ever
   locked, the task pushes "unlock once" instead of guessing. Runs only while the Claude desktop app is open.
+- Chelsea's raise (Oct 2026) → Money tab card "Chelsea's raise — where the new money goes" (raisePlanCard). Inputs are Tax kv:
+  chelsea_salary / chelsea_salary_prev, chelsea_bonus_mo / chelsea_bonus_mo_prev, raise_effective, cleaners_mo, chelsea_pretax_pct,
+  cash_buffer_target; check-offs raise_move_<id>. It computes take-home from taxCalc's marginal rate + FICA and runs a waterfall:
+  tithe 10% → cleaners → two Roth IRAs → cash buffer (to target) → HELOC → extra principal/acquisition fund. taxCalc's chelsea_wages
+  is the 2026 W-2 estimate (raise months included) and must be refreshed from her paystub. No figures in this file.
