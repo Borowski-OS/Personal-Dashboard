@@ -144,8 +144,17 @@ var CARE_NEEDS = [
 /* ---------- helpers ---------- */
 function careSrc(code){ var m=String(code||'').match(/^(\w+):([\d–\-, ]+)(.*)$/); if(!m) return esc(code);
   var doc=CARE_PLAN.src[m[1]]||m[1]; return esc(doc)+', p.'+esc(m[2].trim())+(m[3]?esc(m[3]):''); }
-function careKv(){ var h=kv('Health'); var n=function(k,d){ var v=parseFloat(String(h[k]||'').replace(/[^0-9.]/g,'')); return isNaN(v)?d:v; };
-  return { dedUsed:n('med_ded_used',null), oopUsed:n('med_oop_used',null), famDedUsed:n('med_fam_ded_used',null), famOopUsed:n('med_fam_oop_used',null), asof:h.med_spent_asof||'', pcp:h.pcp||'', dentist:h.dentist||'', eye:h.eye_doctor||'', vcopay:h.vision_copay||'', vallow:h.vision_allowance||'' }; }
+function careKv(){ var h=kv('Health'); var n=function(k,d){ if(h[k]==null||h[k]==='') return d; var v=parseFloat(String(h[k]).replace(/[^0-9.]/g,'')); return isNaN(v)?d:v; };
+  var asof=String(h.med_spent_asof||''); if(/^\d{4}-\d{2}-\d{2}/.test(asof)){ var dd=new Date(asof.slice(0,10)+'T12:00:00'); asof=isNaN(dd)?asof.slice(0,10):dd.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); }
+  return { dedUsed:n('med_ded_used',null), oopUsed:n('med_oop_used',null), famDedUsed:n('med_fam_ded_used',null), famOopUsed:n('med_fam_oop_used',null), asof:asof, pcp:h.pcp||'', dentist:h.dentist||'', eye:h.eye_doctor||'', vcopay:h.vision_copay||'', vallow:h.vision_allowance||'' }; }
+/* one-time setup: paste the relay access key here instead of editing the sheet by hand */
+function careKeyForm(){ return '<div class="fc-note" style="margin-top:12px"><b>One-time setup:</b> paste the private-index access key (from the relay setup) and it is saved to your sheet\'s Config tab.'
+  +'<div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap"><input id="fcKey" type="password" placeholder="care_key" style="flex:1;min-width:200px;font:inherit;font-size:13.5px;padding:8px 10px;border-radius:8px;border:1px solid var(--card-border-2);background:#111419;color:var(--text)">'
+  +'<button class="ebtn pri" onclick="careSaveKey()">Save key</button></div><div id="fcKeyMsg" class="foot" style="margin-top:6px"></div></div>'; }
+async function careSaveKey(){ var el=document.getElementById('fcKey'), msg=document.getElementById('fcKeyMsg'); var v=el?el.value.trim():''; if(!v){ if(msg) msg.textContent='Paste the key first.'; return; }
+  if(msg) msg.textContent='Saving…'; var res=await apiWrite({action:'setkv',tab:'Config',row:JSON.stringify({care_key:v})});
+  if(res&&res.ok){ if(DATA&&DATA.Config){ if(Array.isArray(DATA.Config)) DATA.Config.push({Key:'care_key',Value:v}); else DATA.Config.care_key=v; } try{ localStorage.setItem(LS_DATA, JSON.stringify({data:DATA, updated:new Date().toISOString()})); }catch(e){}
+    CARE.dbErr=''; if(msg) msg.textContent='Saved. Loading the index…'; careLoad(true); } else if(msg) msg.textContent='Could not save — check the connection and try again.'; }
 function careStatus(){ var k=careKv(), P=CARE_PLAN; if(k.dedUsed==null&&k.oopUsed==null) return '';
   var dl=k.dedUsed==null?null:Math.max(0,P.ded.ind-k.dedUsed), ol=k.oopUsed==null?null:Math.max(0,P.oop.ind-k.oopUsed);
   return '<div class="fc-status">'
@@ -231,7 +240,7 @@ function careBody(){
 function careSrcInline(t){ return esc(t).replace(/\((sob|sbc|dental|vsp|dir|mychart):([\d–\-, ]+)\)/g, function(_,d,p){ return '<span class="fc-src">('+esc(CARE_PLAN.src[d])+', p.'+esc(p)+')</span>'; }); }
 function careDedNote(){ var k=careKv(); if(k.dedUsed==null) return '<div class="fc-note">Deductible-first items: you pay the plan\'s negotiated rate until $500 is met. Add key med_ded_used on the Health tab to track it here.</div>';
   var left=Math.max(0,CARE_PLAN.ded.ind-k.dedUsed); return '<div class="fc-note">You have <b>'+money(left)+'</b> of deductible left'+(k.asof?' (as of '+esc(k.asof)+')':'')+' — until it is met you pay the plan\'s negotiated rate for these, then the copay.</div>'; }
-function careLoading(){ if(CARE.dbErr) return '<div class="empty">Could not load the provider list (care/providers.json).</div>'; careLoad(); return '<div class="empty">Loading the in-network directory…</div>'; }
+function careLoading(){ if(CARE.dbErr) return '<div class="empty">'+esc(CARE.dbErr)+'</div>'+(/care_key/.test(CARE.dbErr)?careKeyForm():''); careLoad(); return '<div class="empty">Loading the in-network directory…</div>'; }
 function careList(list, cost){ if(!list.length) return '<div class="empty">Nothing in the directory for this filter — widen the area or use the online directory link below.</div>';
   var top=list.slice(0,12), rest=list.slice(12,60), beyond=Math.max(0,list.length-60);
   return top.map(function(e){ return careEntry(e,cost); }).join('')
