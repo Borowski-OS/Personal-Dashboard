@@ -7,6 +7,7 @@
   Backend files (Apps Script project, edited with clasp — never committed here): Code.js, Ventures.js (crypto value,
   weekly business/rental search + listing liveness), Aviation.js (TAF proxy, morning-email fly/AQI lines),
   Ical.js (Apple/ICS calendar feeds via Config `ical_urls`), Logbook.js (ForeFlight CSV import from Drive "Life OS Inbox").
+- Morning brief email (Code.js emailBrief_, sent by dailySync; `brieftest` action re-sends): order = heads-ups (test, non-autopay bills ≤5 days, renewals, planes down, sick) → Today (Events) → call rotation → Tomorrow → top 3 next steps → weather/fly/AQI → health → radar → money (net worth from NetWorthHistory, small, last). Sheet dates arrive as Date objects: always format with ymdOf/Utilities.formatDate, never String(date).slice.
 - Schedules: dailySync ~4 AM PT (calendar, Strava, rates, home value, net-worth snapshot, Radar, crypto, logbook, email brief);
   weeklyVentures Mon ~4 AM (businesses), weeklyProperties DAILY ~5 AM (rentals, 2-40 units; 2 web searches/run).
 - Tabs (7 domains): overview=Today, home=Money, ventures, flying, health, life=Home & Life, faith. Old keys
