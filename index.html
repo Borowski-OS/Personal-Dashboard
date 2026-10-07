@@ -5707,7 +5707,7 @@ function renderHealth(){
   var woCard = stravaOn ? '<div style="height:22px"></div>'+card('Recent workouts','Auto-synced from Strava — most recent first.', tableEl(woCols, woRecent, {}), '--pink') : '';
 
   var logCols=[{label:'Date',key:'Date'},{label:'Metric',key:'Metric'},{label:'Value',num:true,key:'Value'},{label:'Notes',key:'Notes'}];
-  return findCare + '<div class="editbar" style="gap:8px">'+(EDIT?kvEditBtn('Health'):'')+'<button class="ebtn pri" onclick="quickLogWeight()">＋ Log weight</button></div>'
+  return '<div class="editbar" style="gap:8px">'+(EDIT?kvEditBtn('Health'):'')+'<button class="ebtn pri" onclick="quickLogWeight()">＋ Log weight</button></div>'
     + (sickNow()?sickPlanCard()+'<div style="height:22px"></div>':'')
     + tiles
     + (recoveryInfo()?recoveryCard()+'<div style="height:22px"></div>':'')
@@ -5721,6 +5721,7 @@ function renderHealth(){
         : card('Connections','Auto-sync + logging.', connect, '--pink'))
     + woCard
     + '<div style="height:22px"></div>'
+    + findCare
     + '<div class="grid cols-2">' + medicalHistoryCard() + coverageCard() + '</div>'
     + '<div style="height:22px"></div>'
     + card('Weight & metrics log','', tableEl(logCols, log.slice().sort(function(a,b){ return String(b.Date).localeCompare(String(a.Date)); }), {empty:'Log weight & metrics with ✎ Edit.',editTab:'HealthLog'}), '--pink');
