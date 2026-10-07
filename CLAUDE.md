@@ -55,6 +55,7 @@
   updateHomeValues_ no longer overwrites them; RentCast's AVM is saved only as a reference in Config avm_prospect / avm_lahontan.
   Comp sources: Carson City recorded sales via carsoncitynv.devnetwedge.com (POST /Search/ExecuteSalesSearch, then POST /Search/SalesResults;
   parcel detail /parcel/view/<parcel#>/<year>); Humboldt County parcels at humboldt-search.gsacorp.io/parcel/<id> (sales history on each page).
+  RentCast free plan (50/billing period from the 14th): every call goes through rcFetch_ (hard cap RC_CAP_=40, count in Script Property RC_COUNT_<period>, action `rcusage`); reference AVMs refresh monthly, not daily.
   Backend action `homecomps&which=prospect|lahontan` returns RentCast property record + AVM comps (list prices, not closed sales). Re-appraise yearly.
 - AI chat (bottom-right orb, ⌘J): page POSTs {pw, action:'ask', q, history(last 12), tab} → Assistant.js aiChat_ (claude-opus-5-5, effort low,
   web_search + tools add_next_step / log_weight / add_call_person; returns answer, actions, sources). aiContext_ = lifeContext_ + calendar, bills due,
