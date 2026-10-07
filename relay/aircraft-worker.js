@@ -94,6 +94,20 @@ export default {
       });
     }
     const url = new URL(req.url);
+
+    // Private in-network provider index for the Health tab's "Find care" (parsed from the Hometown Health directory).
+    // Stored in KV as care:providers (JSON text) + care:etag; served only with the CARE_KEY secret (Config key care_key in the sheet).
+    if (req.method === "GET" && url.pathname === "/care") {
+      const k = url.searchParams.get("k") || "";
+      if (!env.CARE_KEY || k.length !== env.CARE_KEY.length || k !== env.CARE_KEY) return json({ ok: false, error: "forbidden" }, 403, cors);
+      const etag = (await env.STATE.get("care:etag")) || "";
+      const h = { ...cors, "Cache-Control": "private, max-age=86400", ETag: etag ? '"' + etag + '"' : undefined };
+      if (etag && req.headers.get("If-None-Match") === '"' + etag + '"') return new Response(null, { status: 304, headers: h });
+      const body = await env.STATE.get("care:providers");
+      if (!body) return json({ ok: false, error: "no_index" }, 503, cors);
+      return new Response(body, { status: 200, headers: { ...h, "Content-Type": "application/json" } });
+    }
+
     if (req.method !== "GET" || url.pathname !== "/aircraft") return json({ ok: false, error: "not_found" }, 404, cors);
 
     const tails = [...new Set((url.searchParams.get("tails") || "").toUpperCase().split(",")

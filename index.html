@@ -1136,6 +1136,36 @@
     #syncBar { left:var(--side-w); }
     .dashboard { max-width:1520px; padding:26px 34px 70px; }
   }
+  /* ================= Find care (Health tab) ================= */
+  .fc-head { display:flex; justify-content:space-between; gap:16px; align-items:flex-start; flex-wrap:wrap; }
+  .fc-head .sub { margin-bottom:8px; max-width:640px; }
+  .fc-tools { display:flex; gap:8px; flex:1 1 320px; max-width:520px; }
+  .fc-tools input, .fc-tools select, .fc-sel { font:inherit; font-size:13.5px; color:var(--text); background:#111419; border:1px solid var(--card-border-2); border-radius:9px; padding:9px 11px; min-width:0; }
+  .fc-tools input { flex:1; } .fc-tools select { flex:0 0 auto; } .fc-sel { width:100%; margin:4px 0 10px; }
+  .fc-tools input:focus, .fc-tools select:focus, .fc-sel:focus { outline:none; border-color:rgba(var(--accent-rgb),.7); box-shadow:var(--ring); }
+  .fc-status { display:flex; flex-wrap:wrap; gap:6px 18px; font-size:12.5px; color:var(--text-muted); margin:6px 0 12px; } .fc-status b { color:var(--text); } .fc-asof { color:var(--text-dim); }
+  .fc-chips { display:flex; flex-wrap:wrap; gap:7px; margin:4px 0 16px; }
+  .fc-chip { font:inherit; font-size:12.5px; font-weight:600; padding:7px 12px; border-radius:999px; border:1px solid var(--card-border-2); background:rgba(255,255,255,.03); color:var(--text-muted); cursor:pointer; transition:all .12s; }
+  .fc-chip:hover { color:var(--text); border-color:#3f4650; background:rgba(255,255,255,.06); }
+  .fc-chip.on { background:var(--accent-grad); color:#0e1117; border-color:transparent; box-shadow:inset 0 1px 0 rgba(255,255,255,.35); }
+  .fc-chip .emo { filter:none; opacity:1; }
+  .fc-grid { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.25fr); gap:22px; align-items:start; }
+  @media (max-width:900px){ .fc-grid { grid-template-columns:minmax(0,1fr); } .fc-tools { max-width:none; } }
+  .fc-cost { padding:9px 0; border-bottom:1px solid var(--card-border); } .fc-cost:last-of-type { border-bottom:none; }
+  .fc-cost-l { display:flex; justify-content:space-between; gap:12px; font-size:14px; } .fc-cost-l b { white-space:nowrap; text-align:right; color:#e8ecf2; }
+  .fc-src { display:block; font-size:11px; color:var(--text-dim); margin-top:2px; } .fc-verify .fc-src { display:inline; }
+  .fc-note { margin-top:10px; padding:9px 12px; border-radius:9px; background:rgba(var(--accent-rgb),.08); border:1px solid rgba(var(--accent-rgb),.2); font-size:13px; color:var(--text-muted); }
+  .fc-opt { display:flex; justify-content:space-between; gap:12px; padding:10px 0; border-bottom:1px solid var(--card-border); }
+  .fc-opt:last-child { border-bottom:none; } .fc-opt-main { min-width:0; flex:1; font-size:14px; } .fc-opt-main b { color:#e8ecf2; }
+  .fc-opt-sub { font-size:12.5px; color:var(--text-muted); margin-top:1px; overflow-wrap:anywhere; } .fc-opt-sub a { color:#95b6ff; text-decoration:none; }
+  .fc-opt-side { display:flex; flex-direction:column; align-items:flex-end; gap:5px; flex:0 0 auto; } .fc-opt-side .ebtn { text-decoration:none; white-space:nowrap; }
+  .fc-cost-pill { display:inline-block; margin-left:8px; font-size:11px; font-weight:700; padding:2px 8px; border-radius:20px; background:rgba(107,196,138,.12); color:#8fd4a7; vertical-align:1px; }
+  .fc-extra { background:rgba(255,255,255,.025); border:1px solid var(--card-border); border-radius:10px; padding:10px 12px; margin-bottom:8px; }
+  .fc-names { font-size:12px; color:var(--text-dim); margin-top:3px; } .fc-names summary { cursor:pointer; color:var(--text-muted); }
+  .fc-more { margin-top:8px; } .fc-more summary { cursor:pointer; font-size:13px; color:var(--text-muted); font-weight:600; padding:6px 0; }
+  .fc-verify { margin-top:18px; } .fc-verify ul { margin:0; padding-left:18px; font-size:13.5px; line-height:1.55; color:var(--text-muted); } .fc-verify li { margin:4px 0; }
+  .fc-foot { margin-top:16px; padding-top:12px; border-top:1px solid var(--card-border); font-size:12px; color:var(--text-dim); line-height:1.6; } .fc-foot a { color:#95b6ff; text-decoration:none; }
+  @media (max-width:640px){ .fc-opt { flex-direction:column; } .fc-opt-side { flex-direction:row; align-items:center; } .fc-chip { font-size:12px; padding:6px 10px; } }
 </style>
 </head>
 <body>
@@ -1539,6 +1569,7 @@ function showApp(res){
   if(!CURRENT || CURRENT==='overview'){ var hashTab=(location.hash||'').replace('#',''); navGo(TABS[hashTab]?hashTab:'overview'); }
   else render(CURRENT);
   fetchLive(); debugWide();
+  if(window.carePrefetch) setTimeout(carePrefetch, 1200);   // warm the private provider index for the Health tab's Find care
 }
 async function submitGate(){
   $('gateErr').textContent='';
@@ -5541,7 +5572,7 @@ function coverageCard(){
   var med='<div class="section-title" style="margin:0 0 6px">Medical'+(has(h.ins_medical)?' · '+esc(h.ins_medical):'')+'</div>'
     + line('Member ID',h.med_member_id,true) + line('Group #',h.med_group,true) + line('Member services',h.med_phone)
     + (/^https:\/\//.test(String(h.med_portal||''))?'<div class="kv-row"><span class="k">Benefits, claims & ID card</span><span class="v"><a href="'+esc(h.med_portal)+'" target="_blank" rel="noopener">'+esc(String(h.med_portal).replace(/^https:\/\//,''))+' ↗</a></span></div>':'')
-    + line('Pharmacy',h.rx_plan)
+    + line('Pharmacy',h.rx_plan) + line('Where to fill',h.rx_pharmacy) + line('Plan year',h.med_plan_year)
     + (has(h.pcp)?line('Primary care doctor',h.pcp):'<div class="kv-row"><span class="k">Primary care doctor</span><span class="v" style="color:var(--amber);font-weight:600">none yet — needed for HMO referrals</span></div>')
     + (has(h.med_deductible)||has(h.med_oop_max)
         ? line('Deductible (in-network)',h.med_deductible)+line('Out-of-pocket max (in-network)',h.med_oop_max)+line('Deductible met this year',h.med_deductible_met)
@@ -5551,13 +5582,14 @@ function coverageCard(){
         ? '<div class="section-title" style="margin:14px 0 6px">What a visit costs you</div>'
           + line('Annual physical & vaccines',h.copay_preventive||'$0 (ACA preventive care)')+line('Primary care visit',h.copay_pcp)+line('Specialist',h.copay_specialist)+line('Urgent care',h.copay_urgent)
           + line('Emergency room',h.copay_er)+line('Lab / X-ray / imaging',h.copay_lab)+line('Therapy / mental health',h.copay_mental)+line('Chiropractor',h.copay_chiro)
-          + line('Surgery / hospital stay',h.copay_surgery)+line('Prescriptions',h.copay_rx)
+          + line('Surgery / hospital stay',h.copay_surgery)+line('Prescriptions',h.copay_rx)+line('Telehealth',h.copay_telehealth)+line('Physical therapy / rehab',h.copay_pt)
         : todo('Copays (PCP, specialist, urgent care, ER)','not on your card — MyChart → Benefits'));
   var dental='<div class="section-title" style="margin:14px 0 6px">Dental'+(has(h.ins_dental)?' · '+esc(h.ins_dental):'')+'</div>'
-    + (has(h.dentist)?line('Dentist',h.dentist):'<div class="kv-row"><span class="k">Dentist</span><span class="v" style="color:var(--amber);font-weight:600">none yet — pick an in-network one</span></div>') + line('Member ID',h.dental_member_id,true) + line('Annual max',h.dental_annual_max) + line('Cleanings',h.dental_cleanings||'usually 2/yr covered 100%');
+    + (has(h.dentist)?line('Dentist',h.dentist):'<div class="kv-row"><span class="k">Dentist</span><span class="v" style="color:var(--amber);font-weight:600">none yet — pick an in-network one</span></div>') + line('Member ID',h.dental_member_id,true) + line('Deductible',h.dental_deductible) + line('Annual max',h.dental_annual_max) + line('Cleanings',h.dental_cleanings||'usually 2/yr covered 100%') + line('Basic care',h.dental_basic) + line('Major care',h.dental_major) + line('Orthodontics',h.dental_ortho) + line('Find a dentist',h.dental_find);
   var vision='<div class="section-title" style="margin:14px 0 6px">Vision'+(has(h.ins_vision)?' · '+esc(h.ins_vision):'')+'</div>'
-    + line('Eye doctor',h.eye_doctor) + line('Member ID',h.vision_member_id,true) + line('Exam',h.vision_exam) + line('Glasses / contacts allowance',h.vision_allowance);
-  return card('Insurance & coverage','Your plans, who to call, and what things cost.', med+dental+vision
+    + line('Eye doctor',h.eye_doctor) + line('Member ID',h.vision_member_id,true) + line('Exam',h.vision_exam) + line('Exam copay',h.vision_copay) + line('Glasses / contacts allowance',h.vision_allowance) + line('Find a VSP doctor',h.vision_find);
+  var life=has(h.ins_life)?'<div class="section-title" style="margin:14px 0 6px">Life insurance</div>'+line('Basic life + AD&D',h.ins_life):'';
+  return card('Insurance & coverage','Your plans, who to call, and what things cost.', med+dental+vision+life
     +'<p class="foot" style="margin:12px 0 0;color:var(--text-dim)">Tip: urgent care usually costs a fraction of the ER for non-emergencies. Member IDs are blurred — tap to show.</p>', '--pink');
 }
 /* ---------- Recovery & sleep (WHOOP → Cronometer biometrics export → Recovery tab) ---------- */
@@ -5595,6 +5627,7 @@ function trainingTargetsCard(){
 }
 function renderHealth(){
   var h=kv('Health'), log=arr('HealthLog');
+  var findCare=''; try{ if(typeof findCareCard==='function') findCare=findCareCard()+'<div style="height:22px"></div>'; }catch(e){ console.error('findCare', e); }
   var cur=num(h.weight)||208, goal=num(h.weight_goal)||185, togo=Math.max(0,Math.round(cur-goal));
   var proteinLo=Math.round(goal*0.9), proteinHi=Math.round(goal*1.1);
 
@@ -5662,7 +5695,7 @@ function renderHealth(){
   var woCard = stravaOn ? '<div style="height:22px"></div>'+card('Recent workouts','Auto-synced from Strava — most recent first.', tableEl(woCols, woRecent, {}), '--pink') : '';
 
   var logCols=[{label:'Date',key:'Date'},{label:'Metric',key:'Metric'},{label:'Value',num:true,key:'Value'},{label:'Notes',key:'Notes'}];
-  return '<div class="editbar" style="gap:8px">'+(EDIT?kvEditBtn('Health'):'')+'<button class="ebtn pri" onclick="quickLogWeight()">＋ Log weight</button></div>'
+  return findCare + '<div class="editbar" style="gap:8px">'+(EDIT?kvEditBtn('Health'):'')+'<button class="ebtn pri" onclick="quickLogWeight()">＋ Log weight</button></div>'
     + (sickNow()?sickPlanCard()+'<div style="height:22px"></div>':'')
     + tiles
     + (recoveryInfo()?recoveryCard()+'<div style="height:22px"></div>':'')
@@ -5822,5 +5855,6 @@ if('serviceWorker' in navigator){
   });
 }
 </script>
+<script src="care.js?v=2"></script>
 </body>
 </html>

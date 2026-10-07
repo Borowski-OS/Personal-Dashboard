@@ -113,3 +113,12 @@
   `.deck-pulse` trend tiles (net worth, cash buffer vs Tax kv `cash_buffer_target` default 35k, weight, workouts, 90-day flight hours).
   Theme tokens live in the "Pro redesign" :root plus the "Refinement" and "Command deck" CSS blocks at the end of <style>; keep new
   greys on that token scale. Brad wants a heads-up + PDF mockup before any further layout change.
+- Find care (Oct 7 2026, Health tab, top card): `care.js` = plan cost rules (AHP Renown Platinum HMO 2026, public plan info, each row cites the
+  source doc + page) + a picker of needs (sick now, ER, PCP, specialist, lab, imaging, PT, chiro, mental health, Rx, surgery, hospital, dental, vision)
+  + in-network provider search. The provider index (parsed from the Renown HMO Provider Directory 10/26 edition) is PRIVATE by Brad's choice: it is
+  NOT in this repo — it lives in the Cloudflare relay's KV (relay/aircraft-worker.js route GET /care?k=…, KV keys care:providers + care:etag, secret
+  CARE_KEY). The page reads Config kv `care_key` (and optional `care_url`), caches the JSON in localStorage `lifeos_care` (ETag-revalidated daily)
+  and prefetches it 1.2 s after unlock (showApp → carePrefetch) so the Health tab is instant. Personal numbers (member IDs, deductible/OOP used,
+  PCP, dentist, eye doctor) stay in the private Health kv tab (keys med_ded_used, med_oop_used, med_fam_*, med_spent_asof, pcp, dentist,
+  eye_doctor, vision_copay, vision_allowance). Source PDFs: ~/Desktop/Reference/personal-os/benefits (not in this repo). Chelsea is on all plans.
+  Keep citations on every cost line and the "confirm participation" footer. New directory edition → re-parse and `wrangler kv key put` it.
