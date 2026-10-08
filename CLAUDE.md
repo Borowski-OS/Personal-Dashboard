@@ -131,3 +131,7 @@
   LIVES IN THE PRIVATE SHEET: Flying kv keys par_seen, par_hist, par_area, par_mocks, par_extra, par_t (cached in localStorage lifeos_par;
   an unfinished mock is in lifeos_par_mock). Never put scores/history in the repo. FAA sample + PSI sample questions count as seen; new questions
   must test a point differently (new scenario/values/angle), FAA phrasing, no copying from Sporty's/TFP/Gleim/King/Sheppard.
+- Test-day Crash course (Oct 8 2026, par.js + par-crash.js): drill area 'crash' = NTSB (PA.III.A.K8 + CC-NTSB-*), stalls/spins/CG (PAR_SPIN_IDS, PA.VII.B-D, CC-SPIN-*),
+  airspace (PA.I.E + CC-AIR-*), and 2-4 METAR items; rotates groups; default on the test day and day before. PAR_CRASH_SHEET = reviewer-verified cheat sheet.
+  par-crash.js also applies PAR_FIXES (reviewer explanation/citation fixes to existing bank ids; no answer keys changed) and appends 31 new CC-* questions.
+  'Weakest areas' excludes the instrument area (PA.VIII).
