@@ -1255,6 +1255,16 @@
   @media (max-width:900px){ .sk-grid { grid-template-columns:1fr; } .sk-grid i:nth-child(n+2) { display:none; } }
   @keyframes skel { 0%{ background-position:100% 0; } 100%{ background-position:-100% 0; } }
   @media (prefers-reduced-motion:reduce){ .skel i { animation:none; } }
+  /* ================= Coverage card: plan sections fold ================= */
+  .cov-sec { border-top:1px solid var(--card-border); } .cov-sec:first-of-type { border-top:none; }
+  .cov-sec > summary { list-style:none; cursor:pointer; display:flex; align-items:baseline; gap:10px; padding:12px 0; }
+  .cov-sec > summary::-webkit-details-marker { display:none; }
+  .cov-sec > summary::after { content:''; margin-left:auto; width:8px; height:8px; border-right:2px solid var(--text-dim); border-bottom:2px solid var(--text-dim); transform:rotate(-45deg); transition:transform .18s; align-self:center; flex:0 0 8px; }
+  .cov-sec[open] > summary::after { transform:rotate(45deg); }
+  .cov-n { font-size:12px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--text); flex:0 0 auto; }
+  .cov-s { font-size:12.5px; color:var(--text-dim); min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .cov-b { padding-bottom:10px; }
+  @media print { .cov-sec { display:block; } .cov-sec > .cov-b { display:block !important; } }
 </style>
 </head>
 <body>
@@ -1920,7 +1930,7 @@ async function deleteRecord(tab,rownum){
 function openKvEditor(tab){
   var obj=kv(tab), keys=Object.keys(obj);
   var rows=keys.map(function(k,i){return '<div class="efield"><label>'+esc(k)+'</label><input id="kv_'+i+'" data-k="'+esc(k)+'" type="text" value="'+esc(String(obj[k]))+'"></div>';}).join('');
-  var blanks=''; for(var j=0;j<3;j++){ blanks+='<div style="display:flex;gap:8px;margin-bottom:10px"><input id="nk_'+j+'" type="text" placeholder="New field name" style="flex:1;padding:9px 11px;border-radius:8px;border:1px solid var(--card-border-2);background:#14171b;color:var(--text);font-family:inherit"><input id="nv_'+j+'" type="text" placeholder="Value" style="flex:1;padding:9px 11px;border-radius:8px;border:1px solid var(--card-border-2);background:#14171b;color:var(--text);font-family:inherit"></div>'; }
+  var blanks=''; for(var j=0;j<3;j++){ blanks+='<div style="display:flex;gap:8px;margin-bottom:10px"><input id="nk_'+j+'" type="text" placeholder="New field name" style="flex:1;padding:9px 11px;border-radius:8px;border:1px solid var(--card-border-2);background:#111419;color:var(--text);font-family:inherit"><input id="nv_'+j+'" type="text" placeholder="Value" style="flex:1;padding:9px 11px;border-radius:8px;border:1px solid var(--card-border-2);background:#111419;color:var(--text);font-family:inherit"></div>'; }
   $('modalSheet').innerHTML='<button class="mclose" onclick="closeModal()">×</button><div class="mhead"><h2>Edit '+esc(tab)+'</h2></div>'
     +'<div id="eform">'+rows+'<div class="section-title" style="margin-top:14px">Add new fields</div>'+blanks+'</div>'
     +'<div class="eactions"><span class="spacer"></span><span class="esaved" id="esaved"></span>'
@@ -3341,8 +3351,8 @@ function xcEnvelopeSvg(p, to, ld){
   var X=function(cg){ return L+(cg-x0)/(x1-x0)*(W-L-R); }, Y=function(w){ return H-B-(w-y0)/(y1-y0)*(H-Tp-B); };
   var poly=[[11.1,y0],[11.1,1500],[14.5,2100],[15.6,2300],[19.0,2300],[20.5,2100],[20.5,y0]].map(function(q){ return X(q[0]).toFixed(1)+','+Y(q[1]).toFixed(1); }).join(' ');
   var g='';
-  for(var c=10;c<=22;c+=2) g+='<line x1="'+X(c)+'" x2="'+X(c)+'" y1="'+Tp+'" y2="'+(H-B)+'" stroke="#252a31"/><text x="'+X(c)+'" y="'+(H-B+14)+'" fill="#888" font-size="10" text-anchor="middle" font-family="Inter">'+c+'</text>';
-  for(var w=1400;w<=2400;w+=200) g+='<line x1="'+L+'" x2="'+(W-R)+'" y1="'+Y(w)+'" y2="'+Y(w)+'" stroke="#252a31"/><text x="'+(L-6)+'" y="'+(Y(w)+3)+'" fill="#888" font-size="10" text-anchor="end" font-family="Inter">'+w+'</text>';
+  for(var c=10;c<=22;c+=2) g+='<line x1="'+X(c)+'" x2="'+X(c)+'" y1="'+Tp+'" y2="'+(H-B)+'" stroke="#272b32"/><text x="'+X(c)+'" y="'+(H-B+14)+'" fill="#868f9b" font-size="10" text-anchor="middle" font-family="Inter">'+c+'</text>';
+  for(var w=1400;w<=2400;w+=200) g+='<line x1="'+L+'" x2="'+(W-R)+'" y1="'+Y(w)+'" y2="'+Y(w)+'" stroke="#272b32"/><text x="'+(L-6)+'" y="'+(Y(w)+3)+'" fill="#868f9b" font-size="10" text-anchor="end" font-family="Inter">'+w+'</text>';
   var pt=function(o,lab,col){ if(!o) return ''; var cx=Math.max(L,Math.min(W-R,X(o.cg))), cy=Math.max(Tp,Math.min(H-B,Y(o.w)));
     return '<circle cx="'+cx.toFixed(1)+'" cy="'+cy.toFixed(1)+'" r="7" fill="'+col+'" stroke="#0a0a0a" stroke-width="2"/><text x="'+cx.toFixed(1)+'" y="'+(cy+3.5).toFixed(1)+'" fill="#0a0a0a" font-size="9" font-weight="800" text-anchor="middle" font-family="Inter">'+lab+'</text>'; };
   var inEnv=function(o){ return !o || (o.w<=p.grossWt && o.cg>=xcEnvAt(XC_ENV.fwd,o.w) && o.cg<=xcEnvAt(XC_ENV.aft,o.w)); };
@@ -3994,7 +4004,7 @@ function budgetPlanHtml(){
           +(series.length>1?'<span style="flex:1;max-width:140px">'+sparkline(series,dcol)+'</span>':'<span style="flex:1"></span>')
           +'<span class="foot mono" style="color:var('+dcol+')">'+pct+'% of budget'+(over?' · over by '+money(a-b):(under?' · room to spend':' · on track'))+'</span></div>';
       }
-      return '<div style="padding:7px 0;border-bottom:1px solid #252a31"><div style="display:flex;justify-content:space-between;gap:10px;font-size:13.5px"><span>'+esc(c.Category)+(has(c.Notes)?' <span class="foot" style="color:var(--text-dim)">'+esc(c.Notes)+'</span>':'')+'</span>'+right+'</div>'+trend+'</div>';
+      return '<div style="padding:7px 0;border-bottom:1px solid var(--card-border)"><div style="display:flex;justify-content:space-between;gap:10px;font-size:13.5px"><span>'+esc(c.Category)+(has(c.Notes)?' <span class="foot" style="color:var(--text-dim)">'+esc(c.Notes)+'</span>':'')+'</span>'+right+'</div>'+trend+'</div>';
     };
     // over-budget lines stay visible; the rest fold away so the list scans in seconds
     var isOver=function(c){ var a=num(c.MonthlyActual), bb=num(c.MonthlyBudget)||0; return !isNaN(a)&&a>bb*1.05; };
@@ -4289,8 +4299,8 @@ function drawMoneyCharts(){
             borderColor:'#7aa2f7', backgroundColor:'rgba(122,162,247,.10)', fill:true, tension:.3,
             pointBackgroundColor:'#7aa2f7', pointRadius:3}]},
         options:{plugins:{legend:{display:false}},
-          scales:{x:{ticks:{color:'#8b93a0',font:{family:'Inter'}},grid:{color:'#2a2f37'}},
-            y:{ticks:{color:'#8b93a0',font:{family:'Inter'},callback:function(v){return '$'+(v/1000)+'k';}},grid:{color:'#2a2f37'}}}}}));
+          scales:{x:{ticks:{color:'#868f9b',font:{family:'Inter'}},grid:{color:'#272b32'}},
+            y:{ticks:{color:'#868f9b',font:{family:'Inter'},callback:function(v){return '$'+(v/1000)+'k';}},grid:{color:'#272b32'}}}}}));
     }
   }
   var alloc=$('allocChart');
@@ -4312,7 +4322,7 @@ function drawMoneyCharts(){
       var aColors={'Real estate':'#7aa2f7','Retirement':'#5fb3b3','Crypto':'#c9a86a','Aircraft':'#9d8fe0','Vehicles':'#7d8796','Precious metals':'#d8c27a','Brokerage':'#4f78c4','Cash':'#6bc48a','Other':'#5c6470'};
       charts.push(new Chart(alloc.getContext('2d'),{type:'doughnut',
         data:{labels:aLabels,datasets:[{data:aLabels.map(function(l){return Math.round(byClass[l]);}),
-          backgroundColor:aLabels.map(function(l){return aColors[l]||'#9a9a9a';}),borderColor:'#22262d',borderWidth:3}]},
+          backgroundColor:aLabels.map(function(l){return aColors[l]||'#9a9a9a';}),borderColor:'#1a1d23',borderWidth:3}]},
         options:{plugins:{legend:{position:'right',labels:{color:'#c3cad3',font:{family:'Inter',size:11},boxWidth:12}},
           tooltip:{callbacks:{label:function(c){return c.label+': $'+c.parsed.toLocaleString();}}}},cutout:'58%'}}));
     }
@@ -4323,7 +4333,7 @@ function drawMoneyCharts(){
   var colors={Needs:'#7aa2f7',Wants:'#9d8fe0',Savings:'#6bc48a',Tithe:'#c9a86a',Other:'#5c6470'};
   charts.push(new Chart(cvs.getContext('2d'),{type:'doughnut',
     data:{labels:labels,datasets:[{data:labels.map(function(l){return Math.round(byType[l]);}),
-      backgroundColor:labels.map(function(l){return colors[l]||'#9a9a9a';}),borderColor:'#22262d',borderWidth:3}]},
+      backgroundColor:labels.map(function(l){return colors[l]||'#9a9a9a';}),borderColor:'#1a1d23',borderWidth:3}]},
     options:{plugins:{legend:{labels:{color:'#c3cad3',font:{family:'Inter'}}}},cutout:'62%'}}));
 }
 
@@ -4847,7 +4857,7 @@ function wiRun(){
     datasets:[{label:'Buy the deal',data:deal.map(Math.round),borderColor:'#7aa2f7',backgroundColor:'rgba(122,162,247,.10)',fill:false,tension:.25,pointRadius:3},
       {label:'Hold the BTC',data:keep.map(Math.round),borderColor:'#c9a86a',fill:false,tension:.25,pointRadius:3,borderDash:[5,4]}]},
     options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{labels:{color:'#c3cad3',font:{family:'Inter'}}},tooltip:{callbacks:{label:function(c){return c.dataset.label+': $'+Math.round(c.parsed.y).toLocaleString();}}}},
-      scales:{x:{ticks:{color:'#8b93a0'},grid:{color:'#2a2f37'}},y:{ticks:{color:'#8b93a0',callback:function(v){return '$'+Math.round(v/1000)+'k';}},grid:{color:'#2a2f37'}}}}});
+      scales:{x:{ticks:{color:'#868f9b'},grid:{color:'#272b32'}},y:{ticks:{color:'#868f9b',callback:function(v){return '$'+Math.round(v/1000)+'k';}},grid:{color:'#272b32'}}}}});
   charts.push(window.__wiChart);
 }
 
@@ -5765,7 +5775,12 @@ function coverageCard(){
   var vision='<div class="section-title" style="margin:14px 0 6px">Vision'+(has(h.ins_vision)?' · '+esc(h.ins_vision):'')+'</div>'
     + line('Eye doctor',h.eye_doctor) + line('Member ID',h.vision_member_id,true) + line('Exam',h.vision_exam) + line('Exam copay',h.vision_copay) + line('Glasses / contacts allowance',h.vision_allowance) + line('Find a VSP doctor',h.vision_find);
   var life=has(h.ins_life)?'<div class="section-title" style="margin:14px 0 6px">Life insurance</div>'+line('Basic life + AD&D',h.ins_life):'';
-  return card('Insurance & coverage','Your plans, who to call, and what things cost.', med+dental+vision+life
+  /* each plan folds; Medical opens by default (remembered per device) */
+  var covOpen=(function(){ try{ return JSON.parse(localStorage.getItem('lifeos_cov')||'{"Medical":1}'); }catch(e){ return {Medical:1}; } })();
+  var fold=function(name, html, summary){ if(!html) return ''; var body=html.replace(/^<div class="section-title"[^>]*>[\s\S]*?<\/div>/,'');
+    return '<details class="cov-sec"'+(covOpen[name]?' open':'')+' ontoggle="covToggle(\''+name+'\',this.open)"><summary><span class="cov-n">'+name+'</span><span class="cov-s">'+esc(summary||'')+'</span></summary><div class="cov-b">'+body+'</div></details>'; };
+  var plans=fold('Medical', med, h.ins_medical) + fold('Dental', dental, h.ins_dental) + fold('Vision', vision, h.ins_vision) + fold('Life', life, has(h.ins_life)?String(h.ins_life).split('·')[0]:'');
+  return card('Insurance & coverage','Your plans, who to call, and what things cost.', plans
     +'<p class="foot" style="margin:12px 0 0;color:var(--text-dim)">Tip: urgent care usually costs a fraction of the ER for non-emergencies. Member IDs are blurred — tap to show.</p>', '--pink');
 }
 /* ---------- Recovery & sleep (WHOOP → Cronometer biometrics export → Recovery tab) ---------- */
@@ -5801,6 +5816,7 @@ function trainingTargetsCard(){
     + goalBar('Hard effort (VO₂ max) → 1', t.hard/1*100, t.hard+' this week (avg HR above '+t.z2hi+')', '--amber');
   return card('This week vs. your longevity targets', 'Peter Attia’s framework: lots of easy Zone 2, 2+ strength days, one hard interval session. Auto-computed from Strava ('+t.sessions+' sessions, '+fmtMins(t.total)+').', bars+'<p class="foot" style="margin:10px 0 0;color:var(--text-dim)">Zones estimated from max HR '+hrMax()+' (220 − age). Add <span class="mono">max_hr</span> to Health settings for a tested number.</p>', '--pink');
 }
+function covToggle(name, open){ try{ var o=JSON.parse(localStorage.getItem('lifeos_cov')||'{"Medical":1}'); if(open) o[name]=1; else delete o[name]; localStorage.setItem('lifeos_cov', JSON.stringify(o)); }catch(e){} }
 function renderHealth(){
   var h=kv('Health'), log=arr('HealthLog');
   var findCare=''; try{ if(typeof findCareCard==='function') findCare=findCareCard()+'<div style="height:22px"></div>'; }catch(e){ console.error('findCare', e); }
