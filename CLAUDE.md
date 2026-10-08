@@ -122,3 +122,12 @@
   PCP, dentist, eye doctor) stay in the private Health kv tab (keys med_ded_used, med_oop_used, med_fam_*, med_spent_asof, pcp, dentist,
   eye_doctor, vision_copay, vision_allowance). Source PDFs: ~/Desktop/Reference/personal-os/benefits (not in this repo). Chelsea is on all plans.
   Keep citations on every cost line and the "confirm participation" footer. New directory edition → re-parse and `wrangler kv key put` it.
+- Written test prep (rebuilt Oct 7 2026, Flying tab card): engine `par.js`; original question bank `par-bank-1..6.js` (378 q, each with ACS code,
+  explanation, reference; answer positions rotated by scratchpad rotate.py so the key is not always A); original SVG figures `par-figs.js`
+  (figure ids referenced by q.fig). `faa-par.js` (59 FAA sample questions Brad has memorized) is RETIRED: loaded only to count/mark as seen, never
+  shown. Modes: Drill (unseen first; "Weakest areas" auto-picks areas under 85%), Mock test (65 q / 120 min / 5 hidden unscored / 70% pass,
+  sampled unseen-first, ≤20% per area, score report lists missed ACS codes + TFP/Sporty's study pointers), Progress (per-area accuracy, <85%
+  flagged, readiness = last 3 mocks ≥85% on ≥50 unseen each), Bank (counts; "Add questions" pastes a JSON array → private sheet). PROGRESS
+  LIVES IN THE PRIVATE SHEET: Flying kv keys par_seen, par_hist, par_area, par_mocks, par_extra, par_t (cached in localStorage lifeos_par;
+  an unfinished mock is in lifeos_par_mock). Never put scores/history in the repo. FAA sample + PSI sample questions count as seen; new questions
+  must test a point differently (new scenario/values/angle), FAA phrasing, no copying from Sporty's/TFP/Gleim/King/Sheppard.

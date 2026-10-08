@@ -1166,6 +1166,36 @@
   .fc-verify { margin-top:18px; } .fc-verify ul { margin:0; padding-left:18px; font-size:13.5px; line-height:1.55; color:var(--text-muted); } .fc-verify li { margin:4px 0; }
   .fc-foot { margin-top:16px; padding-top:12px; border-top:1px solid var(--card-border); font-size:12px; color:var(--text-dim); line-height:1.6; } .fc-foot a { color:#95b6ff; text-decoration:none; }
   @media (max-width:640px){ .fc-opt { flex-direction:column; } .fc-opt-side { flex-direction:row; align-items:center; } .fc-chip { font-size:12px; padding:6px 10px; } }
+  /* ================= PAR written-test prep ================= */
+  .par-top { display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:12px; }
+  .par-stats { display:flex; flex-wrap:wrap; gap:6px; }
+  .par-stat { font-size:12px; color:var(--text-muted); background:rgba(255,255,255,.04); border:1px solid var(--card-border); border-radius:20px; padding:4px 10px; } .par-stat b { color:var(--text); }
+  .par-ready.ok { color:#8fd4a7; border-color:rgba(107,196,138,.4); } .par-ready.no { color:#f0c674; border-color:rgba(220,179,94,.35); }
+  .par-sync:empty { display:none; } .par-sync { color:var(--text-dim); }
+  .par-tabs { display:flex; gap:4px; } .par-tab { font:inherit; font-size:12.5px; font-weight:600; padding:6px 12px; border-radius:9px; border:1px solid var(--card-border-2); background:rgba(255,255,255,.03); color:var(--text-muted); cursor:pointer; }
+  .par-tab.on { background:var(--accent-grad); color:#0e1117; border-color:transparent; }
+  .faq-chip.weak { border-color:rgba(229,112,122,.5); color:#f0a0a7; } .faq-chip small { font-weight:500; opacity:.75; margin-left:3px; }
+  .faq-opt.sel { border-color:var(--accent); background:rgba(var(--accent-rgb),.12); }
+  .par-ref { margin-top:8px; font-size:12px; color:var(--text-dim); }
+  .par-fig { margin:12px 0; border:1px solid var(--card-border); border-radius:10px; overflow:hidden; background:#fff; }
+  .par-fig svg { display:block; width:100%; height:auto; } .par-fig-h { display:flex; justify-content:space-between; align-items:center; padding:6px 10px; background:var(--card-2); color:var(--text-muted); font-size:12px; }
+  .par-figbig { width:1400px; max-width:none; margin:0 auto; background:#fff; border-radius:8px; } .par-figbig svg { width:100%; height:auto; display:block; }
+  .par-intro h3 { margin:4px 0 8px; font-size:17px; } .par-intro p { font-size:14px; color:var(--text-muted); line-height:1.5; }
+  .par-bar { display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:10px; font-size:13px; color:var(--text-muted); }
+  .par-timer { font:700 20px Inter,sans-serif; color:var(--text); font-variant-numeric:tabular-nums; } .par-timer.low { color:var(--red); }
+  .par-navbtns { display:flex; gap:6px; flex-wrap:wrap; }
+  .par-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(34px,1fr)); gap:4px; margin-top:12px; }
+  .par-cell { font:600 11.5px Inter,sans-serif; padding:6px 0; border-radius:6px; border:1px solid var(--card-border); background:transparent; color:var(--text-dim); cursor:pointer; }
+  .par-cell.done { background:rgba(255,255,255,.08); color:var(--text); } .par-cell.cur { border-color:var(--accent); color:var(--accent); } .par-cell.flag { box-shadow:inset 0 0 0 2px rgba(220,179,94,.6); }
+  .par-report h4 { margin:16px 0 6px; font-size:13px; text-transform:uppercase; letter-spacing:.06em; color:var(--text-muted); }
+  .par-score { display:flex; align-items:center; gap:16px; padding:14px 16px; border-radius:12px; border:1px solid var(--card-border); background:var(--card-2); }
+  .par-score-n { font-size:34px; font-weight:800; letter-spacing:-.02em; } .par-score.pass .par-score-n { color:#8fd4a7; } .par-score.fail .par-score-n { color:#f0a0a7; }
+  .par-miss { padding:8px 0; border-bottom:1px solid var(--card-border); } .par-miss code { background:rgba(255,255,255,.07); padding:1px 6px; border-radius:4px; font-size:12px; }
+  .par-pointer { font-size:12.5px; color:#95b6ff; margin-top:4px; }
+  .par-rev { margin:10px 0; border-left:3px solid var(--card-border-2); padding-left:10px; } .par-rev.bad { border-left-color:var(--red); } .par-rev.ok { border-left-color:var(--green); }
+  .par-ready-box { padding:12px 14px; border-radius:12px; border:1px solid var(--card-border); margin-bottom:16px; font-size:14px; } .par-ready-box.ok { border-color:rgba(107,196,138,.4); background:rgba(107,196,138,.08); } .par-ready-box.no { border-color:rgba(220,179,94,.35); background:rgba(220,179,94,.07); }
+  .par-row { padding:8px 0; } .par-row-h { display:flex; justify-content:space-between; gap:10px; font-size:13.5px; margin-bottom:4px; flex-wrap:wrap; } .par-row.weak .par-row-h b { color:#f0a0a7; }
+  @media (max-width:640px){ .par-top { flex-direction:column; align-items:stretch; } .par-grid { grid-template-columns:repeat(auto-fill,minmax(30px,1fr)); } .par-figbig { width:1000px; } }
 </style>
 </head>
 <body>
@@ -1674,7 +1704,7 @@ function render(tab){
   }[tab] || function(){return '';})();
   if(tab==='home') drawMoneyCharts();
   if(tab==='ventures') setTimeout(wiRun,0);
-  if(tab==='flying'){ fetchAirports(); fetchNwsFc(); xcMount(); atMount(); faqDraw(); }
+  if(tab==='flying'){ fetchAirports(); fetchNwsFc(); xcMount(); atMount(); if(window.parMount) parMount(); }
   applyLive();
 }
 
@@ -4397,17 +4427,17 @@ function writtenCard(){
     +'<li><b>VFR fuel reserve:</b> 30 min day, 45 min night. <b>Passenger currency:</b> 3 takeoffs and landings in 90 days (full stop in a tailwheel or at night).</li>'
     +'<li><b>Winds aloft</b> are TRUE and knots; the <b>METAR/TAF</b> wind is true; <b>ATIS and tower</b> winds are magnetic.</li></ul>';
   var plan='<ol class="faq-list">'
-    +'<li><b>Every day:</b> run all the flashcards until you’re 90%+ on the “All” deck, then clear the “Missed” deck.</li>'
-    +'<li><b>Chart work:</b> with the figure open, work every figure question by hand (sectionals, chart supplement, W&B, performance). These are where points get lost.</li>'
-    +'<li><b>Finish The Finer Points</b> lessons and quizzes you haven’t done, and take at least one full timed practice test on <a href="https://faa.psiexams.com/FAA/login" target="_blank" rel="noopener">PSI</a> (the real test is 60 questions, 2½ hours, 70% to pass).</li>'
+    +'<li><b>Every day:</b> drill 30–40 unseen questions on your weakest ACS areas (the Drill tab picks them), then clear the Missed deck.</li>'
+    +'<li><b>Chart work:</b> work every figure question by hand (sectional, Chart Supplement, W&B, performance, winds). These are where points get lost.</li>'
+    +'<li><b>Finish The Finer Points</b> lessons and quizzes you haven’t done, and take at least one full timed practice test on <a href="https://faa.psiexams.com/FAA/login" target="_blank" rel="noopener">PSI</a> (the real test is 65 questions with 5 unscored, 2 hours, 70% to pass). <b>Ready to test</b> = your last 3 mocks here each 85%+ on unseen questions.</li>'
     +'<li><b>Night before:</b> light review only (minimums table, light gun, codes), then sleep.</li></ol>';
   var bring='<ul class="faq-list faq-check">'
     +'<li><b>Endorsement</b> to take the test, from The Finer Points (ground-school completion) or from Jeremy. You can’t test without it.</li>'
     +'<li>Government <b>photo ID</b> and your <b>FTN</b> (from IACRA).</li>'
     +'<li><b>E6B</b> (or an approved electronic flight computer), <b>plotter</b>, and a simple calculator. The center provides the testing supplement and scratch paper.</li>'
     +'<li>Arrive early. After the test, keep the <b>score report</b>: missed topics (ACS codes) must be reviewed with Jeremy before the checkride.</li></ul>';
-  return card('📝 FAA written test: '+day+' ('+when+')', 'Every flashcard is an FAA Private Pilot sample question (FAA PAR set), answers worked from the FAA testing supplement. Keys A/B/C answer, Enter for next.',
-    '<div id="faqHost"><div class="empty">Loading FAA questions…</div></div>'
+  return card('📝 FAA written test: '+day+' ('+when+')', 'Original FAA-style questions (never the ones you have memorized), built to the current test: 65 questions, 120 minutes, 5 unscored, 70% to pass. Keys A/B/C answer, Enter for next.',
+    '<div id="parHost"><div class="empty">Loading the question bank…</div></div>'
     +'<details class="faq-more" open><summary>Plan for the next '+Math.max(1,w.days)+' day'+(w.days>1?'s':'')+'</summary>'+plan+'</details>'
     +'<details class="faq-more"><summary>Test-day checklist</summary>'+bring+'</details>'
     +'<details class="faq-more"><summary>Must-know: VFR weather minimums (§91.155)</summary>'+mins+'</details>'
@@ -5869,5 +5899,6 @@ if('serviceWorker' in navigator){
 }
 </script>
 <script src="care.js?v=3"></script>
+<script src="par.js?v=1"></script>
 </body>
 </html>
