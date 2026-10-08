@@ -1731,9 +1731,13 @@ function pageMap(){
   var old=p.querySelector(':scope > .subnav, :scope > .pagemap'); var extra=old?[].slice.call(old.querySelectorAll('a')).filter(function(a){ return /navGo/.test(a.getAttribute('onclick')||''); }):[];
   if(p.scrollHeight < window.innerHeight*2.2){ return; }
   var divs=[].slice.call(p.querySelectorAll('.domain-sec')), targets=[];
+  // a hand-made subnav with 4+ named sections wins (its labels are better than anything inferred)
+  var named=old?[].slice.call(old.querySelectorAll('a')).map(function(a){ var m=(a.getAttribute('onclick')||'').match(/getElementById\('([^']+)'\)/); var el=m&&document.getElementById(m[1]); return el?{el:el, t:a.textContent.trim()}:null; }).filter(Boolean):[];
+  if(named.length>=4){ targets=named; divs=[]; }
   var cards=[].slice.call(p.querySelectorAll('.card')).filter(function(c){ return c.querySelector(':scope > h2') && !c.closest('.card .card'); });
   function label(t){ t=String(t||'').replace(/^[^A-Za-z0-9₿$]+/,'').replace(/[—:(].*$/,'').trim(); return t.length>26?t.slice(0,25)+'…':t; }
-  if(divs.length>=2){
+  if(targets.length){ /* named sections */ }
+  else if(divs.length>=2){
     var first=cards.filter(function(c){ return c.compareDocumentPosition(divs[0]) & Node.DOCUMENT_POSITION_FOLLOWING; })[0];
     if(first) targets.push({el:first, t:label(first.querySelector('h2').textContent)});
     divs.forEach(function(d){ targets.push({el:d, t:label(d.textContent)}); });
