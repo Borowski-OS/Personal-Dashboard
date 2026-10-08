@@ -8,7 +8,7 @@
    Real-test model: 65 questions, 120 minutes, 5 unscored (hidden), scored on 60, pass 70%.
 ============================================================ */
 var PAR = { ready:false, loading:false, tab:'drill', area:'auto', q:null, picked:null, drillQueue:[], mock:null, saveT:null, st:null };
-var PAR_FILES = ['par-figs.js?v=1','par-bank-1.js?v=1','par-bank-2.js?v=1','par-bank-3.js?v=1','par-bank-4.js?v=1','par-bank-5.js?v=1','par-bank-6.js?v=1','faa-par.js?v=1'];
+var PAR_FILES = ['par-figs.js?v=2','par-bank-1.js?v=2','par-bank-2.js?v=2','par-bank-3.js?v=2','par-bank-4.js?v=2','par-bank-5.js?v=2','par-bank-6.js?v=2','faa-par.js?v=1'];
 var PAR_TEST = { n:65, scored:60, unscored:5, minutes:120, pass:70 };
 var PAR_AREAS = {
   'I.A':'Pilot qualifications','I.B':'Airworthiness requirements','I.C':'Weather information','I.D':'Cross-country flight planning','I.E':'National Airspace System',
