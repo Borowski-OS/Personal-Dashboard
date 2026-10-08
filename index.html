@@ -1270,6 +1270,9 @@
   .cov-n { font-size:12px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--text); flex:0 0 auto; }
   .cov-s { font-size:12.5px; color:var(--text-dim); min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .cov-b { padding-bottom:10px; }
+  /* copay list in two columns on wider screens (Round 4) — same kv rows, half the height */
+  .cov-b { container-type:inline-size; }
+  @container (min-width:520px){ .cov-grid { display:grid; grid-template-columns:1fr 1fr; column-gap:28px; } .cov-grid .kv-row:nth-last-child(2):nth-child(odd) { border-bottom:none; } }
   @media print { .cov-sec { display:block; } .cov-sec > .cov-b { display:block !important; } }
   /* page-header actions (Round 2) */
   .page-acts { display:flex; gap:8px; align-items:center; margin-left:auto; align-self:center; }
@@ -1282,6 +1285,9 @@
   .empty::before { content:''; position:absolute; left:14px; top:18px; width:8px; height:8px; border-radius:50%;
     border:1.5px solid var(--text-dim); box-sizing:border-box; }
   .empty a { color:var(--sky); }
+  .empty.has-act { display:flex; align-items:center; justify-content:space-between; gap:10px 14px; flex-wrap:wrap; }
+  .empty.has-act .ebtn { flex:0 0 auto; min-height:34px; }
+  @media print { .empty.has-act .ebtn { display:none; } }
   @media print { .empty { background:none; border-color:#ccc; } }
   /* loading placeholders (Round 3): skeleton shimmer + pulsing marker, not the dashed empty panel */
   .empty.is-loading { border-style:solid; border-color:var(--card-border); background:linear-gradient(90deg, rgba(255,255,255,.025) 0%, rgba(255,255,255,.06) 40%, rgba(255,255,255,.025) 80%); background-size:300% 100%; animation:skel 1.4s ease-in-out infinite; }
@@ -1930,6 +1936,8 @@ var TEXTAREA_FIELDS={Notes:1,Specs:1,Quote:1,Log:1,Access:1,Weak_areas:1,Rationa
 function toggleEdit(){ EDIT=!EDIT; var b=$('editToggle'); if(b){ b.innerHTML=EDIT?'✓<span class="nl"> Done</span>':'<svg class="ni" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg><span class="nl"> Edit</span>'; b.style.color=EDIT?'var(--gold)':''; } render(CURRENT); }
 function editBtn(tab,rownum){ return EDIT?'<button class="ebtn" onclick="event.stopPropagation();openEditor(\''+tab+'\','+rownum+')">✎</button>':''; }
 function addBtn(tab,label){ return EDIT?'<div class="editbar"><button class="ebtn pri" onclick="openEditor(\''+tab+'\')">＋ Add '+esc(label||'')+'</button></div>':''; }
+// empty state with a one-tap primary action (Round 4): button opens the add form directly (Brad only; not edit-mode gated)
+function emptyAct(msg,tab,label){ var btn=(ROLE!=='chelsea'&&ESCHEMA[tab])?'<button class="ebtn pri" onclick="openEditor(\''+tab+'\')">＋ Add '+esc(label||'')+'</button>':''; return '<div class="empty'+(btn?' has-act':'')+'"><span>'+msg+'</span>'+btn+'</div>'; }
 function kvEditBtn(tab){ return EDIT?'<button class="ebtn" onclick="openKvEditor(\''+tab+'\')">✎ Edit</button>':''; }
 
 function apiWrite(params){
@@ -2836,7 +2844,7 @@ function isFlyingProject(p){ return /^(flying|aviation)$/i.test(String(p.Area||'
 function renderProjects(){
   var flyNames={}; arr('Projects').filter(isFlyingProject).forEach(function(p){ flyNames[p.Name]=1; });
   var ps = arr('Projects').filter(function(p){ return !isFlyingProject(p); }), tasks=arr('ProjectTasks').filter(function(t){ return !flyNames[t.Project]; });   // flight training lives on Flying
-  if(!ps.length) return card('Projects','House & family projects', '<div class="empty">No projects yet. Add them in the Projects tab — name, area, status, budget, target date.</div>','--orange');
+  if(!ps.length) return card('Projects','House & family projects', emptyAct('No projects yet. Each one tracks an area, status, budget and target date.','Projects','project'),'--orange');
   var order={active:0,planning:1,blocked:2,idea:3,done:9};
   ps=ps.slice().sort(function(a,b){return (order[String(a.Status||'').toLowerCase()]||5)-(order[String(b.Status||'').toLowerCase()]||5);});
 
@@ -2857,7 +2865,7 @@ function renderProjects(){
     .sort(function(a,b){ if(a.d==null&&b.d==null) return 0; if(a.d==null) return 1; if(b.d==null) return -1; return a.d-b.d; });
   var plannerHtml = planned.length
     ? planned.slice(0,12).map(function(x){return '<div class="kv-row"><span class="k">○ '+esc(x.t.Task)+' <span style="color:var(--text-dim)">· '+esc(x.t.Project||'')+'</span></span><span class="v '+dueClass(x.d)+'">'+(x.d!=null?fmtDue(x.d):esc(x.t.Due||''))+'</span></div>';}).join('')
-    : '<div class="empty">No open tasks. Add tasks in the ProjectTasks tab.</div>';
+    : emptyAct('No open tasks.','ProjectTasks','task');
 
   var cards = ps.map(function(p){
     var st=String(p.Status||'').toLowerCase();
@@ -4024,7 +4032,7 @@ function btcLadderCard(){
    (MonthlyActual = avg monthly spend; SpendHist = pipe-separated recent monthly totals). */
 function budgetPlanHtml(){
   var cats=arr('BudgetCategories').filter(function(c){return has(c.Category)&&has(c.MonthlyBudget);});
-  if(!cats.length) return '<div class="empty">Add categories with a monthly budget in the BudgetCategories tab.</div>';
+  if(!cats.length) return emptyAct('No budget categories yet. Give each a monthly budget to track spending against it.','BudgetCategories','category');
   var anyActual=cats.some(function(c){return has(c.MonthlyActual);});
   var typeOrder=['Needs','Wants','Savings','Tithe','Other'];
   var groups={}; cats.forEach(function(c){ var t=String(c.Type||'Other'); if(typeOrder.indexOf(t)<0) t='Other'; (groups[t]=groups[t]||[]).push(c); });
@@ -4223,7 +4231,7 @@ function renderMoney(){
   var goalsHtml = goals.filter(function(g){return has(g.Goal);}).map(function(g){
     var t=num(g.Target)||0,c=num(g.Current)||0,pct=t>0?Math.min(100,Math.round(c/t*100)):0;
     return '<div style="margin-bottom:14px"><div style="display:flex;justify-content:space-between;font-size:13.5px"><span>'+esc(g.Goal)+'</span><span class="mono">'+money(c)+' / '+money(t)+(has(g.TargetDate)?' · '+esc(g.TargetDate):'')+'</span></div><div class="bar"><span style="width:'+pct+'%"></span></div></div>';
-  }).join('') || '<div class="empty">Add savings goals in the SavingsGoals tab.</div>';
+  }).join('') || emptyAct('No savings goals yet.','SavingsGoals','goal');
 
   var nwHist=arr('NetWorthHistory').filter(function(h){return has(h.Date)&&!isNaN(num(h.NetWorth));});
   var nwCard = nwHist.length
@@ -5246,7 +5254,7 @@ function renderHobbies(){
       +(EDIT?'<div style="margin-top:10px">'+editBtn('Hobbies',h.__row)+'</div>':'')
       +'</div>';
   }).join('')+'</div>'
-  : addBtn('Hobbies','hobby')+card('Hobbies','', '<div class="empty">Add your hobbies (hunting, fishing, camping, aviation, etc.) — who does it, cadence, gear, a goal.</div>','--violet');
+  : card('Hobbies','', emptyAct('No hobbies yet — hunting, fishing, camping, aviation… who does it, cadence, gear, a goal.','Hobbies','hobby'),'--violet');
 
   var ms=arr('Milestones').filter(function(m){return has(m.Milestone);});
   var msHtml='';
@@ -5321,7 +5329,7 @@ function renderVehicles(mode){   // mode 'air' = aircraft only (Flying tab); def
   var all=arr('Vehicles');
   window.__vehicles = all;
   var vs=all.map(function(v,i){ return {v:v,i:i}; }).filter(function(o){ return mode==='air'?isAircraft(o.v):!isAircraft(o.v); });
-  if(!vs.length) return mode==='air'?'':card('Vehicles','', '<div class="empty">Add your vehicles in the Vehicles tab — mileage, registration & insurance renewals, loan.</div>','--rose');
+  if(!vs.length) return mode==='air'?'':card('Vehicles','', emptyAct('No vehicles yet. Each one tracks mileage, registration & insurance renewals and the loan.','Vehicles','vehicle'),'--rose');
   var cards=vs.map(function(o){ var v=o.v, idx=o.i;
     if(isPotential(v)) return potentialVehicleCard(v, idx);   // something Brad is considering buying — plan, not mileage
     var air=isAircraft(v);
@@ -5805,10 +5813,10 @@ function coverageCard(){
           +'<p class="foot" style="margin:8px 0 4px;color:var(--text-dim)">You pay the plan\'s price for most care until the deductible is met, then a share until the out-of-pocket max — after that, in-network care is covered 100% for the rest of the year. HMO: stay in the Renown network and get referrals from your primary care doctor.</p>'
         : todo('Deductible / out-of-pocket max','add from your plan summary (SBC)'))
     + (['copay_pcp','copay_specialist','copay_urgent','copay_er','copay_rx','copay_lab'].some(function(k){return has(h[k]);})
-        ? '<div class="section-title" style="margin:14px 0 6px">What a visit costs you</div>'
+        ? '<div class="section-title" style="margin:14px 0 6px">What a visit costs you</div><div class="cov-grid">'
           + line('Annual physical & vaccines',h.copay_preventive||'$0 (ACA preventive care)')+line('Primary care visit',h.copay_pcp)+line('Specialist',h.copay_specialist)+line('Urgent care',h.copay_urgent)
           + line('Emergency room',h.copay_er)+line('Lab / X-ray / imaging',h.copay_lab)+line('Therapy / mental health',h.copay_mental)+line('Chiropractor',h.copay_chiro)
-          + line('Surgery / hospital stay',h.copay_surgery)+line('Prescriptions',h.copay_rx)+line('Telehealth',h.copay_telehealth)+line('Physical therapy / rehab',h.copay_pt)
+          + line('Surgery / hospital stay',h.copay_surgery)+line('Prescriptions',h.copay_rx)+line('Telehealth',h.copay_telehealth)+line('Physical therapy / rehab',h.copay_pt)+'</div>'
         : todo('Copays (PCP, specialist, urgent care, ER)','not on your card — MyChart → Benefits'));
   var dental='<div class="section-title" style="margin:14px 0 6px">Dental'+(has(h.ins_dental)?' · '+esc(h.ins_dental):'')+'</div>'
     + (has(h.dentist)?line('Dentist',h.dentist):'<div class="kv-row"><span class="k">Dentist</span><span class="v" style="color:var(--amber);font-weight:600">none yet — pick an in-network one</span></div>') + line('Member ID',h.dental_member_id,true) + line('Deductible',h.dental_deductible) + line('Annual max',h.dental_annual_max) + line('Cleanings',h.dental_cleanings||'usually 2/yr covered 100%') + line('Basic care',h.dental_basic) + line('Major care',h.dental_major) + line('Orthodontics',h.dental_ortho) + line('Find a dentist',h.dental_find);
@@ -6060,7 +6068,7 @@ function renderTravel(){
   var pointsCols=[{label:'Program',key:'Program'},{label:'Type',render:function(r){return has(r.Type)?'<span class="chip">'+esc(r.Type)+'</span>':'';}},{label:'Number',render:function(r){ if(!has(r.Number)) return ''; var v=esc(r.Number); return /known traveler|precheck|global entry|passport/i.test(String(r.Type)+' '+String(r.Program))?'<span class="secret" title="Tap to show" onclick="event.stopPropagation();this.classList.toggle(\'show\')">'+v+'</span>':v; }},{label:'Balance',num:true,key:'Balance'}];
   var out=addBtn('Travel','trip')+(EDIT?'<div class="editbar" style="margin-top:-4px"><button class="ebtn pri" onclick="openEditor(\'TravelChecklist\')">＋ Add checklist item</button></div>':'');
   out += upcoming.length?'<div class="section-title">Upcoming</div><div class="grid cols-2">'+upcoming.map(tripCard).join('')+'</div>'
-    : card('Travel','', '<div class="empty">Add trips with ✎ Edit. I can also pull upcoming travel from your Google Calendar.</div>','--cyan');
+    : card('Travel','', emptyAct('No upcoming trips.','Travel','trip'),'--cyan');
   // Points → estimated cash value ("travel wallet")
   var CPP=[[/capital one/i,1.4],[/chase|ultimate rewards/i,1.5],[/amex|membership rewards/i,1.5],[/southwest|rapid rewards/i,1.35],
     [/united/i,1.3],[/alaska|atmos|hawaiian/i,1.3],[/delta|skymiles/i,1.1],[/flying blue/i,1.2],[/marriott|bonvoy/i,0.7],[/hilton/i,0.5]];
