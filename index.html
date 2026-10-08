@@ -1196,6 +1196,21 @@
   .par-ready-box { padding:12px 14px; border-radius:12px; border:1px solid var(--card-border); margin-bottom:16px; font-size:14px; } .par-ready-box.ok { border-color:rgba(107,196,138,.4); background:rgba(107,196,138,.08); } .par-ready-box.no { border-color:rgba(220,179,94,.35); background:rgba(220,179,94,.07); }
   .par-row { padding:8px 0; } .par-row-h { display:flex; justify-content:space-between; gap:10px; font-size:13.5px; margin-bottom:4px; flex-wrap:wrap; } .par-row.weak .par-row-h b { color:#f0a0a7; }
   @media (max-width:640px){ .par-top { flex-direction:column; align-items:stretch; } .par-grid { grid-template-columns:repeat(auto-fill,minmax(30px,1fr)); } .par-figbig { width:1000px; } }
+  /* ================= Page map (sticky "on this page" bar) + card title cleanup ================= */
+  .pagemap { position:sticky; top:0; z-index:1500; display:flex; align-items:center; gap:6px; overflow-x:auto; scrollbar-width:none; margin:-6px -4px 16px; padding:10px 4px;
+    background:linear-gradient(var(--bg) 82%, rgba(19,21,26,0)); -webkit-mask-image:linear-gradient(90deg,#000 92%,transparent); mask-image:linear-gradient(90deg,#000 92%,transparent); }
+  .pagemap::-webkit-scrollbar { display:none; }
+  .pm-l { flex:0 0 auto; font-size:10.5px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--text-dim); margin-right:4px; }
+  .pm-i { flex:0 0 auto; font-size:12.5px; font-weight:600; color:var(--text-muted); text-decoration:none; padding:6px 12px; border-radius:999px; border:1px solid var(--card-border-2); background:rgba(255,255,255,.03); transition:color .15s, background .15s, border-color .15s; white-space:nowrap; }
+  .pm-i:hover { color:var(--text); background:rgba(255,255,255,.06); }
+  .pm-i.on { color:#eef2ff; background:rgba(var(--accent-rgb),.16); border-color:rgba(var(--accent-rgb),.45); }
+  .pm-x { color:#95b6ff; }
+  @media (max-width:899px){ .pagemap { top:calc(var(--nav-h) + env(safe-area-inset-top)); margin:-4px -10px 12px; padding:8px 10px; } .pm-l { display:none; } }
+  /* card titles: no decorative emoji — a quiet accent tick instead keeps every header the same rhythm */
+  .card > h2 .emo { display:none; }
+  .card > h2 { display:flex; align-items:center; gap:9px; }
+  .card > h2::before { content:''; flex:0 0 3px; width:3px; height:14px; border-radius:2px; background:var(--accent-grad); opacity:.85; }
+  .fc-card > .fc-head h2::before { content:''; display:inline-block; width:3px; height:14px; border-radius:2px; background:var(--accent-grad); margin-right:9px; vertical-align:-1px; }
 </style>
 </head>
 <body>
@@ -1704,8 +1719,44 @@ function render(tab){
   }[tab] || function(){return '';})();
   if(tab==='home') drawMoneyCharts();
   if(tab==='ventures') setTimeout(wiRun,0);
-  if(tab==='flying'){ fetchAirports(); fetchNwsFc(); xcMount(); atMount(); if(window.parMount) parMount(); }
+  if(tab==='flying'){ [fetchAirports, fetchNwsFc, xcMount, atMount, window.parMount].forEach(function(f){ try{ if(f) f(); }catch(e){ console.error('flying widget', e); } }); }
   applyLive();
+  try{ pageMap(); }catch(e){ console.error('pageMap', e); }
+}
+/* "On this page": long tabs get a sticky jump bar built from their section dividers (or card titles),
+   with the section in view highlighted. Replaces any hand-made subnav so there is only ever one bar. */
+var PAGEMAP={io:null};
+function pageMap(){
+  var p=$('panels'); if(!p) return; if(PAGEMAP.io){ PAGEMAP.io.disconnect(); PAGEMAP.io=null; }
+  var old=p.querySelector(':scope > .subnav, :scope > .pagemap'); var extra=old?[].slice.call(old.querySelectorAll('a')).filter(function(a){ return /navGo/.test(a.getAttribute('onclick')||''); }):[];
+  if(p.scrollHeight < window.innerHeight*2.2){ return; }
+  var divs=[].slice.call(p.querySelectorAll('.domain-sec')), targets=[];
+  var cards=[].slice.call(p.querySelectorAll('.card')).filter(function(c){ return c.querySelector(':scope > h2') && !c.closest('.card .card'); });
+  function label(t){ t=String(t||'').replace(/^[^A-Za-z0-9₿$]+/,'').replace(/[—:(].*$/,'').trim(); return t.length>26?t.slice(0,25)+'…':t; }
+  if(divs.length>=2){
+    var first=cards.filter(function(c){ return c.compareDocumentPosition(divs[0]) & Node.DOCUMENT_POSITION_FOLLOWING; })[0];
+    if(first) targets.push({el:first, t:label(first.querySelector('h2').textContent)});
+    divs.forEach(function(d){ targets.push({el:d, t:label(d.textContent)}); });
+  } else {
+    cards.forEach(function(c){ var t=label(c.querySelector('h2').textContent); if(t) targets.push({el:c, t:t}); });
+  }
+  if(targets.length<3) return;
+  targets.forEach(function(x,i){ if(!x.el.id) x.el.id='pm-'+i; x.el.style.scrollMarginTop='72px'; });
+  var bar=document.createElement('nav'); bar.className='pagemap'; bar.setAttribute('aria-label','On this page');
+  bar.innerHTML='<span class="pm-l">On this page</span>'+targets.map(function(x){ return '<a class="pm-i" data-t="'+x.el.id+'" href="#'+x.el.id+'">'+esc(x.t)+'</a>'; }).join('')
+    +extra.map(function(a){ return '<a class="pm-i pm-x" href="javascript:void(0)" onclick="'+esc(a.getAttribute('onclick'))+'">'+esc(a.textContent)+'</a>'; }).join('');
+  bar.addEventListener('click', function(e){ var a=e.target.closest('a[data-t]'); if(!a) return; e.preventDefault(); var t=document.getElementById(a.getAttribute('data-t')); if(t) t.scrollIntoView({behavior:'smooth', block:'start'}); });
+  if(old) old.replaceWith(bar); else p.insertBefore(bar, p.firstChild);
+  if('IntersectionObserver' in window){
+    var links={}; [].slice.call(bar.querySelectorAll('a[data-t]')).forEach(function(a){ links[a.getAttribute('data-t')]=a; });
+    var vis={};
+    PAGEMAP.io=new IntersectionObserver(function(ents){ ents.forEach(function(en){ vis[en.target.id]=en.isIntersecting?en.boundingClientRect.top:null; });
+      var best=null, bt=1e9; Object.keys(vis).forEach(function(id){ if(vis[id]!=null && vis[id]<bt){ bt=vis[id]; best=id; } });
+      if(!best) return; Object.keys(links).forEach(function(id){ links[id].classList.toggle('on', id===best); });
+      var on=links[best]; if(on && on.scrollIntoView && bar.scrollWidth>bar.clientWidth){ var r=on.getBoundingClientRect(), br=bar.getBoundingClientRect(); if(r.left<br.left||r.right>br.right) bar.scrollTo({left:on.offsetLeft-40, behavior:'smooth'}); }
+    }, {rootMargin:'-80px 0px -55% 0px'});
+    targets.forEach(function(x){ PAGEMAP.io.observe(x.el); });
+  }
 }
 
 /* ============================================================
@@ -3571,10 +3622,11 @@ function atSelect(tail){
   AT.sel=AT.sel===tail?null:tail;
   var p=atPlanes().filter(function(x){ return x.tail===tail; })[0], st=p?atStatus(p):null;
   if(AT.sel&&st&&st.s&&AT.map){ AT.follow=false; AT.el.querySelector('#atFollow').classList.remove('on'); AT.prog=true;
-    AT.map.flyTo([st.s.lat,st.s.lon], st.k==='air'?9:12, {duration:0.8});
+    if(atMapUsable()) AT.map.flyTo([st.s.lat,st.s.lon], st.k==='air'?9:12, {duration:0.8});
     if(window.innerWidth<900){ var mw=AT.el.querySelector('.at-mapwrap'); if(mw) mw.scrollIntoView({behavior:'smooth', block:'center'}); } }
   atPaint();
 }
+function atMapUsable(){ try{ var c=AT.map&&AT.map.getContainer(); if(!c||!document.body.contains(c)) return false; var r=c.getBoundingClientRect(); return r.width>20&&r.height>20; }catch(e){ return false; } }
 function atDraw(planes){
   var map=AT.map; if(!map) return;
   var now=Date.now()/1000, airPts=[], airKey=[];
@@ -3604,7 +3656,7 @@ function atDraw(planes){
   var key=airKey.join(','), b=airPts.length?L.latLngBounds(airPts):L.latLngBounds(AT_HOME);
   if(key!==AT.fitKey||!map.getBounds().pad(-0.08).contains(b)){
     AT.prog=true; AT.fitKey=key;
-    map.flyToBounds(b,{padding:[50,50], maxZoom:10, duration:1});
+    if(atMapUsable()) map.flyToBounds(b,{padding:[50,50], maxZoom:10, duration:1});
   }
 }
 
