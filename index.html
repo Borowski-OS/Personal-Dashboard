@@ -1211,6 +1211,18 @@
   .card > h2 { display:flex; align-items:center; gap:9px; }
   .card > h2::before { content:''; flex:0 0 3px; width:3px; height:14px; border-radius:2px; background:var(--accent-grad); opacity:.85; }
   .fc-card > .fc-head h2::before { content:''; display:inline-block; width:3px; height:14px; border-radius:2px; background:var(--accent-grad); margin-right:9px; vertical-align:-1px; }
+  /* ================= Collapsible cards ================= */
+  .card.foldable > h2 { cursor:pointer; user-select:none; border-radius:6px; }
+  .card.foldable > h2:focus-visible { outline:2px solid rgba(var(--accent-rgb),.6); outline-offset:4px; }
+  .fold-btn { all:unset; margin-left:auto; width:26px; height:26px; flex:0 0 26px; display:inline-flex; align-items:center; justify-content:center; border-radius:7px; color:var(--text-dim); transition:transform .18s, background .15s, color .15s; }
+  .fold-btn svg { width:16px; height:16px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+  .card.foldable > h2:hover .fold-btn { background:rgba(255,255,255,.06); color:var(--text); }
+  .card.folded .fold-btn { transform:rotate(-90deg); }
+  .card.folded > :not(h2) { display:none !important; }
+  .card.folded { padding-top:14px !important; padding-bottom:14px !important; }
+  .card.folded > h2 { margin-bottom:0; }
+  .pm-fold { cursor:pointer; font-family:inherit; margin-left:6px; border-style:dashed; }
+  @media print { .fold-btn { display:none; } .card.folded > :not(h2) { display:block !important; } }
 </style>
 </head>
 <body>
@@ -1721,8 +1733,31 @@ function render(tab){
   if(tab==='ventures') setTimeout(wiRun,0);
   if(tab==='flying'){ [fetchAirports, fetchNwsFc, xcMount, atMount, window.parMount].forEach(function(f){ try{ if(f) f(); }catch(e){ console.error('flying widget', e); } }); }
   applyLive();
+  try{ cardFolds(tab); }catch(e){ console.error('cardFolds', e); }
   try{ pageMap(); }catch(e){ console.error('pageMap', e); }
 }
+/* Collapsible cards: tap a card title to fold it to a one-line header. Remembered per device and tab
+   (localStorage lifeos_folds, keyed by tab + title). Cards with interactive tools (Find care, test prep) stay open. */
+var FOLD_LS='lifeos_folds';
+function foldState(){ try{ return JSON.parse(localStorage.getItem(FOLD_LS)||'{}'); }catch(e){ return {}; } }
+function foldSave(st){ try{ localStorage.setItem(FOLD_LS, JSON.stringify(st)); }catch(e){} }
+function foldKey(tab, h){ return tab+'|'+String(h.textContent||'').replace(/\s+/g,' ').trim().slice(0,60); }
+function cardFolds(tab){
+  var st=foldState();
+  [].slice.call($('panels').querySelectorAll('.card')).forEach(function(c){
+    var h=c.querySelector(':scope > h2'); if(!h || c.closest('.card .card') || c.querySelector('#parHost, #fcBody, .fc-head')) return;
+    var key=foldKey(tab,h); c.setAttribute('data-fold', key); c.classList.add('foldable');
+    if(!h.querySelector('.fold-btn')){ var b=document.createElement('button'); b.className='fold-btn'; b.type='button'; b.setAttribute('aria-label','Collapse or expand'); b.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>'; h.appendChild(b); }
+    h.setAttribute('role','button'); h.setAttribute('tabindex','0'); h.setAttribute('aria-expanded', st[key]?'false':'true');
+    c.classList.toggle('folded', !!st[key]);
+  });
+}
+function foldToggle(card, force){ var st=foldState(), key=card.getAttribute('data-fold'); var on=force!=null?force:!card.classList.contains('folded');
+  card.classList.toggle('folded', on); if(on) st[key]=1; else delete st[key]; foldSave(st);
+  var h=card.querySelector(':scope > h2'); if(h) h.setAttribute('aria-expanded', on?'false':'true'); }
+function foldAll(on){ [].slice.call($('panels').querySelectorAll('.card.foldable')).forEach(function(c){ foldToggle(c, on); }); var b=document.querySelector('.pm-fold'); if(b) b.textContent=on?'Expand all':'Collapse all'; }
+document.addEventListener('click', function(e){ var h=e.target.closest('.card.foldable > h2'); if(!h) return; if(e.target.closest('a, input, select, textarea, .ebtn:not(.fold-btn)')) return; foldToggle(h.parentElement); });
+document.addEventListener('keydown', function(e){ if((e.key==='Enter'||e.key===' ') && e.target.matches && e.target.matches('.card.foldable > h2')){ e.preventDefault(); foldToggle(e.target.parentElement); } });
 /* "On this page": long tabs get a sticky jump bar built from their section dividers (or card titles),
    with the section in view highlighted. Replaces any hand-made subnav so there is only ever one bar. */
 var PAGEMAP={io:null};
@@ -1748,7 +1783,8 @@ function pageMap(){
   targets.forEach(function(x,i){ if(!x.el.id) x.el.id='pm-'+i; x.el.style.scrollMarginTop='72px'; });
   var bar=document.createElement('nav'); bar.className='pagemap'; bar.setAttribute('aria-label','On this page');
   bar.innerHTML='<span class="pm-l">On this page</span>'+targets.map(function(x){ return '<a class="pm-i" data-t="'+x.el.id+'" href="#'+x.el.id+'">'+esc(x.t)+'</a>'; }).join('')
-    +extra.map(function(a){ return '<a class="pm-i pm-x" href="javascript:void(0)" onclick="'+esc(a.getAttribute('onclick'))+'">'+esc(a.textContent)+'</a>'; }).join('');
+    +extra.map(function(a){ return '<a class="pm-i pm-x" href="javascript:void(0)" onclick="'+esc(a.getAttribute('onclick'))+'">'+esc(a.textContent)+'</a>'; }).join('')
+    +(p.querySelector('.card.foldable')?'<button type="button" class="pm-i pm-fold" onclick="foldAll(this.textContent===\'Collapse all\')">'+(p.querySelectorAll('.card.foldable.folded').length>p.querySelectorAll('.card.foldable').length/2?'Expand all':'Collapse all')+'</button>':'');
   bar.addEventListener('click', function(e){ var a=e.target.closest('a[data-t]'); if(!a) return; e.preventDefault(); var t=document.getElementById(a.getAttribute('data-t')); if(t) t.scrollIntoView({behavior:'smooth', block:'start'}); });
   if(old) old.replaceWith(bar); else p.insertBefore(bar, p.firstChild);
   if('IntersectionObserver' in window){
