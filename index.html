@@ -1283,6 +1283,11 @@
     border:1.5px solid var(--text-dim); box-sizing:border-box; }
   .empty a { color:var(--sky); }
   @media print { .empty { background:none; border-color:#ccc; } }
+  /* loading placeholders (Round 3): skeleton shimmer + pulsing marker, not the dashed empty panel */
+  .empty.is-loading { border-style:solid; border-color:var(--card-border); background:linear-gradient(90deg, rgba(255,255,255,.025) 0%, rgba(255,255,255,.06) 40%, rgba(255,255,255,.025) 80%); background-size:300% 100%; animation:skel 1.4s ease-in-out infinite; }
+  .empty.is-loading::before { border:none; background:var(--sky); animation:ldpulse 1.1s ease-in-out infinite alternate; }
+  @keyframes ldpulse { from{ opacity:.25; } to{ opacity:1; } }
+  @media (prefers-reduced-motion:reduce){ .empty.is-loading, .empty.is-loading::before { animation:none; } }
   /* rail keyboard focus (Round 2): ring drawn inside the button so the rail's edges never clip it */
   #topNav .nav-tab:focus-visible { outline:2px solid rgba(var(--accent-rgb),.75); outline-offset:-3px; }
 </style>
@@ -1448,7 +1453,7 @@ function fetchNwsFc(){ if(LIVE.fcFetched) return; var pw=sessionStorage.getItem(
 function fcWindMax(s){ var m=String(s||'').match(/(\d+)(?!.*\d)/); return m?parseInt(m[1],10):0; }  // max mph in "10 to 15 mph"
 function flyingOutlookCard(){
   var fc=LIVE.kmevFc;
-  if(!fc){ fetchNwsFc(); return card('7-day flying outlook — KMEV','Loading NWS forecast…','<div class="empty">Fetching the Minden outlook…</div>','--sky'); }
+  if(!fc){ fetchNwsFc(); return card('7-day flying outlook — KMEV','Loading NWS forecast…','<div class="empty is-loading" aria-busy="true">Fetching the Minden outlook…</div>','--sky'); }
   var days=fc.filter(function(p){return p.day;}).slice(0,7);
   var rows=days.map(function(p){
     var wind=fcWindMax(p.wind), wet=p.precip>=40, storm=/rain|snow|thunder|storm/i.test(p.sky);
@@ -1580,7 +1585,7 @@ function dayLbl(sec){ var d=new Date(sec*1000), t=new Date(); var same=d.toLocal
 function dayHours(from,to){ var n=0; for(var t=Math.ceil(from/3600)*3600; t<to; t+=3600){ var h=+new Date(t*1000).toLocaleString('en-US',{hour:'numeric',hour12:false,timeZone:'America/Los_Angeles'}); if(h>=7&&h<19) n++; } return n; }
 function tafCard(){
   var t=(LIVE.tafs||{}).KMEV;
-  if(!LIVE.tafs){ fetchTaf(); return card('KMEV forecast (TAF)','Official terminal forecast for Minden.','<div class="empty">Loading the Minden TAF…</div>','--sky'); }
+  if(!LIVE.tafs){ fetchTaf(); return card('KMEV forecast (TAF)','Official terminal forecast for Minden.','<div class="empty is-loading" aria-busy="true">Loading the Minden TAF…</div>','--sky'); }
   if(!t) return card('KMEV forecast (TAF)','Official terminal forecast for Minden.','<div class="empty">No TAF issued for KMEV right now. Check KRNO or call the AWOS (119.325).</div>','--sky');
   var catCol={VFR:'var(--green)',MVFR:'var(--sky)',IFR:'var(--red)',LIFR:'var(--pink)'};
   var rows=tafPeriods(t).map(function(p){
@@ -1790,8 +1795,13 @@ function clearCharts(){ charts.forEach(function(c){ try{c.destroy();}catch(e){} 
 function pageActs(tab){
   if(tab==='home' && ROLE!=='chelsea'){ var u=kv('Config').budget_sheet_url;
     if(has(u)) return '<a class="ebtn" href="'+esc(u)+'" target="_blank" rel="noopener" aria-label="Open the budget sheet in Google Sheets">Budget sheet <span aria-hidden="true">↗</span></a>'; }
+  if(tab==='health' && ROLE!=='chelsea' && typeof findCareCard==='function')
+    return '<button class="ebtn" onclick="jumpCare()" aria-label="Jump to Find care">Find care <span aria-hidden="true">↓</span></button>';
   return '';
 }
+/* scroll to the Find care card (far down Health) and put the cursor in its search box */
+function jumpCare(){ var c=$('sec-care'); if(!c) return; c.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion:reduce)').matches?'auto':'smooth', block:'start'});
+  var q=$('fcQ'); if(q) setTimeout(function(){ try{ q.focus({preventScroll:true}); }catch(e){} }, 450); }
 function render(tab){
   clearCharts();
   var pa=$('pageActs'); if(pa){ try{ pa.innerHTML=DATA?pageActs(tab):''; }catch(e){ pa.innerHTML=''; } }
@@ -2618,7 +2628,12 @@ function printReview(){
     +reflect;
   window.print();
 }
-function money2(v){ var n=num(v); if(isNaN(n)) return '—'; if(Math.abs(n)>=1000) return '$'+Math.round(n/1000)+'k'; return money(v); }
+/* tile shorthand: $8.4k under $10k (so $9,600 never reads as "$10k"), whole $k to $1M, then $1.23M */
+function money2(v){ var n=num(v); if(isNaN(n)) return '—'; var a=Math.abs(n), sg=n<0?'−':'';
+  if(a>=1e6) return sg+'$'+(a/1e6).toFixed(2).replace(/\.?0+$/,'')+'M';
+  if(a>=1e4) return sg+'$'+Math.round(a/1000)+'k';
+  if(a>=1000) return sg+'$'+(Math.floor(a/100)/10).toFixed(1).replace(/\.0$/,'')+'k';
+  return money(v); }
 function printBinder(){
   var f=kv('Family');
   function sec(title, pairs){ var rows=pairs.filter(function(p){return has(p[1]);})
