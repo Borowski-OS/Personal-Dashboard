@@ -1175,6 +1175,24 @@
   .par-sync:empty { display:none; } .par-sync { color:var(--text-dim); }
   .par-tabs { display:flex; gap:4px; } .par-tab { font:inherit; font-size:12.5px; font-weight:600; padding:6px 12px; border-radius:9px; border:1px solid var(--card-border-2); background:rgba(255,255,255,.03); color:var(--text-muted); cursor:pointer; }
   .par-tab.on { background:var(--accent-grad); color:#0e1117; border-color:transparent; }
+  .op-head { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:10px; margin:4px 0 16px; }
+  .op-tile { padding:12px 14px; border-radius:12px; border:1px solid var(--card-border); background:rgba(255,255,255,.02); }
+  .op-tile.ok { border-color:rgba(107,196,138,.4); background:rgba(107,196,138,.07); } .op-tile.warn { border-color:rgba(220,179,94,.5); }
+  .op-k { font-size:11.5px; letter-spacing:.06em; text-transform:uppercase; color:var(--text-dim); } .op-v { font-size:18px; font-weight:700; margin-top:3px; } .op-s { font-size:12.5px; color:var(--text-muted); margin-top:2px; }
+  .op-sec { margin-top:18px; } .op-h { font-weight:700; font-size:14.5px; margin-bottom:8px; display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap; } .op-h span { font-weight:500; font-size:12.5px; color:var(--text-dim); }
+  .op-code { display:grid; grid-template-columns:120px 1fr; gap:10px; padding:7px 0; border-top:1px solid var(--card-border); font-size:13.5px; } .op-code b { color:#e8c87a; font-family:ui-monospace,Menlo,monospace; font-size:12.5px; }
+  .op-q { padding:12px 0; border-top:1px solid var(--card-border); } .op-qt { font-weight:600; font-size:14.5px; line-height:1.4; }
+  .op-n { display:inline-flex; width:20px; height:20px; border-radius:50%; background:var(--card-2,#2a2f37); font-size:11.5px; align-items:center; justify-content:center; margin-right:8px; color:var(--text-muted); }
+  .op-res { margin-left:8px; font-size:11.5px; font-weight:700; padding:2px 8px; border-radius:999px; white-space:nowrap; } .op-res.r { background:rgba(107,196,138,.15); color:var(--green); } .op-res.w { background:rgba(229,112,122,.15); color:#f0a0a7; }
+  .op-acs { margin-left:6px; font-size:11px; color:#e8c87a; font-family:ui-monospace,Menlo,monospace; white-space:nowrap; }
+  .op-opts { display:grid; gap:5px; margin:8px 0 0 28px; } .op-opt { font-size:13.5px; padding:6px 10px; border-radius:8px; border:1px solid var(--card-border); color:var(--text-muted); } .op-opt b { margin-right:8px; color:var(--text-dim); }
+  .op-opt.c { border-color:rgba(107,196,138,.55); background:rgba(107,196,138,.10); color:var(--text); } .op-opt em { font-style:normal; font-size:11.5px; color:var(--green); font-weight:700; margin-left:4px; }
+  .op-why, .op-note { margin:7px 0 0 28px; font-size:13px; color:var(--text-muted); line-height:1.5; } .op-note { color:#e8c87a; }
+  .op-facts { margin:6px 0 0 28px; padding-left:16px; font-size:13.5px; line-height:1.55; color:var(--text-muted); } .op-sec > .op-facts { margin-left:0; }
+  .op-gap { display:flex; gap:10px; align-items:flex-start; padding:9px 0; border-top:1px solid var(--card-border); cursor:pointer; font-size:14px; } .op-gap input { margin-top:3px; width:18px; height:18px; accent-color:var(--green); flex:none; }
+  .op-gap b { font-family:ui-monospace,Menlo,monospace; font-size:12.5px; color:#e8c87a; margin-right:6px; } .op-gap small { display:block; color:var(--text-dim); font-size:12.5px; margin-top:2px; } .op-gap.on > span { opacity:.6; }
+  details.op-arch { margin-top:20px; border-top:1px solid var(--card-border); padding-top:12px; } details.op-arch summary { cursor:pointer; font-size:13px; color:var(--text-dim); }
+  @media (max-width:640px){ .op-code { grid-template-columns:1fr; gap:2px; } .op-opts, .op-why, .op-note, .op-facts { margin-left:0; } }
   .faq-chip.crash { border-color:rgba(220,179,94,.6); color:#e8c87a; font-weight:600; } .faq-chip.crash.on { background:#dcb35e; border-color:#dcb35e; color:#14161b; }
   .par-crash-sub { margin-top:-4px; } .par-crash-sub .faq-chip { font-size:12px; }
   details.par-sheet { margin:0 0 14px; padding:12px 14px; border-radius:12px; background:rgba(220,179,94,.06); border:1px solid rgba(220,179,94,.28); }
@@ -2102,6 +2120,7 @@ function upcomingAlerts(){
   arr('ProjectTasks').forEach(function(t){ if(truthy(t.Done)||!has(t.Due)) return; var d=daysUntilDate(t.Due);
     if(d!=null&&d<=21) out.push({d:d, label:esc(t.Task), sub:esc(t.Project||'')+' task', tab:(arr('Projects').some(function(p){return p.Name===t.Project&&isFlyingProject(p);})?'flying':'projects')}); });
   try{ var wi=writtenInfo(); if(wi&&wi.days>=0) out.push({d:wi.days, label:'FAA written test', sub:'study cards on Flying', tab:'flying'}); }catch(e){}
+  try{ var kx=knowledgeExpiry(); if(kx&&kx.days<=120) out.push({d:kx.days, label:'Knowledge test report expires', sub:'finish the PPL checkride first', tab:'flying'}); }catch(e){}
   try{ out=out.concat(maintAlerts()); }catch(e){}
   try{ out=out.concat(taxAlerts()); }catch(e){}
   out.sort(function(a,b){return a.d-b.d;});
@@ -3808,7 +3827,7 @@ async function taskDoneToggle(rownum){
 }
 /* flight-training study plans (Projects with Area = Flying), e.g. the FAA written exam */
 function flyingStudyCards(){
-  return arr('Projects').filter(isFlyingProject).map(function(p){
+  return arr('Projects').filter(isFlyingProject).filter(function(p){ return !/done|complete|archiv/i.test(String(p.Status||'')); }).map(function(p){
     var ts=arr('ProjectTasks').filter(function(t){return t.Project===p.Name&&has(t.Task);}).sort(function(a,b){return String(a.Due).localeCompare(String(b.Due));});
     var done=ts.filter(function(t){return truthy(t.Done);}).length;
     var rows=ts.map(function(t){ var d=daysUntilDate(t.Due), dn=truthy(t.Done);
@@ -3909,7 +3928,7 @@ function renderFlying(){
     + ms(soloDone, 'First solo', soloDone?(f.solo_hours+' solo hrs'):'pre-solo — landings & maneuvers')
     + ms(writtenDone, 'Written (knowledge) exam', f.written_status||'not started')
     + ms(xcDone, 'Solo cross-country', xcDone?(L.soloXC.toFixed(1)+' solo XC hrs'):'after solo ('+L.dualXC.toFixed(1)+' dual XC so far)')
-    + ms(false, 'Checkride (PPL)', has(f.checkride_target)?('target '+f.checkride_target):'target TBD');
+    + ms(false, 'Checkride (PPL)', (has(f.checkride_target)?('target '+f.checkride_target):'target TBD')+(knowledgeExpiry()?' · before '+knowledgeExpiry().label:''));
 
   var acCols=[{label:'Tail',render:function(r){return '<strong>'+esc(r.Tail)+'</strong>';}},
     {label:'Aircraft',key:'MakeModel'},{label:'Owner',key:'Owner'},{label:'Home field',key:'HomeField'},
@@ -3945,7 +3964,8 @@ function renderFlying(){
     + (renderVehicles('air')
         ? renderVehicles('air').replace(/<\/div>$/, aircraftPerfCard()+'</div>')+gap      // aircraft card beside its performance card
         : card('Aircraft','', tableEl(acCols, ac, {empty:'Add your aircraft (e.g. Maule N51207) in the Aircraft tab.',editTab:'Aircraft'}), '--sky')+gap+aircraftPerfCard()+gap)
-    + card('Flight log','Most recent flights.', tableEl(logCols, log.slice().sort(function(a,b){ return String(b.Date).localeCompare(String(a.Date)); }), {empty:'Log flights in the FlightLog tab.',editTab:'FlightLog'}), '--sky');
+    + card('Flight log','Most recent flights.', tableEl(logCols, log.slice().sort(function(a,b){ return String(b.Date).localeCompare(String(a.Date)); }), {empty:'Log flights in the FlightLog tab.',editTab:'FlightLog'}), '--sky')
+    + oralPrepCard();
 }
 function airportsHtml(){
   var aps=arr('Airports').filter(function(a){return has(a.Icao);});
@@ -4514,6 +4534,35 @@ function jeremyLinks(fromSec, toSec, msg){
   return {cal:'https://calendar.google.com/calendar/render?action=TEMPLATE&text='+encodeURIComponent('Flight lesson with Jeremy ('+tail+')')+'&dates='+g(fromSec)+'/'+g(toSec)
       +'&location='+encodeURIComponent('Minden-Tahoe Airport (KMEV)')+'&details='+encodeURIComponent('Booked from Life OS. Check the TAF and IMSAFE before you go.'),
     sms:'sms:'+phone+'&body='+encodeURIComponent(msg||('Hey Jeremy, are you free to fly '+day+' around '+hhmm(fromSec)+'? The Minden forecast looks good.'))};
+}
+/* ---------- Checkride oral prep: knowledge-test debrief (Flying tab, bottom). ALL content is personal and lives in the private
+   Flying kv: written_* (result, expires), oral_debrief (JSON: codes, questions, notes, gaps), oral_gap_<code> (checkbox). ---------- */
+function knowledgeExpiry(){ var f=kv('Flying'), d=parseDate(f.written_expires); if(!d||!/pass/i.test(String(f.written_status||''))) return null;
+  var days=Math.ceil((d-laNow())/864e5); return {date:d, days:days, label:d.toLocaleDateString('en-US',{timeZone:'America/Los_Angeles',month:'short',day:'numeric',year:'numeric'})}; }
+function oralGapSave(code, on){ var k='oral_gap_'+code, o={}; o[k]=on?'yes':''; (DATA.Flying=DATA.Flying||{})[k]=o[k];
+  apiWrite({action:'setkv',tab:'Flying',row:JSON.stringify(o)}).then(function(r){ if(!(r&&r.ok)) toast('Couldn’t save that. Try again.'); }); render(CURRENT); }
+function oralArchOpen(el){ if(!el.open) return; var h=document.getElementById('parHostArch'); if(h){ h.id='parHost'; try{ if(window.parMount) parMount(); }catch(e){} } }
+function oralPrepCard(){
+  var f=kv('Flying'), D=null; try{ D=JSON.parse(f.oral_debrief||'null'); }catch(e){} if(!D) return '';
+  var ex=knowledgeExpiry(), passed=parseDate(f.written_passed);
+  var when=passed?passed.toLocaleDateString('en-US',{timeZone:'America/Los_Angeles',month:'short',day:'numeric',year:'numeric'}):'';
+  var head='<div class="op-head">'
+    +'<div class="op-tile ok"><div class="op-k">Knowledge test</div><div class="op-v">✓ '+esc(f.written_test||'Passed')+'</div><div class="op-s">'+(has(f.written_score)?esc(f.written_score)+'% · ':'')+'Pass'+(when?' · '+esc(when):'')+'</div></div>'
+    +(ex?'<div class="op-tile'+(ex.days<120?' warn':'')+'"><div class="op-k">Checkride deadline</div><div class="op-v">'+ex.days.toLocaleString()+' days</div><div class="op-s">test report expires '+esc(ex.label)+'</div></div>':'')
+    +(has(f.next_milestone)?'<div class="op-tile"><div class="op-k">Next milestone</div><div class="op-v">'+esc(f.next_milestone)+'</div><div class="op-s">the oral starts with the codes below</div></div>':'')+'</div>';
+  var codes='<div class="op-sec"><div class="op-h">Missed ACS codes <span>'+esc(D.acs_edition||'')+'</span></div>'+(D.codes||[]).map(function(c){ return '<div class="op-code"><b>'+esc(c[0])+'</b><span>'+esc(c[1])+'</span></div>'; }).join('')+'</div>';
+  var L='ABCDE', qs='<div class="op-sec"><div class="op-h">Questions you remember</div>'+(D.questions||[]).map(function(q,i){
+      var ok=String(q.result).toLowerCase()==='right';
+      return '<div class="op-q"><div class="op-qt"><span class="op-n">'+(i+1)+'</span>'+esc(q.q)+'<span class="op-res '+(ok?'r':'w')+'">'+(ok?'✓ Right':'✗ Wrong')+'</span>'+(q.acs?'<span class="op-acs">'+esc(q.acs)+'</span>':'')+'</div>'
+        +((q.o||[]).length?'<div class="op-opts">'+q.o.map(function(o,k){ return '<div class="op-opt'+(k===q.a?' c':'')+'"><b>'+L[k]+'</b>'+esc(o)+(k===q.a?' <em>correct</em>':'')+'</div>'; }).join('')+'</div>':'')
+        +(q.why?'<div class="op-why">'+esc(q.why)+'</div>':'')+(q.facts?'<ul class="op-facts">'+q.facts.map(function(x){return '<li>'+esc(x)+'</li>';}).join('')+'</ul>':'')
+        +(q.note?'<div class="op-note">'+esc(q.note)+'</div>':'')+'</div>'; }).join('')+'</div>';
+  var notes=(D.notes||[]).length?'<div class="op-sec"><div class="op-h">Related notes</div><ul class="op-facts">'+D.notes.map(function(x){return '<li>'+esc(x)+'</li>';}).join('')+'</ul></div>':'';
+  var gaps=D.gaps||[], doneN=gaps.filter(function(g){ return truthy(f['oral_gap_'+g[0]]); }).length;
+  var gapHtml='<div class="op-sec"><div class="op-h">Gaps to close before the checkride <span>'+doneN+' of '+gaps.length+' confident</span></div>'+gaps.map(function(g){ var on=truthy(f['oral_gap_'+g[0]]);
+      return '<label class="op-gap'+(on?' on':'')+'"><input type="checkbox"'+(on?' checked':'')+' onchange="oralGapSave(\''+esc(g[0])+'\',this.checked)"><span><b>'+esc(g[0])+'</b> '+esc(g[1])+'<small>'+esc(g[2])+'</small></span></label>'; }).join('')+'</div>';
+  var arch='<details class="op-arch" ontoggle="oralArchOpen(this)"><summary>Archived: written-test prep (question bank, mock tests, progress)</summary><div id="parHostArch"><div class="empty">Loading the question bank…</div></div></details>';
+  return '<div style="height:22px"></div>'+card(D.title||'Checkride Oral Prep','What the examiner will likely ask first, from your knowledge test report.', head+gapHtml+codes+qs+notes+arch, '--gold');
 }
 /* ---------- Planes down (Flying kv aircraft_down) + FAA written test prep (Flying kv written_date) ---------- */
 function planesDown(){ return String(kv('Flying').aircraft_down||'').split(/[,;\s]+/).filter(Boolean).map(function(s){return s.toUpperCase();}); }

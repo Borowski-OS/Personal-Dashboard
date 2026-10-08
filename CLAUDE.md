@@ -135,3 +135,11 @@
   airspace (PA.I.E + CC-AIR-*), and 2-4 METAR items; rotates groups; default on the test day and day before. PAR_CRASH_SHEET = reviewer-verified cheat sheet.
   par-crash.js also applies PAR_FIXES (reviewer explanation/citation fixes to existing bank ids; no answer keys changed) and appends 31 new CC-* questions.
   'Weakest areas' excludes the instrument area (PA.VIII).
+- Written test prep is ARCHIVED (knowledge test done). It auto-hides whenever Flying kv `written_status` contains "Pass" (writtenInfo() → null hides
+  writtenCard, testDayBar, the written alert and the Flying next step; the backend brief checks the same). Done study projects are filtered out of
+  flyingStudyCards. The old bank still opens on demand from the "Archived: written-test prep" <details> at the bottom of the oral prep card
+  (#parHostArch is renamed to #parHost, then parMount()). Progress keys par_* stay in the sheet; don't delete them.
+- Checkride oral prep (Flying tab, bottom, oralPrepCard): renders ONLY from the private sheet — Flying kv `oral_debrief` (JSON: title, acs_edition,
+  codes [[code,meaning]], questions [{q,o,a,result,acs,why,facts,note}], notes, gaps [[code,label,hint]]) plus written_test / written_score /
+  written_passed / written_expires / next_milestone. Gap checkboxes save to Flying kv `oral_gap_<code>`. knowledgeExpiry() drives the checkride
+  deadline tile, the milestone line and a Today alert inside 120 days. Never put the debrief, scores or codes in this repo.
