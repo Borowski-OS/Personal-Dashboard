@@ -758,7 +758,7 @@
   /* ================= Pro redesign: softer dark + left sidebar ================= */
   :root {
     --bg:#13151a; --side:#0f1115; --card-bg:#1a1d23; --card-2:#21252c; --card-border:#272b32; --card-border-2:#31363f;
-    --text:#dbe0e7; --text-muted:#9ba4af; --text-dim:#747d89;
+    --text:#dbe0e7; --text-muted:#9ba4af; --text-dim:#868f9b;   /* dim passes WCAG AA (≥4.5:1) on bg, cards and insets */
     --accent:#84a9ff; --steel:#8fa9c7; --accent-2:#84a9ff; --accent-b:#b39cf7; --accent-rgb:132,169,255; --accent-b-rgb:179,156,247;
     --accent-grad:linear-gradient(135deg,#84a9ff 0%,#a39ff9 55%,#b39cf7 100%); --ring:0 0 0 3px rgba(132,169,255,.16);
     --green:#6bc48a; --amber:#dcb35e; --red:#e5707a;
@@ -1246,6 +1246,15 @@
   .td-items { font-size:12.5px; color:var(--text-muted); } .td-items b { color:var(--text); }
   .td-act { display:flex; gap:8px; flex-wrap:wrap; }
   @media (max-width:640px){ .testday { padding:10px 12px; } .td-act { width:100%; } .td-act .ebtn { flex:1; text-align:center; } }
+  /* ================= Skeleton loader ================= */
+  .loading.skel { display:block; height:auto; padding:6px 0; }
+  .skel i { display:block; border-radius:12px; background:linear-gradient(90deg, rgba(255,255,255,.035) 0%, rgba(255,255,255,.075) 40%, rgba(255,255,255,.035) 80%); background-size:300% 100%; animation:skel 1.4s ease-in-out infinite; }
+  .sk-strip { display:flex; flex-direction:column; gap:10px; margin-bottom:18px; } .sk-strip i { height:12px; }
+  .sk-row { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:12px; margin-bottom:18px; } .sk-row i { height:62px; border-radius:14px; }
+  .sk-grid { display:grid; grid-template-columns:1.55fr 1fr .95fr; gap:18px; } .sk-grid i { border-radius:16px; }
+  @media (max-width:900px){ .sk-grid { grid-template-columns:1fr; } .sk-grid i:nth-child(n+2) { display:none; } }
+  @keyframes skel { 0%{ background-position:100% 0; } 100%{ background-position:-100% 0; } }
+  @media (prefers-reduced-motion:reduce){ .skel i { animation:none; } }
 </style>
 </head>
 <body>
@@ -1329,7 +1338,7 @@
       </div>
       <div class="updated"><span class="pulse"></span><span class="stamp" id="stamp">—</span><br><span class="upd-note">refreshes live from your sheet</span></div>
     </div>
-    <div id="loading" class="loading"><div class="spinner"></div>Loading your data…</div>
+    <div id="loading" class="loading skel" aria-busy="true" aria-label="Loading your data"><div class="sk-strip"><i style="width:180px"></i><i style="width:320px;height:26px"></i></div><div class="sk-row"><i></i><i></i><i></i><i></i><i></i><i></i></div><div class="sk-grid"><i style="height:300px"></i><i style="height:300px"></i><i style="height:300px"></i></div></div>
     <div id="panels"></div>
   </div>
 </main>
@@ -1649,6 +1658,7 @@ function showApp(res){
   if(!CURRENT || CURRENT==='overview'){ var hashTab=(location.hash||'').replace('#',''); navGo(TABS[hashTab]?hashTab:'overview'); }
   else render(CURRENT);
   fetchLive(); debugWide();
+  try{ document.querySelectorAll('button[title]:not([aria-label])').forEach(function(b){ b.setAttribute('aria-label', b.getAttribute('title').replace(/\s*\(.*\)$/,'')); }); }catch(e){}
   if(window.carePrefetch) setTimeout(carePrefetch, 1200);   // warm the private provider index for the Health tab's Find care
 }
 async function submitGate(){
