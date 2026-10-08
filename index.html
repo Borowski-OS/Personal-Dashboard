@@ -1809,7 +1809,8 @@ function pageMap(){
     +extra.map(function(a){ return '<a class="pm-i pm-x" href="javascript:void(0)" onclick="'+esc(a.getAttribute('onclick'))+'">'+esc(a.textContent)+'</a>'; }).join('')
     +(p.querySelector('.card.foldable')?'<button type="button" class="pm-i pm-fold" onclick="foldAll(this.textContent===\'Collapse all\')">'+(p.querySelectorAll('.card.foldable.folded').length>p.querySelectorAll('.card.foldable').length/2?'Expand all':'Collapse all')+'</button>':'');
   bar.addEventListener('click', function(e){ var a=e.target.closest('a[data-t]'); if(!a) return; e.preventDefault(); var t=document.getElementById(a.getAttribute('data-t')); if(t) t.scrollIntoView({behavior:'smooth', block:'start'}); });
-  if(old) old.replaceWith(bar); else p.insertBefore(bar, p.firstChild);
+  if(old) old.replaceWith(bar);
+  else { var anchor=targets[0].el; while(anchor.parentElement && anchor.parentElement!==p) anchor=anchor.parentElement; p.insertBefore(bar, anchor.parentElement===p?anchor:p.firstChild); }
   if('IntersectionObserver' in window){
     var links={}; [].slice.call(bar.querySelectorAll('a[data-t]')).forEach(function(a){ links[a.getAttribute('data-t')]=a; });
     var vis={};
