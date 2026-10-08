@@ -1238,6 +1238,14 @@
     .faq-opt { min-height:48px; }
     .chk { width:28px; height:28px; flex-basis:28px; }
   }
+  /* ================= Test-day bar (Today) ================= */
+  .testday { display:flex; justify-content:space-between; align-items:center; gap:12px 18px; flex-wrap:wrap; margin:0 0 16px; padding:12px 16px; border-radius:14px;
+    background:linear-gradient(90deg, rgba(var(--accent-rgb),.14), rgba(179,156,247,.08)); border:1px solid rgba(var(--accent-rgb),.35); }
+  .td-main { display:flex; flex-direction:column; gap:2px; min-width:0; }
+  .td-k { font-size:14.5px; font-weight:700; color:#eef2ff; }
+  .td-items { font-size:12.5px; color:var(--text-muted); } .td-items b { color:var(--text); }
+  .td-act { display:flex; gap:8px; flex-wrap:wrap; }
+  @media (max-width:640px){ .testday { padding:10px 12px; } .td-act { width:100%; } .td-act .ebtn { flex:1; text-align:center; } }
 </style>
 </head>
 <body>
@@ -2525,7 +2533,7 @@ function renderOverview(){
     + trendCard('Flight hours · 90 days', h90.toFixed(1)+' h', null, '--accent', (daysSinceFlight()!=null?daysSinceFlight()+' days since last flight':'no flights logged'))
     + '</div>';
   var trends='';
-  return todayHero() + callBar()
+  return todayHero() + testDayBar() + callBar()
     + '<div class="grid g-today" style="margin-bottom:22px">' + big3Card() + rhythmCard() + pulse + '</div>'
     + scorecardCard() + '<div style="height:22px"></div>'
     + '<div class="grid cols-2" style="margin-bottom:22px">'
@@ -4446,6 +4454,14 @@ function writtenInfo(){
   return days<-1?null:{date:d, days:days};
 }
 var FAQ={topic:'All', i:0, picked:null, order:null};
+/* Today: the day before and the day of the written test, a slim bar with what to bring and a one-tap warm-up */
+function testDayBar(){ var w=writtenInfo(); if(!w||w.days<0||w.days>1) return '';
+  var st=String(kv('Flying').written_status||''), when=w.days===0?'today':'tomorrow', tod=(st.match(/\((morning|afternoon|evening)\)/i)||[])[1];
+  var un=(window.parUnseen&&window.PAR&&PAR.ready)?parUnseen().length:null;
+  return '<div class="testday"><div class="td-main"><span class="td-k">FAA written test '+when+(tod?' · '+esc(tod.toLowerCase()):'')+'</span>'
+    +'<span class="td-items"><b>Bring:</b> endorsement · photo ID · FTN · E6B · plotter · calculator</span></div>'
+    +'<div class="td-act"><button class="ebtn pri" onclick="testDayWarmup()">20-question warm-up</button><button class="ebtn" onclick="navGo(\'flying\')">Test prep</button></div></div>'; }
+function testDayWarmup(){ navGo('flying'); setTimeout(function(){ try{ if(window.parSetArea){ PAR.tab='drill'; parSetArea('auto'); } var h=document.getElementById('parHost'); if(h) h.scrollIntoView({behavior:'smooth', block:'start'}); }catch(e){} }, 400); }
 function faqState(){ try{ return JSON.parse(localStorage.getItem('lifeos_faa')||'{}'); }catch(e){ return {}; } }
 function faqSave(s){ try{ localStorage.setItem('lifeos_faa', JSON.stringify(s)); }catch(e){} }
 function faqLoad(){
