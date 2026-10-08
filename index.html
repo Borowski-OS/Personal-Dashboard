@@ -1089,7 +1089,8 @@
   .deck-gauges { display:grid; grid-template-columns:repeat(auto-fit, minmax(170px, 1fr)); gap:12px; margin:0 0 10px; }
   .deck-gauges .bchip { display:flex; align-items:center; gap:12px; padding:12px 14px; min-width:0; border-radius:14px; background:var(--card-bg); border:1px solid var(--card-border);
     box-shadow:inset 0 1px 0 rgba(255,255,255,.035), 0 12px 32px -20px rgba(0,0,0,.65); cursor:pointer; transition:border-color .15s, transform .12s; }
-  .deck-gauges .bchip:hover { border-color:#3a4049; transform:translateY(-1px); }
+  .deck-gauges .bchip:hover, .deck-gauges .bchip[role="button"]:focus-visible { border-color:#3a4049; transform:translateY(-1px); }
+  div[role="button"][onclick]:focus-visible { outline:2px solid rgba(var(--accent-rgb),.65); outline-offset:2px; }
   .deck-gauges .bchip.good { border-color:rgba(107,196,138,.4); } .deck-gauges .bchip.bad { border-color:rgba(229,112,122,.45); } .deck-gauges .bchip.ok { border-color:rgba(var(--accent-rgb),.35); }
   .deck-gauges .bchip-i { width:36px; height:36px; flex:0 0 36px; border-radius:10px; background:rgba(255,255,255,.045); display:flex; align-items:center; justify-content:center; color:var(--text-muted); filter:none; opacity:1; font-size:17px; }
   .deck-gauges .bchip-i svg { width:19px; height:19px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
@@ -1273,7 +1274,7 @@
   /* copay list in two columns on wider screens (Round 4) — same kv rows, half the height */
   .cov-b { container-type:inline-size; }
   @container (min-width:520px){ .cov-grid { display:grid; grid-template-columns:1fr 1fr; column-gap:28px; } .cov-grid .kv-row:nth-last-child(2):nth-child(odd) { border-bottom:none; }
-    .cov-grid .kv-row { flex-direction:column; gap:2px; padding:10px 0; } .cov-grid .kv-row .k { font-size:12.5px; } .cov-grid .kv-row .v { text-align:left; font-size:14px; } }
+    .cov-grid .kv-row { flex-direction:column; gap:2px; padding:10px 0; } .cov-grid .kv-row .k { font-size:12.5px; } .cov-grid .kv-row .v { text-align:left; font-size:14px; overflow-wrap:anywhere; } }
   @media print { .cov-sec { display:block; } .cov-sec > .cov-b { display:block !important; } }
   /* page-header actions (Round 2) */
   .page-acts { display:flex; gap:8px; align-items:center; margin-left:auto; align-self:center; }
@@ -1823,7 +1824,12 @@ function render(tab){
   applyLive();
   try{ cardFolds(tab); }catch(e){ console.error('cardFolds', e); }
   try{ pageMap(); }catch(e){ console.error('pageMap', e); }
+  try{ kbdTargets($('panels')); }catch(e){}
 }
+/* Keyboard reach for clickable <div>s (Today gauges, scorecard rows, pick cards…): give them button semantics + a tab stop;
+   Enter/Space on the element itself clicks it. Rows that already carry a role (aircraft list) are left alone. */
+function kbdTargets(root){ if(!root) return; [].slice.call(root.querySelectorAll('div[onclick]:not([role])')).forEach(function(d){ d.setAttribute('role','button'); d.tabIndex=0; }); }
+document.addEventListener('keydown', function(e){ var t=e.target; if((e.key==='Enter'||e.key===' ') && t && t.matches && t.matches('div[role="button"][onclick]')){ e.preventDefault(); t.click(); } });
 /* Collapsible cards: tap a card title to fold it to a one-line header. Remembered per device and tab
    (localStorage lifeos_folds, keyed by tab + title). Cards with interactive tools (Find care, test prep) stay open. */
 var FOLD_LS='lifeos_folds';
@@ -5804,14 +5810,14 @@ function coverageCard(){
   var h=kv('Health'), sec=function(v){ return '<span class="secret" title="Tap to show" onclick="this.classList.toggle(\'show\')">'+esc(v)+'</span>'; };
   var line=function(k,v,secret){ return has(v)?'<div class="kv-row"><span class="k">'+esc(k)+'</span><span class="v">'+(secret?sec(v):esc(v))+'</span></div>':''; };
   var todo=function(k,hint){ return '<div class="kv-row"><span class="k">'+esc(k)+'</span><span class="v" style="color:var(--text-dim)">'+esc(hint)+'</span></div>'; };
-  var med='<div class="section-title" style="margin:0 0 6px">Medical'+(has(h.ins_medical)?' · '+esc(h.ins_medical):'')+'</div>'
+  var med='<div class="section-title" style="margin:0 0 6px">Medical'+(has(h.ins_medical)?' · '+esc(h.ins_medical):'')+'</div><div class="cov-grid">'
     + line('Member ID',h.med_member_id,true) + line('Group #',h.med_group,true) + line('Member services',h.med_phone)
     + (/^https:\/\//.test(String(h.med_portal||''))?'<div class="kv-row"><span class="k">Benefits, claims & ID card</span><span class="v"><a href="'+esc(h.med_portal)+'" target="_blank" rel="noopener">'+esc(String(h.med_portal).replace(/^https:\/\//,''))+' ↗</a></span></div>':'')
     + line('Pharmacy',h.rx_plan) + line('Where to fill',h.rx_pharmacy) + line('Plan year',h.med_plan_year)
-    + (has(h.pcp)?line('Primary care doctor',h.pcp):'<div class="kv-row"><span class="k">Primary care doctor</span><span class="v" style="color:var(--amber);font-weight:600">none yet — needed for HMO referrals</span></div>')
+    + (has(h.pcp)?line('Primary care doctor',h.pcp):'<div class="kv-row"><span class="k">Primary care doctor</span><span class="v" style="color:var(--amber);font-weight:600">none yet — needed for HMO referrals</span></div>')+'</div>'
     + (has(h.med_deductible)||has(h.med_oop_max)
-        ? line('Deductible (in-network)',h.med_deductible)+line('Out-of-pocket max (in-network)',h.med_oop_max)+line('Deductible met this year',h.med_deductible_met)
-          +'<p class="foot" style="margin:8px 0 4px;color:var(--text-dim)">You pay the plan\'s price for most care until the deductible is met, then a share until the out-of-pocket max — after that, in-network care is covered 100% for the rest of the year. HMO: stay in the Renown network and get referrals from your primary care doctor.</p>'
+        ? '<div class="cov-grid" style="margin-top:6px">'+line('Deductible (in-network)',h.med_deductible)+line('Out-of-pocket max (in-network)',h.med_oop_max)+line('Deductible met this year',h.med_deductible_met)+'</div>'
+          +'<details class="bud-more"><summary>How the deductible works</summary><p class="foot" style="margin:0 0 4px;color:var(--text-dim)">You pay the plan\'s price for most care until the deductible is met, then a share until the out-of-pocket max — after that, in-network care is covered 100% for the rest of the year. HMO: stay in the Renown network and get referrals from your primary care doctor.</p></details>'
         : todo('Deductible / out-of-pocket max','add from your plan summary (SBC)'))
     + (['copay_pcp','copay_specialist','copay_urgent','copay_er','copay_rx','copay_lab'].some(function(k){return has(h[k]);})
         ? '<div class="section-title" style="margin:14px 0 6px">What a visit costs you</div><div class="cov-grid">'
@@ -6067,7 +6073,7 @@ function renderTravel(){
       +(EDIT?'<div style="margin-top:10px">'+editBtn('Travel',t.__row)+'</div>':'')+'</div>';
   }
   var pointsCols=[{label:'Program',key:'Program'},{label:'Type',render:function(r){return has(r.Type)?'<span class="chip">'+esc(r.Type)+'</span>':'';}},{label:'Number',render:function(r){ if(!has(r.Number)) return ''; var v=esc(r.Number); return /known traveler|precheck|global entry|passport/i.test(String(r.Type)+' '+String(r.Program))?'<span class="secret" title="Tap to show" onclick="event.stopPropagation();this.classList.toggle(\'show\')">'+v+'</span>':v; }},{label:'Balance',num:true,key:'Balance'}];
-  var out=addBtn('Travel','trip')+(EDIT?'<div class="editbar" style="margin-top:-4px"><button class="ebtn pri" onclick="openEditor(\'TravelChecklist\')">＋ Add checklist item</button></div>':'');
+  var out=(upcoming.length?addBtn('Travel','trip'):'')+(EDIT?'<div class="editbar" style="margin-top:-4px"><button class="ebtn pri" onclick="openEditor(\'TravelChecklist\')">＋ Add checklist item</button></div>':'');
   out += upcoming.length?'<div class="section-title">Upcoming</div><div class="grid cols-2">'+upcoming.map(tripCard).join('')+'</div>'
     : card('Travel','', emptyAct('No upcoming trips.','Travel','trip'),'--cyan');
   // Points → estimated cash value ("travel wallet")
