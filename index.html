@@ -1174,6 +1174,12 @@
   .par-sync:empty { display:none; } .par-sync { color:var(--text-dim); }
   .par-tabs { display:flex; gap:4px; } .par-tab { font:inherit; font-size:12.5px; font-weight:600; padding:6px 12px; border-radius:9px; border:1px solid var(--card-border-2); background:rgba(255,255,255,.03); color:var(--text-muted); cursor:pointer; }
   .par-tab.on { background:var(--accent-grad); color:#0e1117; border-color:transparent; }
+  .faq-chip.crash { border-color:rgba(220,179,94,.6); color:#e8c87a; font-weight:600; } .faq-chip.crash.on { background:#dcb35e; border-color:#dcb35e; color:#14161b; }
+  .par-crash-sub { margin-top:-4px; } .par-crash-sub .faq-chip { font-size:12px; }
+  details.par-sheet { margin:0 0 14px; padding:12px 14px; border-radius:12px; background:rgba(220,179,94,.06); border:1px solid rgba(220,179,94,.28); }
+  details.par-sheet summary { cursor:pointer; font-weight:650; font-size:14.5px; }
+  .par-sheet-sec { margin-top:12px; } .par-sheet-h { font-weight:700; font-size:13.5px; color:#e8c87a; margin-bottom:4px; }
+  .par-sheet ul { margin:0; padding-left:18px; font-size:13.5px; line-height:1.55; color:var(--text-muted); } .par-sheet li { margin:4px 0; } .par-sheet b { color:var(--text); }
   .faq-chip.weak { border-color:rgba(229,112,122,.5); color:#f0a0a7; } .faq-chip small { font-weight:500; opacity:.75; margin-left:3px; }
   .faq-opt.sel { border-color:var(--accent); background:rgba(var(--accent-rgb),.12); }
   .par-ref { margin-top:8px; font-size:12px; color:var(--text-dim); }
@@ -4501,7 +4507,7 @@ function testDayBar(){ var w=writtenInfo(); if(!w||w.days<0||w.days>1) return ''
   return '<div class="testday"><div class="td-main"><span class="td-k">FAA written test '+when+(tod?' · '+esc(tod.toLowerCase()):'')+'</span>'
     +'<span class="td-items"><b>Bring:</b> endorsement · photo ID · FTN · E6B · plotter · calculator</span></div>'
     +'<div class="td-act"><button class="ebtn pri" onclick="testDayWarmup()">20-question warm-up</button><button class="ebtn" onclick="navGo(\'flying\')">Test prep</button></div></div>'; }
-function testDayWarmup(){ navGo('flying'); setTimeout(function(){ try{ if(window.parSetArea){ PAR.tab='drill'; parSetArea('auto'); } var h=document.getElementById('parHost'); if(h) h.scrollIntoView({behavior:'smooth', block:'start'}); }catch(e){} }, 400); }
+function testDayWarmup(){ navGo('flying'); setTimeout(function(){ try{ if(window.parSetArea){ PAR.tab='drill'; parSetArea('crash'); } var h=document.getElementById('parHost'); if(h) h.scrollIntoView({behavior:'smooth', block:'start'}); }catch(e){} }, 400); }
 function faqState(){ try{ return JSON.parse(localStorage.getItem('lifeos_faa')||'{}'); }catch(e){ return {}; } }
 function faqSave(s){ try{ localStorage.setItem('lifeos_faa', JSON.stringify(s)); }catch(e){} }
 function faqLoad(){
@@ -6068,6 +6074,6 @@ if('serviceWorker' in navigator){
 }
 </script>
 <script src="care.js?v=3"></script>
-<script src="par.js?v=2"></script>
+<script src="par.js?v=3"></script>
 </body>
 </html>

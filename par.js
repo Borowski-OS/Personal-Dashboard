@@ -8,7 +8,7 @@
    Real-test model: 65 questions, 120 minutes, 5 unscored (hidden), scored on 60, pass 70%.
 ============================================================ */
 var PAR = { ready:false, loading:false, tab:'drill', area:'auto', q:null, picked:null, drillQueue:[], mock:null, saveT:null, st:null };
-var PAR_FILES = ['par-figs.js?v=2','par-bank-1.js?v=2','par-bank-2.js?v=2','par-bank-3.js?v=2','par-bank-4.js?v=2','par-bank-5.js?v=2','par-bank-6.js?v=2','faa-par.js?v=1'];
+var PAR_FILES = ['par-figs.js?v=2','par-bank-1.js?v=2','par-bank-2.js?v=2','par-bank-3.js?v=2','par-bank-4.js?v=2','par-bank-5.js?v=2','par-bank-6.js?v=2','par-crash.js?v=1','faa-par.js?v=1'];
 var PAR_TEST = { n:65, scored:60, unscored:5, minutes:120, pass:70 };
 var PAR_AREAS = {
   'I.A':'Pilot qualifications','I.B':'Airworthiness requirements','I.C':'Weather information','I.D':'Cross-country flight planning','I.E':'National Airspace System',
@@ -78,6 +78,7 @@ function parReadiness(){ var st=parState(); var last=st.mocks.slice(-3); if(last
 
 /* ---------- mount / shell ---------- */
 function parMount(){ var host=document.getElementById('parHost'); if(!host) return;
+  if(!PAR.areaChosen){ try{ var wd=String((kv('Flying')||{}).written_date||'').match(/(\d{4})-(\d{2})-(\d{2})/); if(wd){ var dd=Math.round((new Date(wd[0]+'T12:00:00')-new Date(new Date().toDateString()+' 12:00'))/864e5); if(dd>=0&&dd<=1) PAR.area='crash'; } }catch(e){} }
   if(!PAR.ready){ host.innerHTML='<div class="empty">Loading the question bank…</div>'; parEnsure().then(function(){ PAR.st=null; parDraw(); }).catch(function(){ host.innerHTML='<div class="empty">Couldn’t load the question bank. Check your connection.</div>'; }); return; }
   parDraw(); }
 function parDraw(){ var host=document.getElementById('parHost'); if(!host) return;
@@ -109,12 +110,27 @@ function parQuestionHtml(q, picked, opts){ opts=opts||{}; var L='ABC';
   return body+'</div>'; }
 
 /* ---------- DRILL ---------- */
-function parDrillPool(){ var bank=parBank(); if(PAR.area==='auto'){ var weak=parAreaStats().filter(function(a){ return a.weak; }).map(function(a){ return a.area; });
+/* ---------- CRASH COURSE (test day): NTSB, airspace, stalls/spins/CG, and a few METARs ---------- */
+var PAR_SPIN_IDS={'IF-16':1,'IF-17':1,'IF-18':1,'IF-19':1,'IF-21':1,'IF-22':1,'IF-27':1,'IF-28':1,'IF-31':1,'IG-21':1,'II-08':1,'IV-07':1,'IV-16':1,'IV-20':1,'V-01':1,'VII-03':1,'VII-04':1,'VII-05':1,'VII-06':1,'VII-07':1,'VII-08':1,'VII-09':1,'VII-10':1,'VII-11':1,'VII-12':1,'IX-09':1};
+var PAR_CRASH_GROUPS=[['ntsb','NTSB'],['spin','Stalls · spins · CG'],['air','Airspace'],['wx','METAR (a few)']];
+function parCrashGroup(q){ var id=q.id, acs=q.acs;
+  if(/^CC-NTSB/.test(id)||/^PA\.III\.A\.K8/.test(acs)) return 'ntsb';
+  if(/^CC-SPIN/.test(id)||PAR_SPIN_IDS[id]||/^PA\.VII\.[BCD]/.test(acs)) return 'spin';
+  if(/^CC-AIR/.test(id)||/^PA\.I\.E/.test(acs)) return 'air';
+  if(/^PA\.I\.C\.K2a/.test(acs)){ if(!PAR.wxIds) PAR.wxIds=parBank().filter(function(x){ return /^PA\.I\.C\.K2a/.test(x.acs) && !x.fig; }).slice(0,4).map(function(x){ return x.id; }); return PAR.wxIds.indexOf(id)>=0?'wx':null; }
+  return null; }
+function parCrashSheetHtml(){ var S=window.PAR_CRASH_SHEET||[]; if(!S.length) return '';
+  return '<details class="par-sheet"'+(PAR.sheetOpen!==false?' open':'')+' ontoggle="PAR.sheetOpen=this.open"><summary>📋 Crash-course cheat sheet: read this first</summary>'
+    +S.map(function(sec){ return '<div class="par-sheet-sec"><div class="par-sheet-h">'+sec[0]+'</div><ul>'+sec[1].map(function(li){ return '<li>'+li+'</li>'; }).join('')+'</ul></div>'; }).join('')+'</details>'; }
+function parDrillPool(){ var bank=parBank(); if(PAR.area==='crash') return bank.filter(function(q){ var g=parCrashGroup(q); return g&&(!PAR.crashGroup||g===PAR.crashGroup); });
+  if(PAR.area==='auto'){ var weak=parAreaStats().filter(function(a){ return a.weak; }).map(function(a){ return a.area; });
     if(!weak.length){ var least=parAreaStats().filter(function(a){ return a.n>0; }).sort(function(x,y){ return (x.r/x.n)-(y.r/y.n); }).slice(0,3).map(function(a){ return a.area; }); weak=least; }
-    return weak.length?bank.filter(function(q){ return weak.indexOf(parArea(q))>=0; }):bank; }
+    var noIfr=bank.filter(function(q){ return !/^PA\.VIII\./.test(q.acs); }); return weak.length?noIfr.filter(function(q){ return weak.indexOf(parArea(q))>=0; }):noIfr; }
   if(PAR.area==='all') return bank; if(PAR.area==='missed'){ var st=parState(); return bank.filter(function(q){ var h=st.hist[q.id]; return h&&h.length&&h[h.length-1]===0; }); }
   return bank.filter(function(q){ return parArea(q)===PAR.area; }); }
 function parDrillNext(){ var pool=parDrillPool(); if(!pool.length){ PAR.q=null; return; }
+  if(PAR.area==='crash'&&!PAR.crashGroup){ var order=['ntsb','spin','air','ntsb','spin','air','wx']; PAR.crashN=(PAR.crashN||0); var g=order[PAR.crashN%order.length]; PAR.crashN++;
+    var sub=pool.filter(function(q){ return parCrashGroup(q)===g; }); if(sub.length) pool=sub; }
   var st=parState(), s=parSeenSet(); var unseen=pool.filter(function(q){ return !s[q.id]; });
   var pick; if(unseen.length) pick=unseen[Math.floor(Math.random()*unseen.length)];
   else { // all seen: prefer last-missed, then least-answered
@@ -123,15 +139,17 @@ function parDrillNext(){ var pool=parDrillPool(); if(!pool.length){ PAR.q=null; 
   PAR.q=pick; PAR.picked=null; }
 function parDrillHtml(){ var stats=parAreaStats(); if(!PAR.q) parDrillNext();
   var st=parState(); var missedN=parBank().filter(function(q){ var h=st.hist[q.id]; return h&&h[h.length-1]===0; }).length;
-  var chips='<div class="faq-chips"><button class="faq-chip'+(PAR.area==='auto'?' on':'')+'" onclick="parSetArea(\'auto\')">Weakest areas</button><button class="faq-chip'+(PAR.area==='all'?' on':'')+'" onclick="parSetArea(\'all\')">All</button>'
+  var crashChips=PAR.area==='crash'?'<div class="faq-chips par-crash-sub">'+[['','Mix all four']].concat(PAR_CRASH_GROUPS).map(function(g){ var n=parBank().filter(function(q){ var cg=parCrashGroup(q); return cg&&(!g[0]||cg===g[0]); }).length; return '<button class="faq-chip'+((PAR.crashGroup||'')===g[0]?' on':'')+'" onclick="parCrashSet(\''+g[0]+'\')">'+g[1]+' <small>'+n+'</small></button>'; }).join('')+'</div>':'';
+  var chips='<div class="faq-chips"><button class="faq-chip crash'+(PAR.area==='crash'?' on':'')+'" onclick="parSetArea(\'crash\')">🎯 Crash course</button><button class="faq-chip'+(PAR.area==='auto'?' on':'')+'" onclick="parSetArea(\'auto\')">Weakest areas</button><button class="faq-chip'+(PAR.area==='all'?' on':'')+'" onclick="parSetArea(\'all\')">All</button>'
     +(missedN?'<button class="faq-chip'+(PAR.area==='missed'?' on':'')+'" onclick="parSetArea(\'missed\')">Missed ('+missedN+')</button>':'')
-    +stats.map(function(a){ return '<button class="faq-chip'+(PAR.area===a.area?' on':'')+(a.weak?' weak':'')+'" onclick="parSetArea(\''+a.area+'\')" title="'+esc(a.name)+'">'+a.area+(a.pct!=null?' '+a.pct+'%':'')+' <small>'+a.unseen+' new</small></button>'; }).join('')+'</div>';
+    +(PAR.area==='crash'?'':stats.map(function(a){ return '<button class="faq-chip'+(PAR.area===a.area?' on':'')+(a.weak?' weak':'')+'" onclick="parSetArea(\''+a.area+'\')" title="'+esc(a.name)+'">'+a.area+(a.pct!=null?' '+a.pct+'%':'')+' <small>'+a.unseen+' new</small></button>'; }).join(''))+'</div>'+crashChips+(PAR.area==='crash'?parCrashSheetHtml():'');
   if(!PAR.q) return chips+'<div class="empty">Nothing in this selection. Pick another area or add questions on the Bank tab.</div>';
   var pool=parDrillPool(), un=parUnseen(pool).length; var seenFlag=parSeenSet()[PAR.q.id]?'review (seen before)':'new';
   var body=parQuestionHtml(PAR.q, PAR.picked, {reveal:true, onpick:'parPick', meta:seenFlag+' · '+un+' unseen in this selection'});
   if(PAR.picked!=null) body+='<div style="text-align:right;margin-top:10px"><button class="ebtn pri" onclick="parNext()">Next →</button></div>';
   return chips+body; }
-function parSetArea(a){ PAR.area=a; PAR.q=null; PAR.picked=null; parDraw(); }
+function parSetArea(a){ PAR.area=a; PAR.areaChosen=true; if(a!=='crash') PAR.crashGroup=''; PAR.q=null; PAR.picked=null; parDraw(); }
+function parCrashSet(g){ PAR.crashGroup=g; PAR.q=null; PAR.picked=null; parDraw(); }
 function parPick(k){ if(PAR.picked!=null||!PAR.q) return; PAR.picked=k; parRecord(PAR.q, k===PAR.q.a, 'drill'); var b=document.getElementById('parBody'); if(b) b.innerHTML=parDrillHtml(); }
 function parNext(){ parDrillNext(); parDraw(); }
 
