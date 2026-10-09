@@ -4498,7 +4498,7 @@ async function saveAnalyzed(){
   if(x.kind==='business'){ var b=v.business||{}; tab='Deals';
     row={Name:x.title||'Business', Sector:x.sector||'', Location:x.city||'', Price:x.price||'', SDE:x.sde||'', CashNeeded:b.cash||'', MonthlyNet:b.net!=null?b.net:'', OwnerHrs:x.owner_hours||(x.manager_in_place?'manager in place':''), Stage:'Watching', Notes:notes+' '+x.url}; }
   else { var p=(v.paths||[]).filter(function(q){return q.ok;})[0]||(v.paths||[])[0]||{}; tab='Properties';
-    row={Address:x.address||x.title, Area:x.city||'', Units:(x.mix||((x.units||'?')+' units'))+(x.year_built?' ('+x.year_built+')':''), Price:x.price||'', GrossRentMo:x.monthly_rent||'', NOI:'',
+    row={Address:x.address||x.title, Area:x.city||'', Units:(x.mix||(num(x.units)===1?'house':(x.units||'?')+' units'))+(x.year_built?' ('+x.year_built+')':''), Price:x.price||'', GrossRentMo:x.monthly_rent||'', NOI:'',
       CapRate:p.cap!=null?p.cap+'%':'', CashNeeded:p.cash||'', CashFlowMo:p.cfList!=null?p.cfList:'', CashOnCash:p.coc!=null?p.coc+'%':'', DSCR:p.dscr||'', Appreciation5yr:'',
       Stage:'Watching', URL:x.url, Notes:notes, Financing:p.name?p.name+' @ '+p.rate.toFixed(2)+'%':'', FirstSeen:today}; }
   toast('Saving to your pipeline…');
