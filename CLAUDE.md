@@ -9,7 +9,7 @@
   Ical.js (Apple/ICS calendar feeds via Config `ical_urls`), Logbook.js (ForeFlight CSV import from Drive "Life OS Inbox").
 - Morning brief email (Code.js emailBrief_, sent by dailySync; `brieftest` action re-sends): order = heads-ups (test, non-autopay bills ≤5 days, renewals, planes down, sick) → Today (Events) → call rotation → Tomorrow → top 3 next steps → weather/fly/AQI → health → radar → money (net worth from NetWorthHistory, small, last). Sheet dates arrive as Date objects: always format with ymdOf/Utilities.formatDate, never String(date).slice.
 - Schedules: dailySync ~4 AM PT (calendar, Strava, rates, home value, net-worth snapshot, Radar, crypto, logbook, email brief);
-  weeklyVentures Mon ~4 AM (businesses), weeklyProperties DAILY ~5 AM (rentals; 3 web searches/run in parallel via UrlFetchApp.fetchAll — 2-4 units, 5-40 units, Winnemucca).
+  weeklyVentures Mon ~4 AM (businesses), weeklyProperties DAILY ~5 AM (rentals; 3 Claude searches/run in parallel via UrlFetchApp.fetchAll — 2-4 units, 5-40 units, Winnemucca).
 - Tabs (7 domains): overview=Today, home=Money, ventures, flying, health, life=Home & Life, faith. Old keys
   (projects, vehicles, hobbies, family, travel) alias into Home & Life sections.
 - Brad's rules: hide anything with Stage Pass/Dead; no software/SaaS businesses; rentals (2-40 units) must cash-flow > $0 at today's
@@ -144,3 +144,12 @@
   codes [[code,meaning]], questions [{q,o,a,result,acs,why,facts,note}], notes, gaps [[code,label,hint]]) plus written_test / written_score /
   written_passed / written_expires / next_milestone. Gap checkboxes save to Flying kv `oral_gap_<code>`. knowledgeExpiry() drives the checkride
   deadline tile, the milestone line and a Today alert inside 120 days. Never put the debrief, scores or codes in this repo.
+- Winnemucca rentals (Oct 9 2026, Ventures.js): redfinWmc_ pulls Winnemucca's whole for-sale list from Redfin's map export
+  (stingray/api/gis-csv, bbox WMC_POLY_, uipt 1,4 = houses + 2-4 units; works from Apps Script) and Claude only estimates rents
+  (wmcRentRule_: typical comparable rent, anchored by wmcRentRef_ = Brad's Rentals-tab row + Config `wmc_rent_ref`; never the
+  "CONSERVATIVE" rule the Carson searches use, which priced Winnemucca houses far below real rents). mergeWmc_ keeps Redfin's
+  price/URL/days-on-market. Falls back to a plain web search if Redfin refuses. Manufactured/mobile homes are skipped everywhere
+  (isManufactured_; no conventional/DSCR investor loans), also flagged in the listing analyzer. Rows that pass get the same
+  "[Verified live …]" stamp checkListings_ writes (Redfin rows are live per Redfin's status). Rows whose link is a search/city page
+  are dropped. Dry-run one search only: `action=ventures&which=props&dry=1&only=wmc` (only=small|large|wmc, dry runs only).
+
