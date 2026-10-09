@@ -9,11 +9,12 @@
   Ical.js (Apple/ICS calendar feeds via Config `ical_urls`), Logbook.js (ForeFlight CSV import from Drive "Life OS Inbox").
 - Morning brief email (Code.js emailBrief_, sent by dailySync; `brieftest` action re-sends): order = heads-ups (test, non-autopay bills ≤5 days, renewals, planes down, sick) → Today (Events) → call rotation → Tomorrow → top 3 next steps → weather/fly/AQI → health → radar → money (net worth from NetWorthHistory, small, last). Sheet dates arrive as Date objects: always format with ymdOf/Utilities.formatDate, never String(date).slice.
 - Schedules: dailySync ~4 AM PT (calendar, Strava, rates, home value, net-worth snapshot, Radar, crypto, logbook, email brief);
-  weeklyVentures Mon ~4 AM (businesses), weeklyProperties DAILY ~5 AM (rentals, 2-40 units; 2 web searches/run).
+  weeklyVentures Mon ~4 AM (businesses), weeklyProperties DAILY ~5 AM (rentals; 3 web searches/run in parallel via UrlFetchApp.fetchAll — 2-4 units, 5-40 units, Winnemucca).
 - Tabs (7 domains): overview=Today, home=Money, ventures, flying, health, life=Home & Life, faith. Old keys
   (projects, vehicles, hobbies, family, travel) alias into Home & Life sections.
 - Brad's rules: hide anything with Stage Pass/Dead; no software/SaaS businesses; rentals (2-40 units) must cash-flow > $0 at today's
-  investor rate on some financing path (conventional/DSCR, commercial for 5+, seller financing if offered; cash over ~$190K = partners/hard money) at list or a days-on-market-capped offer and be within ~1 hr of Carson City; only verified-live listings.
+  investor rate on some financing path (conventional/DSCR, commercial for 5+, seller financing if offered; cash over ~$190K = partners/hard money) at list or a days-on-market-capped offer and be within ~1 hr of Carson City — EXCEPT Winnemucca (Brad already rents a house there; strong rent-to-price), where single-family
+  homes count too (1-40 units; isWmc_ in Ventures.js, also in the listing analyzer's judgeRental_); only verified-live listings.
 - This repo is PUBLIC. Never commit data.js, Code.js or other backend files, .clasprc.json, passwords, or personal financial data.
 - Brad doesn't code: work autonomously, explain in plain English, and only ask for things only he can do.
 - Who's flying (Flying tab, below go/no-go): live map of the planes Brad, Chelsea and friends fly. Data from FlightAware
