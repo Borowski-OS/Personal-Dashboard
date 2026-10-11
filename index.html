@@ -4475,7 +4475,7 @@ function analyzeResultHtml(r){
     x.price?money(x.price):'', x.days_on_market!=null?x.days_on_market+' days on market':'', x.drive_minutes?'~'+x.drive_minutes+' min from Carson':'', x.status&&x.status!=='active'?x.status:''].filter(has);
   h+='<div class="foot" style="margin:10px 0 4px;color:var(--text-muted)">'+esc(facts.join(' · '))+'</div>';
   if(v.paths&&v.paths.length){
-    h+='<div style="overflow-x:auto"><table class="tbl" style="margin-top:8px"><thead><tr><th>Financing</th><th class="num">Cash flow at list</th><th class="num">Break-even price</th><th class="num">Cash in</th><th class="num">DSCR</th></tr></thead><tbody>'
+    h+='<div style="overflow-x:auto"><table class="tbl" style="margin-top:8px"><thead><tr><th>Financing</th><th class="num">Cash flow at list</th><th class="num">'+(v.floor?'Price for +$'+v.floor+'/mo':'Break-even price')+'</th><th class="num">Cash in</th><th class="num">DSCR</th></tr></thead><tbody>'
       +v.paths.map(function(p){ return '<tr><td>'+esc(p.name)+' <span class="foot" style="color:var(--text-dim)">@ '+p.rate.toFixed(2)+'%</span></td>'
         +'<td class="num" style="color:'+(p.cfList>0?'var(--green)':'var(--red)')+'">'+money(p.cfList)+'/mo</td>'
         +'<td class="num">'+(p.breakeven?money(p.breakeven)+(p.needPct>0?' <span class="foot" style="color:var(--text-dim)">('+(p.needPct*100).toFixed(1)+'% off)</span>':''):'—')+'</td>'
@@ -5287,7 +5287,7 @@ function renderVentures(){
     + card('Analyze a listing','Paste any rental or business-for-sale link. Same math as the daily search: cash flow at today’s rates on every financing path, a days-on-market-capped offer, distance from Carson, and your buy-box rules.', analyzerBody(), '--indigo') + '<div style="height:22px"></div>' + pipelineCard() + '<div style="height:22px"></div>' + wiCard() + '<div style="height:22px"></div>'
     + card('Deal pipeline','Businesses for sale that fit your buy box — verified live, refreshed every Monday. Estimates: underwrite before trusting SDE.', dealsHtml, '--indigo')
     + '<div style="height:22px"></div>'
-    + card('Real Estate Investments','Rentals that cash-flow at today’s rates (at list or a days-on-market-capped offer): 2–40 units within an hour of Carson, plus houses and multifamily in Winnemucca.', propsHtml, '--teal')
+    + card('Real Estate Investments','Rentals that cash-flow at today’s rates (at list or a days-on-market-capped offer): 2–40 units within an hour of Carson, plus Winnemucca houses and multifamily that clear +$'+(num(kv('Config').wmc_min_cf)||300)+'/mo.', propsHtml, '--teal')
     + '<div style="height:22px"></div>'
     + '<div class="grid cols-2" style="margin-bottom:22px">' + acquisitionReadinessCard() + sideIncomeFunnelCard() + '</div>'
     + '<div class="grid cols-2" style="margin-bottom:22px">' + btcScenarioCard() + btcLadderCard() + '</div>'

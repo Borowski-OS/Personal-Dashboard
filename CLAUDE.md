@@ -14,7 +14,8 @@
   (projects, vehicles, hobbies, family, travel) alias into Home & Life sections.
 - Brad's rules: hide anything with Stage Pass/Dead; no software/SaaS businesses; rentals (2-40 units) must cash-flow > $0 at today's
   investor rate on some financing path (conventional/DSCR, commercial for 5+, seller financing if offered; cash over ~$190K = partners/hard money) at list or a days-on-market-capped offer and be within ~1 hr of Carson City — EXCEPT Winnemucca (Brad already rents a house there; strong rent-to-price), where single-family
-  homes count too (1-40 units; isWmc_ in Ventures.js, also in the listing analyzer's judgeRental_); only verified-live listings.
+  homes count too (1-40 units; isWmc_ in Ventures.js, also in the listing analyzer's judgeRental_) but a Winnemucca deal must clear
+  Config `wmc_min_cf` (Brad: +$300/mo; wmcMinCf_) to be listed, alerted or called GO; only verified-live listings.
 - This repo is PUBLIC. Never commit data.js, Code.js or other backend files, .clasprc.json, passwords, or personal financial data.
 - Brad doesn't code: work autonomously, explain in plain English, and only ask for things only he can do.
 - Who's flying (Flying tab, below go/no-go): live map of the planes Brad, Chelsea and friends fly. Data from FlightAware
