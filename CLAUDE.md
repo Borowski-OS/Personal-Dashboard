@@ -173,3 +173,6 @@
   (mailTriage) = one email at a time in the modal, keys r/e/j/k/t/o, swipe right = done / left = skip on phones; after a reply
   is saved/sent from triage, "Next email →" continues. List keys on the Mail tab: j/k select, r/e/t/o act, g triage, ? help.
   Today shows mailBar() (only when someone waits on a reply or an urgent item exists); it lazily runs mailLoad at most every 10 min.
+- Default folds (Oct 2026): FOLD_DEFAULT lists reference cards that start folded on Brad's view (vendor contacts, buy-boxes,
+  capital plan, codes/utilities/insurance look-ups, hunt point tables, points table, Mail's Teach/Connect). Opening one stores 0
+  in lifeos_folds so it stays open on that device. Chelsea's view never default-folds.
