@@ -1468,6 +1468,8 @@
   /* Round 9: link buttons (call/tel, outbound) get the same 36px touch height — they were inline, so min-height didn't apply */
   @media (pointer:coarse){ a.ebtn { display:inline-flex; align-items:center; justify-content:center; min-height:36px; box-sizing:border-box; vertical-align:middle; } }
   /* Round 9: phone — long auto-built step titles in "more on your list" clamp to two lines (full text on hover / screen reader / the tab it opens) */
+  /* Round 9: modifier classes for the most common inline .foot styles (same look) */
+  .foot.foot-dim { color:var(--text-dim); } .foot.foot-inline { display:inline; }
   @media (max-width:640px){ .mit-sm .mit-tx { display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; line-clamp:2; overflow:hidden; } }
 </style>
 </head>
@@ -1643,7 +1645,7 @@ function flyingOutlookCard(){
     var wind=fcWindMax(p.wind), wet=p.precip>=40, storm=/rain|snow|thunder|storm/i.test(p.sky);
     var flyable = wind<18 && !wet && !storm;
     var badge = flyable? '<span class="tag active">fly</span>' : (wind>=25||storm? '<span class="tag" style="color:var(--rose);border:1px solid var(--rose)">no-go</span>' : '<span class="tag" style="color:var(--amber);border:1px solid var(--amber)">marginal</span>');
-    return '<div class="kv-row"><span class="k">'+badge+' <strong>'+esc(p.name)+'</strong> <span class="foot" style="color:var(--text-dim)">'+esc(p.sky)+'</span></span>'
+    return '<div class="kv-row"><span class="k">'+badge+' <strong>'+esc(p.name)+'</strong> <span class="foot foot-dim">'+esc(p.sky)+'</span></span>'
       +'<span class="v mono" style="font-size:12.5px">'+p.temp+'°'+p.unit+' · '+esc(p.wind)+(p.precip?' · '+p.precip+'% pcp':'')+'</span></div>';
   }).join('');
   var best=days.filter(function(p){return fcWindMax(p.wind)<18 && p.precip<40 && !/rain|snow|thunder|storm/i.test(p.sky);});
@@ -2576,7 +2578,7 @@ function ventureBestBetsCard(){
   var side=(coach*(f('Coaching $/mo each')||400))+(web*(f('Church web $/mo each')||125));
   var row=function(icon,label,title,sub){ return '<div class="kv-row" style="cursor:pointer;align-items:flex-start" onclick="navGo(\'ventures\')"><span class="k" style="min-width:0">'
     +'<span class="foot" style="display:block;letter-spacing:.06em;text-transform:uppercase;color:var(--text-dim)">'+icon+' '+label+'</span>'
-    +'<strong>'+title+'</strong>'+(sub?'<div class="foot" style="color:var(--text-dim)">'+sub+'</div>':'')+'</span></div>'; };
+    +'<strong>'+title+'</strong>'+(sub?'<div class="foot foot-dim">'+sub+'</div>':'')+'</span></div>'; };
   var out='';
   out+= deal ? row('📈','Business to buy',esc(deal.Name)+(has(deal.Location)?' · '+esc(deal.Location):''),
       [has(deal.Price)?money(deal.Price)+' ask':'', has(deal.SDE)?money(deal.SDE)+' SDE':'', has(deal.CashNeeded)?'~'+money(deal.CashNeeded)+' cash in':'', has(deal.MonthlyNet)?'~'+money(deal.MonthlyNet)+'/mo net':'', has(deal.Stage)?esc(deal.Stage):''].filter(Boolean).join(' · ')+'<br>'+splitVerified(deal.Notes).badge)
@@ -2610,7 +2612,7 @@ function btcScenarioCard(){
     var q=num(kv('Config').btc_qty), rest=spot&&q?Math.max(0,crypto-q*spot):0;   // non-BTC crypto (SOL) held flat
     var proj = q ? Math.round(q*p+rest) : (spot? Math.round(crypto*(p/spot)) : null);
     var trim = proj? Math.round(proj*0.5) : null;   // illustrative: trim ~half at the rung
-    return '<div class="kv-row"><span class="k">At $'+ (p/1000>=1000?(p/1e6)+'M':(p/1000)+'k') +'/BTC</span><span class="v mono">'+(proj!=null?money(proj)+' <span class="foot" style="color:var(--text-dim)">· trim ~'+money(trim)+'</span>':'—')+'</span></div>';
+    return '<div class="kv-row"><span class="k">At $'+ (p/1000>=1000?(p/1e6)+'M':(p/1000)+'k') +'/BTC</span><span class="v mono">'+(proj!=null?money(proj)+' <span class="foot foot-dim">· trim ~'+money(trim)+'</span>':'—')+'</span></div>';
   }).join('');
   var head='<div class="kv-row"><span class="k">Crypto position now</span><span class="v mono">'+money(crypto)+'</span></div>'
     +'<div class="kv-row"><span class="k">BTC spot (live)</span><span class="v mono" '+(spot?'':'data-live="btc"')+'>'+(spot?'$'+Math.round(spot).toLocaleString():'…')+'</span></div>';
@@ -2881,7 +2883,7 @@ function renderHome(){
 /* Home & Life: everything about the household that isn't money */
 /* ---------- Points game plan: best transfer partners for Brad's actual trips (RNO home; FL family, AK trip, Tahoe, western hunts) ---------- */
 function pointsPlanCard(points){
-  var bal=function(re){ var r=points.filter(function(p){ return re.test(String(p.Program||'')); })[0]; var n=r?num(r.Balance):NaN; return isNaN(n)?'':' <span class="foot" style="color:var(--text-dim)">('+Math.round(n).toLocaleString()+')</span>'; };
+  var bal=function(re){ var r=points.filter(function(p){ return re.test(String(p.Program||'')); })[0]; var n=r?num(r.Balance):NaN; return isNaN(n)?'':' <span class="foot foot-dim">('+Math.round(n).toLocaleString()+')</span>'; };
   var goal=function(t,how,why){ return '<div style="padding:10px 0;border-bottom:1px solid var(--card-border)"><div style="font-weight:700">'+t+'</div><div style="margin-top:3px">'+how+'</div><div class="foot" style="color:var(--text-dim);margin-top:3px">'+why+'</div></div>'; };
   var cur=function(t,rows){ return '<div class="kv-row"><span class="k"><b>'+t+'</b></span><span class="v" style="max-width:62%;text-align:right">'+rows+'</span></div>'; };
   var body=''
@@ -2948,7 +2950,7 @@ function renderBills(){
 
   var contacts = arr('Contacts');
   var cc = [
-    {label:'Name', render:function(r){return '<strong>'+esc(r.Name)+'</strong>'+(has(r.Company)?'<div class="foot" style="color:var(--text-dim)">'+esc(r.Company)+'</div>':'');}},
+    {label:'Name', render:function(r){return '<strong>'+esc(r.Name)+'</strong>'+(has(r.Company)?'<div class="foot foot-dim">'+esc(r.Company)+'</div>':'');}},
     {label:'Category', render:function(r){return has(r.Category)?'<span class="chip">'+esc(r.Category)+'</span>':'';}},
     {label:'Phone', render:function(r){return has(r.Phone)?'<a class="tel" href="'+telHref(r.Phone)+'">'+esc(r.Phone)+'</a>':'';}},
     {label:'Email', render:function(r){return has(r.Email)?'<a class="tel" href="mailto:'+esc(r.Email)+'">'+esc(r.Email)+'</a>':'';}},
@@ -4181,7 +4183,7 @@ function airportsHtml(){
       : '';
     return '<div class="card ap-card'+(icao==='KMEV'?' ap-home':'')+'" style="border-top:3px solid var(--sky)">'
       +'<div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px"><h2 style="font-size:16px">'+esc(icao)+' <span class="foot" style="font-weight:400">'+esc(a.Name||'')+'</span></h2>'+badge+'</div>'
-      +'<div style="margin-top:8px;font-size:13.5px;color:var(--text)">'+esc(wx)+(b.proxied?' <span class="foot" style="color:var(--text-dim)">@ '+esc(b.station)+'</span>':'')+'</div>'
+      +'<div style="margin-top:8px;font-size:13.5px;color:var(--text)">'+esc(wx)+(b.proxied?' <span class="foot foot-dim">@ '+esc(b.station)+'</span>':'')+'</div>'
       +proxyNote+noneNote
       +((icao==='KMEV'&&LIVE.kmevNws)?'<div class="foot" style="margin-top:6px;color:var(--text-dim)">'+esc(nwsNowLine())+' <span>(model)</span></div>':'')
       +((freq||ph)?'<div class="kv-row" style="margin-top:8px"><span class="k">'+esc(freq)+'</span><span class="v">'+ph+(EDIT?' '+editBtn('Airports',a.__row):'')+'</span></div>':(EDIT?'<div style="margin-top:8px">'+editBtn('Airports',a.__row)+'</div>':''))
@@ -4238,7 +4240,7 @@ function btcLadderCard(){
     var pct = spot? Math.min(100, Math.round(spot/r.p*100)) : 0;
     var moveTxt = spot? (spot>=r.p? '<span style="color:var(--green)">reached ✓</span>' : '+'+Math.round((r.p/spot-1)*100)+'% to go') : '';
     var proceeds = (spot && !isNaN(qty)) ? ' · ~'+money(qty*r.p)+' if you hold '+qty+' BTC' : '';
-    return '<div style="margin-top:14px"><div style="display:flex;justify-content:space-between;font-size:13.5px"><span><strong>'+r.label+'</strong> <span class="foot" style="color:var(--text-dim)">'+r.note+'</span></span><span class="mono">'+moveTxt+'</span></div>'
+    return '<div style="margin-top:14px"><div style="display:flex;justify-content:space-between;font-size:13.5px"><span><strong>'+r.label+'</strong> <span class="foot foot-dim">'+r.note+'</span></span><span class="mono">'+moveTxt+'</span></div>'
       +'<div class="bar"><span style="width:'+pct+'%"></span></div>'
       +'<div class="foot">$'+r.p.toLocaleString()+' target'+proceeds+'</div></div>';
   }).join('');
@@ -4275,7 +4277,7 @@ function budgetPlanHtml(){
           +(series.length>1?'<span style="flex:1;max-width:140px">'+sparkline(series,dcol)+'</span>':'<span style="flex:1"></span>')
           +'<span class="foot mono" style="color:var('+dcol+')">'+pct+'% of budget'+(over?' · over by '+money(a-b):(under?' · room to spend':' · on track'))+'</span></div>';
       }
-      return '<div style="padding:7px 0;border-bottom:1px solid var(--card-border)"><div style="display:flex;justify-content:space-between;gap:10px;font-size:13.5px"><span>'+esc(c.Category)+(has(c.Notes)?' <span class="foot" style="color:var(--text-dim)">'+esc(c.Notes)+'</span>':'')+'</span>'+right+'</div>'+trend+'</div>';
+      return '<div style="padding:7px 0;border-bottom:1px solid var(--card-border)"><div style="display:flex;justify-content:space-between;gap:10px;font-size:13.5px"><span>'+esc(c.Category)+(has(c.Notes)?' <span class="foot foot-dim">'+esc(c.Notes)+'</span>':'')+'</span>'+right+'</div>'+trend+'</div>';
     };
     // over-budget lines stay visible; the rest fold away so the list scans in seconds
     var isOver=function(c){ var a=num(c.MonthlyActual), bb=num(c.MonthlyBudget)||0; return !isNaN(a)&&a>bb*1.05; };
@@ -4317,7 +4319,7 @@ function rentalReturnHtml(r){
   var monthly=apprec+cash+principal+taxSave, yearly=monthly*12;
   var years=2045-(new Date().getFullYear());
   var projValue=value*Math.pow(1+appPct, years);
-  function row(k,v,note){ return '<div class="kv-row"><span class="k">'+k+(note?' <span class="foot" style="color:var(--text-dim)">'+note+'</span>':'')+'</span><span class="v mono">'+money(Math.round(v))+'/mo</span></div>'; }
+  function row(k,v,note){ return '<div class="kv-row"><span class="k">'+k+(note?' <span class="foot foot-dim">'+note+'</span>':'')+'</span><span class="v mono">'+money(Math.round(v))+'/mo</span></div>'; }
   var body=row('Appreciation', apprec, appPct*100+'% on '+money(value))
     +row('Cash flow', cash, 'rent − all costs')
     +row('Debt paydown', principal, 'principal portion; grows monthly')
@@ -4371,7 +4373,7 @@ function rothEligibilityCard(){ var I=taxInputs(), t=I.t, n=I.n; if(!(n('chelsea
   var sliders='<div class="rs-sim"><div class="section-title" style="margin:10px 0 4px">What if…</div>'
     +'<div class="rs-sl"><label>Chelsea’s bonus <span class="mono" id="rs-bonus-v">'+money(c.bonusMo)+'/mo</span></label><input type="range" id="rs-bonus" min="0" max="5000" step="100" value="'+Math.round(c.bonusMo)+'" oninput="rothSim()"></div>'
     +'<div class="rs-sl"><label>Usable housing allowance <span class="mono" id="rs-housing-v">'+money(c.housing)+'/yr</span></label><input type="range" id="rs-housing" min="0" max="'+Math.max(80000,Math.round(n('brad_housing_designated')||78000))+'" step="1000" value="'+Math.round(c.housing)+'" oninput="rothSim()"></div>'
-    +'<div class="foot" style="color:var(--text-dim)">Sliders only preview; they don’t save. Edit the real inputs on the Taxes tab.</div></div>';
+    +'<div class="foot foot-dim">Sliders only preview; they don’t save. Edit the real inputs on the Taxes tab.</div></div>';
   function chk(id,title,sub){ var done=truthy(t[id]); return '<div class="tax-move'+(done?' done':'')+'"><label class="tm-chk"><input type="checkbox"'+(done?' checked':'')+' onchange="taxSaveKv(\''+id+'\',this.checked?\'yes\':\'\')"></label><div class="tm-body"><div class="tm-t">'+title+'</div>'+(sub?'<div class="tm-s">'+sub+'</div>':'')+'</div></div>'; }
   var list=chk('move_roth_chelsea','Fund Chelsea’s Roth IRA for 2026 — '+money(TAX26.ira),'Opened, unfunded. Any time until Apr 15, 2027; she has no pre-tax IRA, so a backdoor stays clean if ever needed.')
     +chk('move_roth_brad','Fund Brad’s Roth IRA for 2026 — '+money(TAX26.ira),'Same deadline. Balance about '+money(num((arr('Investments').filter(function(x){return /roth/i.test(String(x.Name)+' '+String(x.Type));})[0]||{}).Value)||0)+'.')
@@ -4437,10 +4439,10 @@ function renderMoney(){
   // Budget vs actual bars by category
   var budgetHtml = budgetPlanHtml();
 
-  var acctCols=[{label:'Account',render:function(r){return '<strong>'+esc(r.Name)+'</strong>'+(has(r.Institution)?' <span class="foot" style="color:var(--text-dim)">'+esc(r.Institution)+'</span>':'')+(has(r.Last4)?' <span class="mono" style="color:var(--text-dim)">…'+esc(r.Last4)+'</span>':'');}},
+  var acctCols=[{label:'Account',render:function(r){return '<strong>'+esc(r.Name)+'</strong>'+(has(r.Institution)?' <span class="foot foot-dim">'+esc(r.Institution)+'</span>':'')+(has(r.Last4)?' <span class="mono" style="color:var(--text-dim)">…'+esc(r.Last4)+'</span>':'');}},
     {label:'Type',render:function(r){return has(r.Type)?'<span class="chip">'+esc(r.Type)+'</span>':'';}},
     {label:'Balance',num:true,render:function(r){return money(r.Balance,2);}}];
-  var debtCols=[{label:'Debt',render:function(r){return '<strong>'+esc(r.Name)+'</strong>'+(has(r.Lender)?' <span class="foot" style="color:var(--text-dim)">'+esc(r.Lender)+'</span>':'');}},
+  var debtCols=[{label:'Debt',render:function(r){return '<strong>'+esc(r.Name)+'</strong>'+(has(r.Lender)?' <span class="foot foot-dim">'+esc(r.Lender)+'</span>':'');}},
     {label:'Type',render:function(r){return has(r.Type)?'<span class="chip">'+esc(r.Type)+'</span>':'';}},
     {label:'Rate',num:true,render:function(r){ if(!has(r.Rate)) return ''; var n=num(r.Rate); if(isNaN(n)) return esc(r.Rate); if(n<1) n=n*100; return n.toFixed(2)+'%'; }},
     {label:'Payment',num:true,render:function(r){return money(r.Payment);}},
@@ -4646,7 +4648,7 @@ function propCardHtml(r){
     +'<div class="deal-k">'+k('List',money(r.Price))+k('Cash flow',isNaN(cf)?'—':'<span style="color:'+(cf>0?'var(--green)':'var(--red)')+'">'+money(cf)+'/mo</span>')+k('Cap',esc(r.CapRate||'—'))+k('Cash in',money(r.CashNeeded))+k('5-yr equity',esc(r.Appreciation5yr||'—'))+'</div>'
     +(has(r.Financing)?'<div class="deal-notes" style="margin-bottom:6px"><b>Financing:</b> '+esc(r.Financing)+'</div>':'')
     +'<div class="deal-notes">'+linkify(sv.text)+'</div>'
-    +'<div class="deal-f">'+sv.badge+(has(r.FirstSeen)?'<span class="foot" style="color:var(--text-dim)">first seen '+esc(prettyIso(String(r.FirstSeen)))+'</span>':'')+(EDIT?editBtn('Properties',r.__row):'')+'</div></div>'; }
+    +'<div class="deal-f">'+sv.badge+(has(r.FirstSeen)?'<span class="foot foot-dim">first seen '+esc(prettyIso(String(r.FirstSeen)))+'</span>':'')+(EDIT?editBtn('Properties',r.__row):'')+'</div></div>'; }
 
 /* ---------- Paste-a-listing analyzer + pipeline (Watching → Analyzing → Offer made → Pass) ---------- */
 var ANALYZE={busy:false, res:null, url:''};
@@ -4669,9 +4671,9 @@ function analyzeResultHtml(r){
   h+='<div class="foot" style="margin:10px 0 4px;color:var(--text-muted)">'+esc(facts.join(' · '))+'</div>';
   if(v.paths&&v.paths.length){
     h+='<div style="overflow-x:auto"><table class="tbl" style="margin-top:8px"><thead><tr><th>Financing</th><th class="num">Cash flow at list</th><th class="num">'+(v.floor?'Price for +$'+v.floor+'/mo':'Break-even price')+'</th><th class="num">Cash in</th><th class="num">DSCR</th></tr></thead><tbody>'
-      +v.paths.map(function(p){ return '<tr><td>'+esc(p.name)+' <span class="foot" style="color:var(--text-dim)">@ '+p.rate.toFixed(2)+'%</span></td>'
+      +v.paths.map(function(p){ return '<tr><td>'+esc(p.name)+' <span class="foot foot-dim">@ '+p.rate.toFixed(2)+'%</span></td>'
         +'<td class="num" style="color:'+(p.cfList>0?'var(--green)':'var(--red)')+'">'+money(p.cfList)+'/mo</td>'
-        +'<td class="num">'+(p.breakeven?money(p.breakeven)+(p.needPct>0?' <span class="foot" style="color:var(--text-dim)">('+(p.needPct*100).toFixed(1)+'% off)</span>':''):'—')+'</td>'
+        +'<td class="num">'+(p.breakeven?money(p.breakeven)+(p.needPct>0?' <span class="foot foot-dim">('+(p.needPct*100).toFixed(1)+'% off)</span>':''):'—')+'</td>'
         +'<td class="num">'+money(p.cash)+'</td><td class="num">'+p.dscr+'</td></tr>'; }).join('')+'</tbody></table></div>'
       +'<div class="foot" style="margin-top:6px;color:var(--text-dim)">Investor rate '+v.rate+'% base · offer cap '+v.offerCapPct+'% for its days on market · rents '+esc(x.rent_source||'estimate')+'</div>';
   }
@@ -4941,7 +4943,7 @@ function renderChelseaHome(){
   var tripHtml=trips.length?trips.map(function(t){ return '<div class="kv-row"><span class="k">'+esc(t.Trip||t.Destination)+'</span><span class="v">'+esc(String(t.StartDate).slice(0,10))+'</span></div>'; }).join(''):'<div class="empty">No trips planned.</div>';
   var tasks=arr('ProjectTasks').filter(function(t){return !truthy(t.Done);});
   var taskHtml=tasks.length?tasks.slice(0,12).map(function(t){ var full={}; Object.keys(t).forEach(function(k){ if(k!=='__row') full[k]=t[k]; }); full.Done='TRUE';
-      return '<div class="kv-row"><span class="k"><button class="ebtn" style="padding:2px 8px;margin-right:8px" onclick=\'saveRowNow("ProjectTasks",'+t.__row+','+esc(JSON.stringify(full))+')\'>✓</button>'+esc(t.Task)+' <span class="foot" style="display:inline;color:var(--text-dim)">'+esc(t.Project||'')+'</span></span><span class="v">'+(has(t.Due)?esc(String(t.Due).slice(0,10)):'')+'</span></div>'; }).join('')
+      return '<div class="kv-row"><span class="k"><button class="ebtn" style="padding:2px 8px;margin-right:8px" onclick=\'saveRowNow("ProjectTasks",'+t.__row+','+esc(JSON.stringify(full))+')\'>✓</button>'+esc(t.Task)+' <span class="foot foot-dim foot-inline">'+esc(t.Project||'')+'</span></span><span class="v">'+(has(t.Due)?esc(String(t.Due).slice(0,10)):'')+'</span></div>'; }).join('')
     :'<div class="empty">No open project tasks.</div>';
   return '<div class="grid cols-2" style="margin-bottom:22px">'+card('This week',"What's on the calendar.", evHtml)+card('Bills due soon','Next two weeks.', billHtml)+'</div>'
     +'<div class="grid cols-2" style="margin-bottom:22px">'+card('Home projects','Open tasks. Tap ✓ when done.', taskHtml)+card('Trips','Coming up.', tripHtml)+'</div>'
@@ -5059,10 +5061,10 @@ function maintenanceCard(){
     var known=o.items.filter(function(i){return i.status!=='unknown';}).sort(function(a,b){ var r={over:0,soon:1,ok:2}; return r[a.status]-r[b.status] || (a.days||0)-(b.days||0); });
     var unknown=o.items.filter(function(i){return i.status==='unknown';});
     var row=function(i){ var t=tone[i.status], when=i.status==='unknown'?'':(i.dueAt?'due ~'+i.dueAt.toLocaleString()+' mi':'')+(i.dLeft!=null?(i.dueAt?' or ':'due ')+shortDay(ymd(new Date(Date.now()+i.dLeft*864e5))):'');
-      return '<div class="kv-row"><span class="k"><span style="color:'+t[0]+'">●</span> '+esc(i.name)+(i.last?' <span class="foot" style="display:inline;color:var(--text-dim)">last '+esc(shortDay(ymd(i.last.d)))+(i.last.m?' @ '+i.last.m.toLocaleString():'')+'</span>':'')+'</span>'
-        +'<span class="v"><span style="color:'+t[0]+'">'+t[1]+'</span>'+(when?' <span class="foot" style="display:inline;color:var(--text-dim)">'+esc(when)+'</span>':'')
+      return '<div class="kv-row"><span class="k"><span style="color:'+t[0]+'">●</span> '+esc(i.name)+(i.last?' <span class="foot foot-dim foot-inline">last '+esc(shortDay(ymd(i.last.d)))+(i.last.m?' @ '+i.last.m.toLocaleString():'')+'</span>':'')+'</span>'
+        +'<span class="v"><span style="color:'+t[0]+'">'+t[1]+'</span>'+(when?' <span class="foot foot-dim foot-inline">'+esc(when)+'</span>':'')
         +' <button class="ebtn" style="padding:2px 8px;margin-left:6px" title="Mark done today" onclick="maintDone(\''+esc(vname).replace(/'/g,"\\'")+'\',\''+esc(i.name)+'\','+(o.est||0)+')">✓</button></span></div>'; };
-    return '<div class="maint-v"><div class="maint-h"><div><b>'+esc(vehName(o.v))+'</b><div class="foot" style="color:var(--text-dim)">~'+(o.est!=null?o.est.toLocaleString():'?')+' mi now · '+(o.fromLog?Math.round(o.perDay*30.4).toLocaleString()+' mi/mo from your log':'assumes ~1,000 mi/mo until two readings are logged')+'</div></div>'
+    return '<div class="maint-v"><div class="maint-h"><div><b>'+esc(vehName(o.v))+'</b><div class="foot foot-dim">~'+(o.est!=null?o.est.toLocaleString():'?')+' mi now · '+(o.fromLog?Math.round(o.perDay*30.4).toLocaleString()+' mi/mo from your log':'assumes ~1,000 mi/mo until two readings are logged')+'</div></div>'
       +'<button class="ebtn" onclick="maintMileage(\''+esc(vname).replace(/'/g,"\\'")+'\','+o.v.__row+','+(o.est||0)+')">Update mileage</button></div>'
       +known.map(row).join('')
       +(unknown.length?'<details class="bud-more" style="margin-top:6px"><summary>'+unknown.length+' items with no service record yet: tap ✓ when done to start tracking</summary>'+unknown.map(row).join('')+'</details>':'')+'</div>'; }).join('');
@@ -5133,7 +5135,7 @@ function wiCard(){
 }
 function wiRun(){
   var out=$('wiOut'); if(!out) return; var w=wiLoad(), px=LIVE.btc||num(kv('Config').btc_price)||0;
-  if(!px){ out.innerHTML='<div class="foot" style="color:var(--text-dim)">Waiting for the live Bitcoin price…</div>'; return; }
+  if(!px){ out.innerHTML='<div class="foot foot-dim">Waiting for the live Bitcoin price…</div>'; return; }
   var sell=Math.min(w.btc, num(kv('Config').btc_qty)||w.btc), gross=sell*px, tax=Math.max(0,(px-w.basis)*sell)*0.15, net=gross-tax;
   var mine=Math.min(net, w.cash), partner=Math.max(0, w.cash-mine), share=w.cash>0?mine/w.cash:1, leftover=net-mine;
   var loan=w.re?w.price*(1-w.down/100):w.price*0.9, r=(w.re?w.rate:10.5)/100/12, n=(w.re?25:10)*12, pi=loan*r/(1-Math.pow(1+r,-n));
@@ -5178,7 +5180,7 @@ function callBar(){
   var today=ymd(laNow()), p=callFor(today), sch=callSchedule(5), called=p&&String(p.LastCalled||'').slice(0,10)===today;
   var next=sch.filter(function(x){return x.date>today;}).slice(0,3).map(function(x){ return '<span>'+esc(shortDay(x.date).split(',')[0])+': <b>'+esc(x.p.Name)+'</b></span>'; }).join('');
   var main=p ? (called?'<span style="color:var(--green)">✓</span> Called <b>'+esc(p.Name)+'</b> today.'
-      : '📞 On your way to work, call <b>'+esc(p.Name)+'</b>'+(p.Relation&&p.Relation!==p.Name?' <span class="foot" style="display:inline;color:var(--text-dim)">'+esc(p.Relation)+'</span>':''))
+      : '📞 On your way to work, call <b>'+esc(p.Name)+'</b>'+(p.Relation&&p.Relation!==p.Name?' <span class="foot foot-dim foot-inline">'+esc(p.Relation)+'</span>':''))
     : '📞 Next drive-in call: <b>'+esc(sch[0]?sch[0].p.Name:'—')+'</b>'+(sch[0]?' on '+esc(shortDay(sch[0].date)):'');
   var btns=p&&!called?telLink(p,'Call '+String(p.Name).split(' ')[0])+'<button class="ebtn" onclick="markCalled('+p.__row+')">✓ Called</button>':'';
   return '<div class="call-bar"><div class="call-main">'+main+'</div><div class="call-btns">'+btns+'</div>'+(next?'<div class="call-next">Up next · '+next+'</div>':'')+'</div>';
@@ -5200,9 +5202,9 @@ function mailBar(){
 function callRotationCard(){
   var ps=callPeople(), sch=callSchedule(12), nextFor={};
   sch.forEach(function(x){ if(!nextFor[x.p.__row]) nextFor[x.p.__row]=x.date; });
-  var list=ps.length?ps.map(function(p){ return '<div class="kv-row"><span class="k"><b>'+esc(p.Name)+'</b>'+(p.Relation&&p.Relation!==p.Name?' <span class="foot" style="display:inline;color:var(--text-dim)">'+esc(p.Relation)+'</span>':'')
+  var list=ps.length?ps.map(function(p){ return '<div class="kv-row"><span class="k"><b>'+esc(p.Name)+'</b>'+(p.Relation&&p.Relation!==p.Name?' <span class="foot foot-dim foot-inline">'+esc(p.Relation)+'</span>':'')
       +(has(p.Phone)?' · <a class="tel" href="tel:'+esc(String(p.Phone).replace(/[^\d+]/g,''))+'">'+esc(p.Phone)+'</a>':' · <span class="foot" style="display:inline;color:var(--amber)">add phone</span>')+'</span>'
-      +'<span class="v">'+(nextFor[p.__row]?'next '+esc(shortDay(nextFor[p.__row])):'')+(has(p.LastCalled)?' <span class="foot" style="display:inline;color:var(--text-dim)">· last '+esc(shortDay(p.LastCalled))+'</span>':'')+' '+editBtn('Calls',p.__row)+'</span></div>'; }).join('')
+      +'<span class="v">'+(nextFor[p.__row]?'next '+esc(shortDay(nextFor[p.__row])):'')+(has(p.LastCalled)?' <span class="foot foot-dim foot-inline">· last '+esc(shortDay(p.LastCalled))+'</span>':'')+' '+editBtn('Calls',p.__row)+'</span></div>'; }).join('')
     :'<div class="empty">No one in the rotation yet.</div>';
   var cal=sch.map(function(x){ return '<div class="call-day"><span>'+esc(shortDay(x.date))+'</span><b>'+esc(x.p.Name)+'</b></div>'; }).join('');
   return card('Drive-in call rotation','One call each work day (Mon–Thu) on the way to work, rotating through everyone in order. With '+ps.length+' people, each person gets a call about every '+(ps.length/4).toFixed(1).replace('.0','')+' weeks. Add or pause people with ✎ Edit (Active = no pauses someone).',
@@ -5397,7 +5399,7 @@ function renderTaxes(){
     return '<div class="tax-move'+(done?' done':'')+(m.urgent?' urgent':'')+'"><label class="tm-chk"><input type="checkbox"'+(done?' checked':'')+' onchange="taxSaveKv(\'move_'+m.id+'\',this.checked?\'yes\':\'\')"></label>'
       +'<div class="tm-body"><div class="tm-t">'+esc(m.title)+'</div><div class="tm-s">'+esc(m.save)+'</div><details><summary>How</summary><div class="tm-h">'+esc(m.how)+'</div></details></div>'
       +'<div class="tm-d">'+esc(m.due||'')+'</div></div>'; }).join('');
-  var L=function(k,v,sub,cls){ return '<div class="kv-row'+(cls?' '+cls:'')+'"><span class="k">'+k+(sub?' <span class="foot" style="display:inline;color:var(--text-dim)">'+sub+'</span>':'')+'</span><span class="v">'+v+'</span></div>'; };
+  var L=function(k,v,sub,cls){ return '<div class="kv-row'+(cls?' '+cls:'')+'"><span class="k">'+k+(sub?' <span class="foot foot-dim foot-inline">'+sub+'</span>':'')+'</span><span class="v">'+v+'</span></div>'; };
   var lines=''
     +'<div class="section-title" style="margin:0 0 4px">Income</div>'
     +L('Chelsea wages', taxMoney(r.chelseaWages))
@@ -5450,7 +5452,7 @@ function renderTaxes(){
     + '<div class="grid cols-2" style="margin-bottom:22px">'+card('Lahontan rental (Schedule E)','What the IRS sees for the rental.', rental)+card('Your numbers','Change anything and the estimate updates. Saved to the Tax tab in your Life OS sheet.', form)+'</div>'
     + '<div class="grid cols-2" style="margin-bottom:22px">'+card('Deadlines','', deadlines)+card('Other notes','Older moves and reminders.', movesHtml, '--accent')+'</div>'
     + '</details>'
-    + '<p class="foot" style="color:var(--text-dim)">Planning estimate using 2026 IRS numbers (brackets, $32,200 standard deduction, $40,400 SALT cap, 0.5% giving floor, $7,500 IRA / $24,500 403(b) limits). It isn’t tax advice. Minister taxes have special rules, so confirm the big items with a clergy-savvy CPA. '
+    + '<p class="foot foot-dim">Planning estimate using 2026 IRS numbers (brackets, $32,200 standard deduction, $40,400 SALT cap, 0.5% giving floor, $7,500 IRA / $24,500 403(b) limits). It isn’t tax advice. Minister taxes have special rules, so confirm the big items with a clergy-savvy CPA. '
     + (has(kv('Config').budget_sheet_url)?'<a href="'+esc(kv('Config').budget_sheet_url)+'" target="_blank" rel="noopener">Open your budget sheet ↗</a>':'')+'</p>';
 }
 function taxAlerts(){ try{ if(ROLE==='chelsea'||!Object.keys(kv('Tax')).length) return []; var r=taxCalc(), out=[];
@@ -5577,7 +5579,7 @@ function renderHobbies(){
   if(dlFuture.length){
     deadlineCard='<div style="height:22px"></div>'+card('⏳ Application deadlines','Draw applications, soonest first — apply before these dates.',
       dlFuture.map(function(x){ var soon=x.d<=30;
-        return '<div class="kv-row"><span class="k">'+(soon?'⚠ ':'')+'<strong>'+esc(x.h.Species)+'</strong> · '+esc(x.h.State)+' <span class="foot" style="color:var(--text-dim)">'+esc(x.h.Method||'')+'</span></span>'
+        return '<div class="kv-row"><span class="k">'+(soon?'⚠ ':'')+'<strong>'+esc(x.h.Species)+'</strong> · '+esc(x.h.State)+' <span class="foot foot-dim">'+esc(x.h.Method||'')+'</span></span>'
           +'<span class="v '+dueClass(x.d)+'">'+esc(x.h.Deadline)+(x.d>=0?' · '+fmtDue(x.d):' · closed')+'</span></div>';
       }).join(''),'--violet');
   }
@@ -5782,7 +5784,7 @@ function teslaWatchCard(){
   var firedN=TESLA_TRIGGERS.filter(function(t){return has(cfg['tesla_fired_'+t.id]);}).length, upd=cfg.tesla_watch_updated;
   var sub=(firedN?firedN+' trigger'+(firedN===1?'':'s')+' fired':'No triggers fired')+(next?' · next: '+next.t.toLowerCase()+' '+fmtDue(next.d):'')+' · a danger means order early to lock in.';
   var foot='<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-top:8px">'
-    +'<span class="foot" style="color:var(--text-dim)">Last updated '+(has(upd)?esc(prettyIso(String(upd)).slice(0,24)):'—')+' · '+statusTag(vehStatus(v))+'</span>'
+    +'<span class="foot foot-dim">Last updated '+(has(upd)?esc(prettyIso(String(upd)).slice(0,24)):'—')+' · '+statusTag(vehStatus(v))+'</span>'
     +'<span style="display:flex;gap:6px;flex-wrap:wrap"><button class="ebtn" onclick="teslaChecked()">Checked today, no change</button><button class="ebtn" onclick="navGo(\'vehicles\')">Open vehicle →</button></span></div>';
   var body='<div class="grid cols-3" style="gap:14px">'
     +'<div><div class="tw-h" style="color:var(--red)">Dangers — act fast</div>'+dangers+'</div>'
@@ -6215,7 +6217,7 @@ function renderFaith(){
     var flame=streak>0?('🔥 '+streak+(streak===1?'d':'d')):'—';
     return '<div class="kv-row" style="align-items:center"><span class="k"><strong>'+esc(h.Practice)+'</strong>'
       +(has(h.Cadence)?' <span class="chip">'+esc(h.Cadence)+'</span>':'')
-      +(has(h.Notes)?'<div class="foot" style="color:var(--text-dim)">'+esc(h.Notes)+'</div>':'')+'</span>'
+      +(has(h.Notes)?'<div class="foot foot-dim">'+esc(h.Notes)+'</div>':'')+'</span>'
       +'<span class="v" style="display:flex;gap:10px;align-items:center"><span class="mono" style="color:'+(streak>0?'var(--orange)':'var(--text-dim)')+'">'+flame+'</span>'
       +'<button class="ebtn'+(doneT?'':' pri')+'" onclick="habitDidToday('+h.__row+')"'+(doneT?' disabled style="opacity:.5"':'')+'>'+(doneT?'✓ done':'✓ today')+'</button>'
       +editBtn('Habits',h.__row)+'</span></div>';
@@ -6288,7 +6290,7 @@ function renderTravel(){
       'Your points & miles valued at typical redemption rates (cents per point). Real value swings with how you redeem.',
       '<div class="grid cols-2" style="margin-bottom:16px">'+statTile('Total value', money(walletTotal), valued.length+' programs with a balance')
         +statTile('Biggest', valued.length?esc(valued[0].prog):'—', valued.length?money(valued[0].val):'')+'</div>'
-      + valued.map(function(v){return '<div class="kv-row"><span class="k">'+esc(v.prog)+' <span class="foot" style="color:var(--text-dim)">'+v.bal.toLocaleString()+' pts @ '+v.cpp+'¢</span></span><span class="v mono">'+money(v.val)+'</span></div>';}).join(''),'--cyan')
+      + valued.map(function(v){return '<div class="kv-row"><span class="k">'+esc(v.prog)+' <span class="foot foot-dim">'+v.bal.toLocaleString()+' pts @ '+v.cpp+'¢</span></span><span class="v mono">'+money(v.val)+'</span></div>';}).join(''),'--cyan')
       +'<div style="height:22px"></div>';
   }
   out+='<div style="height:22px"></div>'+walletCard+pointsPlanCard(points)+'<div style="height:22px"></div>'+card('Points & miles','', tableEl(pointsCols, points, {editTab:'Points'}), '--cyan');
