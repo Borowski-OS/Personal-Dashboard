@@ -3548,8 +3548,9 @@ function xcMapHint(){ var h=XC.el&&XC.el.querySelector('.xc-maphint'); if(!h||!X
    which holds the key, caches answers and enforces a monthly spending cap.
    Planes: Flying kv `tracked_aircraft` ("N51207 = Brad & Chelsea; N6058A = Mike"),
    else AT_DEFAULT_TAILS. Relay URL: Config kv `aircraft_relay_url`, else AT_RELAY.
-   Polls every 30 s only while the Flying tab is open and visible (FlightAware is
-   asked at most every 5 min per plane, and every 60 s for planes in the air).
+   Polls every 30 s only while the Flying tab is open and visible. Opening or returning to the
+   tab asks for a fresh answer (≤2 min old); while it sits open the relay re-asks FlightAware
+   every 20+ min for parked planes, 5 min for flying ones, 60 s for positions in the air.
    Last-seen spots are remembered on this device.
    ============================================================ */
 var AT_RELAY='https://lifeos-aircraft.brad-5a1.workers.dev/aircraft';
@@ -3615,12 +3616,12 @@ function atStatus(p){
 }
 
 /* ---- polling ---- */
-function atPoll(){
+function atPoll(fresh){
   if(CURRENT!=='flying'||document.hidden||!AT.el||!AT.el.isConnected){ atStop(); return; }
   var relay=atRelay(), planes=atPlanes();
   if(!relay||!planes.length||AT.busy){ atPaint(); return; }
   AT.busy=true;
-  fetch(relay+(relay.indexOf('?')>=0?'&':'?')+'tails='+planes.map(function(p){ return p.tail; }).join(','),{cache:'no-store'})
+  fetch(relay+(relay.indexOf('?')>=0?'&':'?')+'tails='+planes.map(function(p){ return p.tail; }).join(',')+(fresh===true?'&fresh=1':''),{cache:'no-store'})
     .then(function(r){ return r.json(); })
     .then(function(d){
       if(!d||d.ok===false) throw new Error((d&&d.error)||'relay error');
@@ -3641,7 +3642,7 @@ function atPoll(){
     .catch(function(e){ AT.err=(e&&e.message)||String(e); })
     .then(function(){ AT.busy=false; atPaint(); });
 }
-function atStart(){ if(AT.timer) return; atPoll(); AT.timer=setInterval(atPoll, AT_POLL_MS); }
+function atStart(){ if(AT.timer) return; atPoll(true); AT.timer=setInterval(atPoll, AT_POLL_MS); }
 function atStop(){ if(AT.timer){ clearInterval(AT.timer); AT.timer=null; } }
 document.addEventListener('visibilitychange', function(){ if(!document.hidden&&CURRENT==='flying'&&AT.el&&AT.el.isConnected) atStart(); });
 
