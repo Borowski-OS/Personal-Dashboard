@@ -963,7 +963,7 @@
   .ai-send svg { width:17px; height:17px; fill:none; stroke:currentColor; stroke-width:2.2; stroke-linecap:round; stroke-linejoin:round; } .ai-send:disabled { opacity:.45; cursor:default; }
   @media (max-width:640px){
     #aiFab { right:14px; bottom:calc(74px + env(safe-area-inset-bottom)) !important; padding:5px; width:auto !important; height:auto !important; } .ai-fab-lbl { display:none; } #aiFab .ai-orb { width:46px; height:46px; }
-    #aiPanel, #aiPanel.big { inset:0; right:0; bottom:0; width:100%; max-width:100%; height:100%; border-radius:0; border:none; padding-top:env(safe-area-inset-top); padding-bottom:env(safe-area-inset-bottom); }
+    #aiPanel, #aiPanel.big { inset:0; right:0; bottom:0; width:100%; max-width:100%; height:100%; height:100dvh; border-radius:0; border:none; padding-top:env(safe-area-inset-top); padding-bottom:env(safe-area-inset-bottom); }
     .ai-exp { display:none; } body.ai-open { overflow:hidden; }
   }
 
@@ -975,7 +975,8 @@
   #aiFab.hidden { display:none; } #aiHive { width:100%; height:100%; display:block; }
   /* Pam embed */
   .aiBody.pam-body { padding:0; display:flex; flex-direction:column; background:#050b16; }
-  #pamFrame { flex:1; width:100%; border:0; background:#050b16; min-height:0; }
+  #pamFrame { flex:1; width:100%; height:100%; max-width:100%; border:0; background:#090c12; min-height:0; display:block; }
+  .aiBody.pam-body { overflow:hidden; position:relative; }
   #pamFrame.hidden { display:none; }
   #pamOffline { padding:30px 20px; } #pamOffline .ai-sugg { flex-direction:row; justify-content:center; }
   @media (max-width:640px){ #aiFab { right:14px; bottom:calc(74px + env(safe-area-inset-bottom)) !important; width:58px !important; height:58px !important; padding:0; } }
@@ -1400,7 +1401,7 @@
       <p>She runs on your Mac and is reachable only through Tailscale. Make sure the Mac is awake and this device is signed into Tailscale, then try again.</p>
       <div class="ai-sugg"><button onclick="openAI()">Try again</button><button onclick="pamOpenTab()">Open Pam directly</button></div>
     </div>
-    <iframe id="pamFrame" title="Pam" allow="microphone; autoplay; clipboard-write" referrerpolicy="no-referrer"></iframe>
+    <iframe id="pamFrame" title="Pam" allow="microphone; autoplay; clipboard-write" referrerpolicy="no-referrer" scrolling="no"></iframe>
   </div>
 </div>
 
