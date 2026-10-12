@@ -1316,6 +1316,79 @@
   @media (prefers-reduced-motion:reduce){ .empty.is-loading, .empty.is-loading::before { animation:none; } }
   /* rail keyboard focus (Round 2): ring drawn inside the button so the rail's edges never clip it */
   #topNav .nav-tab:focus-visible { outline:2px solid rgba(var(--accent-rgb),.75); outline-offset:-3px; }
+  /* ================= Mail tab (Oct 2026): every inbox in one list, sorted by Life OS Mail ================= */
+  .ml-tiles { margin-bottom:10px; }
+  .ml-meta { font-size:12px; color:var(--text-dim); margin:0 2px 18px; } .ml-meta .warn { color:var(--amber); }
+  .ml-stack { display:grid; gap:22px; margin-bottom:22px; } .ml-stack > * { min-width:0; }
+  .ml-row { display:flex; flex-wrap:wrap; align-items:flex-start; gap:8px 16px; padding:13px 0; border-bottom:1px solid var(--card-border); }
+  .ml-row:last-child { border-bottom:none; padding-bottom:4px; }
+  .ml-row.is-sent { opacity:.62; }
+  .ml-main { flex:1 1 320px; min-width:0; }
+  .ml-top { display:flex; align-items:baseline; gap:8px; min-width:0; }
+  .ml-from { font-size:14px; font-weight:600; color:#e6e9ee; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .ml-acct { flex:0 0 auto; font-size:10.5px; font-weight:600; letter-spacing:.02em; color:var(--text-dim); border:1px solid var(--card-border-2); border-radius:20px; padding:0 7px; line-height:17px; }
+  .ml-age { margin-left:auto; flex:0 0 auto; padding-left:6px; font-size:12px; color:var(--text-dim); }
+  .ml-subj { margin-top:2px; font-size:13.5px; color:var(--text); overflow-wrap:anywhere; }
+  .ml-subj .tag { margin-right:6px; font-size:10.5px; padding:1px 7px; vertical-align:1px; }
+  .ml-sum { margin-top:3px; font-size:13px; line-height:1.45; color:var(--text-muted); overflow-wrap:anywhere; }
+  .ml-why { margin-top:3px; font-size:11.5px; color:var(--text-dim); overflow-wrap:anywhere; }
+  .ml-acts { display:flex; flex-wrap:wrap; gap:6px; align-items:center; flex:0 1 auto; max-width:100%; }
+  .ml-acts .ebtn { padding:5px 10px; font-size:12.5px; text-decoration:none; display:inline-flex; align-items:center; justify-content:center; min-height:30px; }
+  .ml-more { margin-top:10px; }
+  .ml-fold > summary { cursor:pointer; list-style:none; font-size:13px; color:var(--text-muted); padding:4px 0; }
+  .ml-fold > summary::-webkit-details-marker { display:none; }
+  .ml-fold > summary::before { content:'▸ '; color:var(--text-dim); } .ml-fold[open] > summary::before { content:'▾ '; }
+  .ml-pop { position:fixed; z-index:2650; width:240px; max-width:calc(100vw - 16px); padding:6px; border-radius:12px; background:var(--card-bg); border:1px solid var(--card-border-2);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.04), 0 18px 50px rgba(0,0,0,.6); }
+  .ml-pop-h { padding:6px 10px 4px; font-size:10.5px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--text-dim); }
+  .ml-opt { display:block; width:100%; text-align:left; appearance:none; background:none; border:none; border-radius:8px; padding:8px 10px; font:500 13.5px Inter,sans-serif; color:var(--text); cursor:pointer; }
+  .ml-opt:hover, .ml-opt:focus-visible { background:rgba(var(--accent-rgb),.1); outline:none; } .ml-opt.on { color:var(--accent); }
+  .ml-pop-chk { display:flex; align-items:center; gap:8px; margin-top:4px; padding:9px 10px 2px; border-top:1px solid var(--card-border); font-size:12.5px; color:var(--text-muted); cursor:pointer; }
+  .ml-pop-s { padding:0 10px 6px 32px; font-size:11px; color:var(--text-dim); overflow-wrap:anywhere; }
+  .ml-mh { margin:4px 0 10px; } .ml-mh-from { font-size:14px; color:var(--text); overflow-wrap:anywhere; } .ml-mh-from span { color:var(--text-dim); font-size:12.5px; margin-left:4px; }
+  .ml-mh-subj { font-size:15px; font-weight:600; color:#e6e9ee; margin-top:2px; overflow-wrap:anywhere; }
+  .ml-orig { max-height:180px; overflow:auto; white-space:pre-wrap; overflow-wrap:anywhere; font-size:13px; line-height:1.5; color:var(--text-muted); background:var(--card-2);
+    border:1px solid var(--card-border); border-radius:10px; padding:10px 12px; margin-bottom:14px; }
+  .efield textarea.ml-body { min-height:210px; line-height:1.5; } .efield textarea.ml-body.is-busy { opacity:.55; }
+  .efield label .opt { text-transform:none; letter-spacing:0; font-weight:500; color:var(--text-dim); }
+  .ml-rw { display:flex; gap:8px; margin-bottom:12px; }
+  .ml-rw input { flex:1; min-width:0; padding:9px 11px; border-radius:8px; border:1px solid var(--card-border-2); background:#111419; color:var(--text); font-family:inherit; font-size:13.5px; }
+  .ml-rw input:focus, .ml-sendfrom select:focus { outline:none; border-color:rgba(var(--accent-rgb),.7); box-shadow:var(--ring); }
+  .ml-chk { display:inline-flex; align-items:center; gap:7px; font-size:13px; color:var(--text-muted); cursor:pointer; }
+  .ml-sendfrom { margin-top:10px; font-size:12.5px; color:var(--text-dim); overflow-wrap:anywhere; } .ml-sendfrom b { color:var(--text-muted); font-weight:600; }
+  .ml-sendfrom select { display:block; margin-top:8px; width:100%; max-width:420px; padding:8px 10px; border-radius:8px; border:1px solid var(--card-border-2); background:#111419; color:var(--text); font-family:inherit; font-size:13px; }
+  .ml-link { appearance:none; background:none; border:none; padding:0; font:inherit; color:var(--accent); cursor:pointer; text-decoration:underline; text-underline-offset:2px; }
+  #modal .ml-eact .ebtn { padding:8px 14px; font-size:13px; } .ml-eact { flex-wrap:wrap; } .ml-eact .esaved { flex:1 1 100%; order:-1; color:var(--text-muted); } .ml-eact .esaved:empty { display:none; } .ml-eact .esaved.ok { color:var(--green); } .ml-eact .esaved.bad { color:var(--amber); }
+  .efield textarea.ml-prof { min-height:150px; font-size:13px; line-height:1.5; }
+  .ml-mode { display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin:2px 0 4px; }
+  .ml-mode-l { font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--text-muted); font-weight:600; margin-right:4px; }
+  .ml-seg { appearance:none; font:500 12.5px Inter,sans-serif; padding:6px 11px; border-radius:999px; border:1px solid var(--card-border-2); background:transparent; color:var(--text-muted); cursor:pointer; }
+  .ml-seg.on { background:rgba(var(--accent-rgb),.14); border-color:rgba(var(--accent-rgb),.45); color:#e9eefb; }
+  .ml-acc { display:flex; justify-content:space-between; align-items:flex-start; gap:4px 14px; flex-wrap:wrap; padding:10px 0; border-bottom:1px solid var(--card-border); }
+  .ml-acc-n { min-width:0; } .ml-acc-n b { font-weight:600; color:#e6e9ee; font-size:14px; } .ml-acc-n span { display:block; font-size:12px; color:var(--text-dim); overflow-wrap:anywhere; }
+  .ml-acc-s { text-align:right; font-size:12.5px; min-width:0; flex:1 1 160px; }
+  .ml-st { display:inline-block; margin-left:8px; } .ml-st.ok { color:var(--green); } .ml-st.dim { color:var(--text-dim); } .ml-st.warn { color:var(--amber); display:block; margin:2px 0 0; overflow-wrap:anywhere; }
+  .ml-linkbox { display:flex; gap:8px; flex-wrap:wrap; margin:16px 0 6px; } .ml-linkbox .ebtn { text-decoration:none; min-height:34px; display:inline-flex; align-items:center; }
+  .ml-steps { margin:10px 0 4px; } .ml-steps li { overflow-wrap:anywhere; }
+  .ml-note { font-size:12.5px; color:var(--text-muted); background:var(--card-2); border-radius:10px; padding:9px 12px; margin-top:8px; line-height:1.5; overflow-wrap:anywhere; }
+  .ml-sec-h { font-size:13.5px; font-weight:600; color:#e6e9ee; margin:16px 0 0; }
+  .ml-cmd { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin:8px 0 4px; }
+  .ml-cmd code { flex:1 1 220px; min-width:0; font-family:ui-monospace,Menlo,monospace; font-size:12px; line-height:1.45; color:var(--text-muted); background:#111419;
+    border:1px solid var(--card-border-2); border-radius:8px; padding:7px 10px; overflow-wrap:anywhere; }
+  .ml-cmd .ebtn { min-height:34px; }
+  .ml-alt { margin-top:14px; border-top:1px solid var(--card-border); padding-top:8px; }
+  .ml-ob { display:flex; justify-content:space-between; gap:4px 14px; flex-wrap:wrap; padding:8px 0; border-bottom:1px solid var(--card-border); font-size:13px; }
+  .ml-ob:last-child { border-bottom:none; } .ml-ob .k { min-width:0; overflow-wrap:anywhere; color:var(--text); } .ml-ob .v { color:var(--text-dim); } .ml-ob .v.bad { color:var(--amber); }
+  .ml-toast { position:fixed; left:50%; transform:translateX(-50%); bottom:calc(90px + env(safe-area-inset-bottom)); z-index:3000; display:flex; align-items:center; gap:14px;
+    background:#2b343b; color:#fff; padding:10px 14px; border-radius:12px; font-size:13px; box-shadow:0 6px 20px rgba(0,0,0,.4); max-width:90vw; }
+  .ml-toast button { appearance:none; background:none; border:none; color:var(--accent); font:600 13px Inter,sans-serif; cursor:pointer; padding:0; }
+  @media (max-width:640px){
+    .ml-acts { width:100%; } .ml-acts .ebtn { flex:1 1 auto; min-height:36px; }
+    .ml-acc-s { text-align:left; flex-basis:100%; } .ml-st { margin:0 8px 0 0; }
+    .ml-cmd .ebtn { flex:1 1 100%; min-height:38px; }
+    .ml-rw { flex-wrap:wrap; } .ml-rw .ebtn { flex:1 1 100%; min-height:38px; }
+    #modal .ml-eact .ebtn { flex:1 1 auto; min-height:40px; } #modal .ml-eact .spacer { display:none; }
+  }
 </style>
 </head>
 <body>
@@ -1324,6 +1397,7 @@
   <div class="nav-brand"><div class="nav-logo" id="navLogo"><img src="icon-192.png?v=3" alt=""></div><span class="nav-title" id="navTitle">Life OS</span></div>
   <div class="nav-tabs" id="navTabs" role="navigation" aria-label="Sections">
     <button class="nav-tab active" aria-current="page" data-tab="overview" onclick="navGo('overview')"><svg class="ni" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg><span class="nt">Today</span></button>
+    <button class="nav-tab b-only" data-tab="mail" onclick="navGo('mail')"><svg class="ni" viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="5" width="19" height="14" rx="2"/><path d="m3 7 9 6.5L21 7"/></svg><span class="nt">Mail</span></button>
     <button class="nav-tab" data-tab="home" onclick="navGo('home')"><svg class="ni" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="6" width="20" height="13" rx="2"/><path d="M16 12.5h2M2 10h20"/></svg><span class="nt">Money</span></button>
     <button class="nav-tab" data-tab="taxes" onclick="navGo('taxes')"><svg class="ni" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9.5 14.5l5-5"/><circle cx="9.7" cy="9.7" r=".9"/><circle cx="14.3" cy="14.3" r=".9"/></svg><span class="nt">Taxes</span></button>
     <button class="nav-tab" data-tab="ventures" onclick="navGo('ventures')"><svg class="ni" viewBox="0 0 24 24" aria-hidden="true"><path d="M22 7l-8.5 8.5-5-5L2 17"/><path d="M16 7h6v6"/></svg><span class="nt">Ventures</span></button>
@@ -1419,6 +1493,7 @@ var CURRENT = 'overview';
 
 var TABS = {
   overview:{title:'Today', sub:'What matters today — and the numbers that decide it.'},
+  mail:{title:'Mail', sub:'Every inbox, sorted: what needs you, what matters, and what got weeded out.'},
   home:{title:'Money', sub:'Net worth, cash flow, budget, accounts, bills and giving.'},
   taxes:{title:'Taxes', sub:'2026 estimate, housing allowance, the rental, and moves for tax efficiency.'},
   ventures:{title:'Ventures', sub:'Buy boxes, capital plan, and the live deal pipeline.'},
@@ -1676,6 +1751,9 @@ function jsonp(url, timeoutMs){
    Gate
    ============================================================ */
 var LS_DATA = 'lifeos_data_cache';
+/* Config `mail_style` = snippets of Brad's sent emails (the mail drafter's voice samples). Never keep it on this device or show it in the
+   Config editor — drop it from every payload before it is cached. (The server should stop sending it; this is the page's guard.) */
+function dropPrivate(d){ d=d||{}; if(d.Config && typeof d.Config==='object') delete d.Config.mail_style; return d; }
 window.addEventListener('DOMContentLoaded', function(){
   localStorage.setItem(LS_API, API_URL);
   var aw = $('apiWrap'); if(aw) aw.classList.add('hidden');
@@ -1708,7 +1786,7 @@ function debugWide(){
 }
 function showApp(res){
   try{ if(document.activeElement && document.activeElement.blur) document.activeElement.blur(); }catch(e){}
-  DATA = res.data || {}; ROLE = res.role || 'brad'; applyRole();
+  DATA = dropPrivate(res.data); ROLE = res.role || 'brad'; applyRole();
   try{ localStorage.setItem(LS_DATA, JSON.stringify({data:DATA, updated:res.updated, role:ROLE})); }catch(e){}
   $('gate').classList.add('hidden');
   $('topNav').classList.remove('hidden');
@@ -1785,8 +1863,9 @@ function fmtStamp(iso){ try{ var d=new Date(iso); return d.toLocaleString('en-US
 async function reload(){
   var api = localStorage.getItem(LS_API), pw = sessionStorage.getItem(SS_PW);
   if(!api||!pw) return signOut();
+  if(CURRENT==='mail') mailLoad(true);
   syncStart();
-  try{ var res=await readData(api+'?pw='+pw); syncDone(); if(res&&res.ok){ DATA=res.data||{};
+  try{ var res=await readData(api+'?pw='+pw); syncDone(); if(res&&res.ok){ DATA=dropPrivate(res.data);
     try{ localStorage.setItem(LS_DATA, JSON.stringify({data:DATA, updated:res.updated})); }catch(e){}
     $('stamp').textContent=fmtStamp(res.updated); render(CURRENT);} }catch(e){ syncDone(); }
 }
@@ -1806,6 +1885,7 @@ function navGo(tab){
   $('pageTitle').textContent = TABS[tab].title;
   $('pageSub').textContent = TABS[tab].sub;
   location.hash = tab;
+  if(tab==='mail') mailOnOpen();
   render(tab);
   window.scrollTo(0,0);
   if(sec){ setTimeout(function(){ var el=$(sec); if(el) el.scrollIntoView({behavior:'smooth'}); }, 60); }
@@ -1823,6 +1903,8 @@ function pageActs(tab){
     if(has(u)) return '<a class="ebtn" href="'+esc(u)+'" target="_blank" rel="noopener" aria-label="Open the budget sheet in Google Sheets">Budget sheet <span aria-hidden="true">↗</span></a>'; }
   if(tab==='health' && ROLE!=='chelsea' && typeof findCareCard==='function')
     return '<button class="ebtn" onclick="jumpCare()" aria-label="Jump to Find care">Find care <span aria-hidden="true">↓</span></button>';
+  if(tab==='mail' && ROLE!=='chelsea')
+    return '<button class="ebtn" onclick="mailLoad(true)" aria-label="Check for new mail">Refresh</button><button class="ebtn pri" onclick="mailCompose()">New email</button>';
   return '';
 }
 /* scroll to the Find care card (far down Health) and put the cursor in its search box */
@@ -1834,7 +1916,7 @@ function render(tab){
   var el = $('panels');
   el.innerHTML = ({
     overview: function(){ return ROLE==='chelsea'?renderChelseaHome():renderOverview(); }, home: function(){ return renderHome()+receiptsCard(); }, taxes: renderTaxes, life: renderLife,
-    flying: renderFlying, ventures: renderVentures, health: renderHealth, faith: renderFaith
+    flying: renderFlying, ventures: renderVentures, health: renderHealth, faith: renderFaith, mail: renderMail
   }[tab] || function(){return '';})();
   if(tab==='home') drawMoneyCharts();
   if(tab==='ventures') setTimeout(wiRun,0);
@@ -2036,7 +2118,7 @@ function toast(msg){ var t=document.createElement('div'); t.textContent=msg;
   document.body.appendChild(t); setTimeout(function(){ t.remove(); },3500); }
 async function afterWrite(){
   var api=localStorage.getItem(LS_API), pw=sessionStorage.getItem(SS_PW);
-  try{ var res=await jsonp(api+'?pw='+pw); if(res&&res.ok){ DATA=res.data||{}; $('stamp').textContent=fmtStamp(res.updated); } }catch(e){}
+  try{ var res=await jsonp(api+'?pw='+pw); if(res&&res.ok){ DATA=dropPrivate(res.data); $('stamp').textContent=fmtStamp(res.updated); } }catch(e){}
   closeModal(); render(CURRENT);
 }
 async function quickLogWeight(){
@@ -2052,7 +2134,7 @@ async function stravaSync(){
   var res=await apiWrite({action:'syncstrava'});
   if(res&&res.ok){ if(el) el.textContent='Synced '+ (res.added||0) +' new workout'+((res.added===1)?'':'s')+'.';
     var api=localStorage.getItem(LS_API), pw=sessionStorage.getItem(SS_PW);
-    try{ var r2=await jsonp(api+'?pw='+pw); if(r2&&r2.ok){ DATA=r2.data||{}; } }catch(e){}
+    try{ var r2=await jsonp(api+'?pw='+pw); if(r2&&r2.ok){ DATA=dropPrivate(r2.data); } }catch(e){}
     render(CURRENT);
   } else if(el){ el.textContent = (res&&res.error==='not connected') ? 'Strava isn\'t connected yet.' : ('Sync error: '+((res&&res.error)||'try again')); }
 }
@@ -2132,7 +2214,7 @@ function upcomingAlerts(){
    ============================================================ */
 var DOMAIN={overview:['Life','--gold','🧭'],bills:['Home','--teal','🏠'],family:['Family','--amber','👨‍👩‍👧'],projects:['Projects','--orange','🛠️'],
   flying:['Flying','--sky','✈️'],money:['Money','--emerald','💵'],ventures:['Ventures','--indigo','📈'],hobbies:['Hobbies','--violet','🎯'],vehicles:['Vehicles','--rose','🚗'],
-  health:['Health','--pink','💪'],travel:['Travel','--cyan','✈️'],home:['Money','--emerald','💵'],life:['Home & Life','--orange','🏡'],faith:['Faith','--gold','✝️']};
+  health:['Health','--pink','💪'],travel:['Travel','--cyan','✈️'],home:['Money','--emerald','💵'],life:['Home & Life','--orange','🏡'],faith:['Faith','--gold','✝️'],mail:['Mail','--sky','📬']};
 function domIcon(tab){ var d=DOMAIN[tab]; return d&&d[2]?d[2]+' ':''; }
 function domChip(tab){ var d=DOMAIN[tab]||DOMAIN.overview; return '<span class="chip" style="background:transparent;border:1px solid var('+d[1]+');color:var('+d[1]+');font-size:10px;padding:1px 7px;margin:0">'+d[0]+'</span>'; }
 function weekWorkouts(){ var now=Date.now(); return arr('Workouts').filter(function(w){var m=String(w.Date||'').match(/(\d{4})-(\d{2})-(\d{2})/); if(!m) return false; var d=new Date(+m[1],+m[2]-1,+m[3]).getTime(); return (now-d)<=7.5*864e5 && d<=now+864e5;}).length; }
@@ -4807,7 +4889,7 @@ function snapModal(body){
     +'<p class="foot" style="color:var(--text-dim);margin-top:0">Receipts → Receipts · oil changes & repairs → the car’s service log (and its mileage) · doctor bills & insurance statements → medical history.</p>'+body;
   $('modal').classList.remove('hidden');
 }
-async function afterWriteQuiet(){ try{ var res=await jsonp(API_URL+'?pw='+sessionStorage.getItem(SS_PW)); if(res&&res.ok){ DATA=res.data||{}; try{ localStorage.setItem(LS_DATA, JSON.stringify({data:DATA, updated:res.updated, role:res.role})); }catch(e){} if($('modal').classList.contains('hidden')) render(CURRENT); } }catch(e){} }
+async function afterWriteQuiet(){ try{ var res=await jsonp(API_URL+'?pw='+sessionStorage.getItem(SS_PW)); if(res&&res.ok){ DATA=dropPrivate(res.data); try{ localStorage.setItem(LS_DATA, JSON.stringify({data:DATA, updated:res.updated, role:res.role})); }catch(e){} if($('modal').classList.contains('hidden')) render(CURRENT); } }catch(e){} }
 function receiptsCard(){
   var r=arr('Receipts').slice().sort(function(a,b){return String(b.Date).localeCompare(String(a.Date));});
   var cols=[{label:'Date',render:function(x){return esc(String(x.Date).slice(0,10));}},{label:'Vendor',render:function(x){return has(x.File)?'<a href="'+esc(x.File)+'" target="_blank" rel="noopener">'+esc(x.Vendor||'—')+' ↗</a>':esc(x.Vendor||'—');}},
@@ -5592,7 +5674,7 @@ async function teslaChecked(){ await teslaSet({}); }
 var PAL_SEL=0, PAL_ITEMS=[];
 function palIndex(){
   var items=[];
-  Object.keys(TABS).forEach(function(t){ items.push({icon:domIcon(t),cat:'Go to',t:TABS[t].title,s:TABS[t].sub,tab:t}); });
+  Object.keys(TABS).forEach(function(t){ if(ROLE==='chelsea' && !CHELSEA_TABS[t]) return; items.push({icon:domIcon(t),cat:'Go to',t:TABS[t].title,s:TABS[t].sub,tab:t}); });
   function add(tab,cat,rows,label,sub){ rows.forEach(function(r){ var t=label(r); if(!t) return; items.push({icon:domIcon(tab),cat:cat,t:t,s:sub?sub(r):'',tab:tab}); }); }
   add('home','Bill',arr('Bills'),function(r){return r.Vendor;},function(r){return (r.Category||'')+(has(r.Amount)?' · '+money(r.Amount):'');});
   add('home','Contact',arr('Contacts'),function(r){return r.Name;},function(r){return r.Company||r.Category||'';});
@@ -5672,7 +5754,8 @@ function aiSuggestions(){
     flying:['Can I fly this weekend?','How much do I owe Jeremy?','What should I practice next lesson?'],
     health:['How is my recovery trending?','Plan my workouts this week','How do I get to my goal weight?'],
     life:['What car maintenance is due?','Who am I calling this week?','What home projects are open?'],
-    faith:['Give me a short prayer for today','How are my rhythms going?','Suggest a Sabbath plan']};
+    faith:['Give me a short prayer for today','How are my rhythms going?','Suggest a Sabbath plan'],
+    mail:['Which emails need me first?','Anything important in my inbox this week?','Who have I not answered yet?']};
   return (by[CURRENT]||by.overview).concat(['Add a task: '+(CURRENT==='flying'?'book the written test':'call the insurance agent')]); }
 function aiMd(t){
   var out=[], list=null, flush=function(){ if(list){ out.push('<'+list.t+'>'+list.i.join('')+'</'+list.t+'>'); list=null; } };
@@ -5745,7 +5828,7 @@ function palKey(e){
   else if(e.key==='Escape'){ closePalette(); }
 }
 function scrollSel(){ var r=$('palResults').children[PAL_SEL]; if(r&&r.scrollIntoView) r.scrollIntoView({block:'nearest'}); }
-var TAB_ORDER=['overview','home','ventures','flying','health','life','faith'];
+var TAB_ORDER=['overview','home','ventures','flying','health','life','faith','mail'];
 document.addEventListener('keydown', function(e){
   var appHidden=$('app').classList.contains('hidden');
   if((e.metaKey||e.ctrlKey) && (e.key==='k'||e.key==='K')){ if(!appHidden){ e.preventDefault(); if($('palette').classList.contains('hidden')) openPalette(); else closePalette(); } return; }
@@ -6143,6 +6226,459 @@ function renderTravel(){
   out+='<div style="height:22px"></div>'+walletCard+pointsPlanCard(points)+'<div style="height:22px"></div>'+card('Points & miles','', tableEl(pointsCols, points, {editTab:'Points'}), '--cyan');
   if(past.length) out+='<div style="height:22px"></div><div class="section-title">Past trips</div><div class="grid cols-3">'+past.map(tripCard).join('')+'</div>';
   return out;
+}
+
+/* ============================================================
+   MAIL — every inbox in one list. A small Life OS Mail agent ships new mail to the backend brain (Mail.js): the Mac agent
+   (mac/ in this repo; reads every account in Apple Mail every 10 min while the Mac is awake — the primary route, set up with the
+   one-line Terminal command `macSetup`) or, as the fallback, a Google agent inside each Gmail (every 5–10 min). The brain
+   sorts it with Claude (reply / important / fyi / junk / spam), learns from
+   Teach ▾ and from who Brad writes to, writes replies in his voice, and queues sends for the agent. Replies always go out
+   from the inbox the thread arrived in. Page actions (POST, Brad only): mail, mailact, maildraft, mailsend, mailcompose;
+   the profile/mode are Config kv (setkv). Email content lives only in memory here — never in localStorage or this repo.
+   ============================================================ */
+var MAIL={data:null, loading:false, err:'', at:0, tried:0, acts:0, actAt:0, wantLoad:false, drafts:{}, wr:{}, modal:null, rp:null, cmp:null, ui:{teachSender:true, imp:false, weed:false, fyi:false, goog:false, profile:null, sign:null}};
+/* the inbox list + short names come from the server (Mail.js `expected`) — no addresses in this public file */
+var MAIL_CATS=[['reply','Needs reply'],['important','Important'],['fyi','FYI'],['junk','Junk'],['spam','Spam']];
+var MAIL_PUBLIC={'gmail.com':1,'googlemail.com':1,'yahoo.com':1,'ymail.com':1,'hotmail.com':1,'outlook.com':1,'live.com':1,'msn.com':1,'icloud.com':1,'me.com':1,'mac.com':1,'aol.com':1,'cox.net':1,'comcast.net':1,'att.net':1,'sbcglobal.net':1,'charter.net':1,'verizon.net':1,'protonmail.com':1,'proton.me':1};
+/* POST like snapFile / the AI chat; JSONP fallback when POST fails and the request is small enough for a URL */
+async function mailPost(action, params, ms){
+  params=params||{}; var pw=sessionStorage.getItem(SS_PW);
+  try{ var r=await fetch(API_URL,{method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body:JSON.stringify(Object.assign({pw:pw, action:action}, params))}); return await r.json(); }
+  catch(e){
+    var qs=Object.keys(params).map(function(k){ return encodeURIComponent(k)+'='+encodeURIComponent(params[k]); }).join('&');
+    if(qs.length>6000) return {ok:false, error:'connection problem'};
+    try{ return await jsonp(API_URL+'?pw='+pw+'&action='+encodeURIComponent(action)+(qs?'&'+qs:''), ms||60000); }catch(e2){ return {ok:false, error:'connection problem'}; }
+  }
+}
+function mailErr(r){ var e=String((r&&r.error)||'connection problem').replace(/^Error:\s*/,'');
+  if(/unknown action/i.test(e)) return 'Mail isn’t switched on on the server yet';
+  if(/unauthorized/i.test(e)) return 'mail is only on Brad’s login';
+  if(/unknown account/i.test(e)) return 'Life OS couldn’t tell which inbox to use — tap “change” and pick one';
+  return e.slice(0,160); }
+function mailLoad(force){
+  if(MAIL.loading || ROLE==='chelsea') return;
+  var started=Date.now(); MAIL.loading=true; MAIL.tried=started; if(force && CURRENT==='mail') render('mail');
+  mailPost('mail',{},90000).then(function(r){
+    MAIL.loading=false;
+    if(MAIL.acts || started<MAIL.actAt){ if(MAIL.acts) MAIL.wantLoad=true; else mailLoad(force); return; }   // a Done/Teach/Send landed meanwhile: this copy may predate it
+    if(r&&r.ok){ MAIL.data=r; MAIL.at=Date.now(); MAIL.err=''; } else MAIL.err=mailErr(r);
+    if(CURRENT==='mail') render('mail');
+    if(force && !(r&&r.ok)) toast('Couldn’t check mail — '+MAIL.err);
+  });
+}
+/* every change goes through here, so a mail read that started before it can't paint stale rows over it */
+async function mailMut(action, params){ MAIL.acts++; MAIL.actAt=Date.now(); var r=null;
+  try{ r=await mailPost(action, params); } finally { MAIL.acts--; MAIL.actAt=Date.now(); if(MAIL.wantLoad && !MAIL.acts){ MAIL.wantLoad=false; mailLoad(); } }
+  return r; }
+function mailOnOpen(){ if(ROLE!=='chelsea' && !MAIL.loading && Date.now()-MAIL.tried>30000) mailLoad(); }   // navGo('mail'): check for new mail
+function mailT(v){ var t=new Date(v||0).getTime(); return isNaN(t)?0:t; }
+function mailAge(v){ var t=mailT(v); if(!t) return ''; var m=(Date.now()-t)/6e4;
+  if(m<1) return 'now'; if(m<60) return Math.round(m)+'m'; if(m<1440) return Math.round(m/60)+'h'; if(m<10080) return Math.round(m/1440)+'d';
+  return new Date(t).toLocaleDateString('en-US',{month:'short', day:'numeric'}); }
+function mailAgo(v){ var a=mailAge(v); return !a?'':a==='now'?'just now':/\d$/.test(a)?'on '+a:a+' ago'; }
+function mailWhen(v){ var t=mailT(v); return t?new Date(t).toLocaleString('en-US',{weekday:'short', month:'short', day:'numeric', hour:'numeric', minute:'2-digit'}):''; }
+function mailAddr(s){ s=String(s||''); var m=s.match(/<([^<>]+)>/); return ((m?m[1]:s).toLowerCase().match(/[a-z0-9._%+'-]+@[a-z0-9.-]+\.[a-z]{2,}/)||[''])[0]; }
+function mailName(s){ var n=String(s||'').replace(/<[^>]*>/g,'').replace(/"/g,'').trim(); return n||mailAddr(s)||'(unknown sender)'; }
+/* the inboxes the server expects (Mail.js `expected`, with short names) + their MailAccounts rows; on = the agent has synced at least once */
+function mailNick(a){ var p=String(a||'').toLowerCase().split('@'), d=(p[1]||'').split('.')[0]; return (!d||MAIL_PUBLIC[p[1]])?(p[0]||'inbox'):d; }   // no server name: the domain (or the Gmail user name)
+function mailAccounts(){
+  var d=MAIL.data||{}, rows=d.accounts||[];
+  var exp=(d.expected||[]).map(function(x){ return {a:String(x.account||'').toLowerCase(), n:x.name||'', fwd:x.kind==='forwarded', mac:x.kind==='mac'}; }).filter(function(x){ return x.a; });
+  var find=function(a){ return rows.filter(function(r){ return String(r.Account||'').toLowerCase()===a; })[0]||null; };
+  var out=exp.map(function(x){ var r=find(x.a); return {a:x.a, n:x.n||mailNick(x.a), fwd:x.fwd, mac:x.mac, row:r, on:!!(r&&(r.LastSync||r.Installed))}; });
+  rows.forEach(function(r){ var a=String(r.Account||'').toLowerCase(); if(a && !out.some(function(x){ return x.a===a; })) out.push({a:a, n:mailNick(a), fwd:r.Kind==='forwarded', mac:false, row:r, on:!!(r.LastSync||r.Installed)}); });
+  return out;
+}
+/* how an inbox reaches Life OS: routes that checked it in the last 3 days (MailAccounts MacSync / GoogleSync), else its Kind */
+function mailRoutes(r){ if(!r) return []; var out=[], fresh=function(v){ var t=mailT(v); return !!t && Date.now()-t<3*864e5; };
+  if(fresh(r.MacSync)) out.push('mac'); if(fresh(r.GoogleSync)) out.push('google');
+  if(!out.length && (r.LastSync||r.Installed)) out.push(r.Kind==='mac'?'mac':r.Kind==='forwarded'?'fwd':'google');
+  return out; }
+function mailRouteTxt(rt){ return rt.map(function(k){ return k==='mac'?'via your Mac':k==='fwd'?'forwarded':'via Google'; }).join(' + '); }
+function mailMacAcct(a){ a=String(a||'').toLowerCase(); var x=mailAccounts().filter(function(y){ return y.a===a; })[0]; return !!(x && x.row && x.row.Kind==='mac'); }   // its latest check came from the Mac
+function mailShort(a){ a=String(a||'').toLowerCase(); var x=mailAccounts().filter(function(y){ return y.a===a; })[0]; return x?x.n:mailNick(a); }
+function mailEta(a){ return mailMacAcct(a) || /@gmail\.com$/i.test(String(a||''))?10:5; }   // the Mac and consumer Gmail agents check every 10 min, Workspace every 5
+function mailChip(x){ return '<span class="ml-acct" title="'+esc(String(x.Account||'')+(x.Via?' (through '+x.Via+')':''))+'">'+esc(mailShort(x.Account))+'</span>'; }
+function mailLink(x){ var u=String(x.Link||''); if(/^https:\/\/mail\.google\.com\//.test(u) || /^message:\/\/%3C[^\s"'<>]+%3E$/i.test(u)) return u;   // message:// = opens in Apple Mail (Mac items from non-Gmail inboxes)
+  return /^[0-9a-f]{6,}$/i.test(String(x.ThreadId||''))?'https://mail.google.com/mail/u/?authuser='+encodeURIComponent(x.Via||x.Account||'')+'#all/'+x.ThreadId:''; }
+function mailById(id){ return ((MAIL.data&&MAIL.data.items)||[]).filter(function(x){ return x.Id===id; })[0]; }
+function mailItem(el){ var r=el&&el.closest&&el.closest('[data-id]'); return r?mailById(r.getAttribute('data-id')):null; }
+function mailThread(x){ var route=x.Via||x.Account; return MAIL.data.items.filter(function(y){ return y===x || (x.ThreadId && y.ThreadId===x.ThreadId && (y.Via||y.Account)===route); }); }
+function mailOpen(x){ return !/^(done|sent)$/i.test(String(x.Status||'')); }
+function mailWaiting(x){ return !/^(done|sent|sending)$/i.test(String(x.Status||'')); }   // still on Brad (a queued send isn't)
+function mailRecent(x, days){ return Date.now()-mailT(x.Date)<=days*864e5; }
+function mailSort(a,b){ return ((a.Status==='sent')-(b.Status==='sent')) || ((Number(a.Priority)||2)-(Number(b.Priority)||2)) || (mailT(b.Date)-mailT(a.Date)); }
+function mailCatLabel(c){ var x=MAIL_CATS.filter(function(k){ return k[0]===c; })[0]; return x?x[1]:c; }
+function mailRow(x, kind){
+  var st=String(x.Status||'').toLowerCase(), link=mailLink(x), em=x.FromEmail||mailAddr(x.From), tags='';
+  if(Number(x.Priority)===1 && kind!=='weed' && st!=='sent') tags+='<span class="tag blocked">Urgent</span>';
+  tags+=({drafted:'<span class="tag planning">'+(x.Source==='mac'?'Draft open in Mail':'Draft in Gmail')+'</span>', sending:'<span class="tag planning">Sending…</span>', sent:'<span class="tag active">Sent ✓</span>', error:'<span class="tag blocked">Didn’t send</span>'})[st]||'';
+  if(kind==='weed') tags+='<span class="tag done">'+(x.Category==='spam'?'Spam':'Junk')+'</span>';
+  var acts=(kind==='reply' && st!=='sent' && st!=='sending')?'<button class="ebtn pri" onclick="mailDraftOpen(this)">'+(has(x.Draft)?'Edit reply':'Draft reply')+'</button>':'';
+  if(kind==='weed') acts+='<button class="ebtn" onclick="mailNotJunk(this)">Not junk</button>';
+  if(link) acts+='<a class="ebtn" href="'+esc(link)+'"'+(/^message:/.test(link)?' title="Opens in Mail on your Mac"':' target="_blank" rel="noopener"')+'>Open ↗</a>';
+  if(kind!=='weed' && st!=='sent') acts+='<button class="ebtn" onclick="mailDone(this)" aria-label="Mark done">Done ✓</button>';
+  acts+='<button class="ebtn" onclick="mailTeach(this)" aria-haspopup="menu" aria-label="Teach: sort this email">Teach ▾</button>';
+  return '<div class="ml-row'+(st==='sent'?' is-sent':'')+'" data-id="'+esc(x.Id)+'"><div class="ml-main">'
+    +'<div class="ml-top"><span class="ml-from" title="'+esc(em)+'">'+esc(mailName(x.From))+'</span>'+mailChip(x)+'<span class="ml-age" title="'+esc(mailWhen(x.Date))+'">'+esc(mailAge(x.Date))+'</span></div>'
+    +'<div class="ml-subj">'+tags+esc(x.Subject||'(no subject)')+'</div>'
+    +((has(x.Summary)||has(x.Snippet))?'<div class="ml-sum">'+esc(has(x.Summary)?x.Summary:x.Snippet)+'</div>':'')
+    +(has(x.Why)&&kind!=='fyi'?'<div class="ml-why">'+esc(x.Why)+'</div>':'')
+    +'</div><div class="ml-acts">'+acts+'</div></div>';
+}
+function mailList(list, kind, max, uiKey, noun){
+  var shown=(max && !MAIL.ui[uiKey])?list.slice(0,max):list, rest=list.length-shown.length;
+  return '<div class="ml-list">'+shown.map(function(x){ return mailRow(x, kind); }).join('')+'</div>'
+    +(rest>0?'<button class="ebtn ml-more" onclick="MAIL.ui[\''+uiKey+'\']=true;render(\'mail\')">Show '+rest+' more '+noun+'</button>':'')
+    +(max && MAIL.ui[uiKey] && list.length>max?'<button class="ebtn ml-more" onclick="MAIL.ui[\''+uiKey+'\']=false;render(\'mail\')">Show fewer</button>':'');
+}
+function mailCard(id, title, sub, body){ return card(title, sub, body).replace('<div class="card"', '<div class="card" id="'+id+'"'); }
+function mailTile(label, value, foot, target){
+  return '<div class="stat link" onclick="mailJump(\''+target+'\')"><div class="label">'+esc(label)+'</div><div class="value">'+value+'</div>'+(foot?'<div class="foot">'+esc(foot)+'</div>':'')+'</div>'; }
+function mailJump(id){ var c=$(id); if(!c) return; if(c.classList.contains('folded')) foldToggle(c,false);
+  c.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion:reduce)').matches?'auto':'smooth', block:'start'}); }
+function renderMail(){
+  mailPopClose();
+  if(ROLE==='chelsea') return '';
+  var d=MAIL.data;
+  if(!d && !MAIL.loading && !MAIL.err) setTimeout(mailLoad,0);   // first visit (deep link / cached render)
+  if(!d){
+    if(MAIL.err && !MAIL.loading) return card('Mail','', '<div class="empty has-act"><span>Couldn’t load your mail: '+esc(MAIL.err)+'.</span><button class="ebtn pri" onclick="mailLoad(true)">Try again</button></div>');
+    return '<div class="grid cols-4 ml-tiles">'+['Needs reply','Important','Weeded out','Inboxes connected'].map(function(l){ return '<div class="stat"><div class="label">'+l+'</div><div class="value">—</div></div>'; }).join('')+'</div>'
+      +'<div class="ml-stack">'+card('Needs a reply','Checking every inbox…','<div class="empty is-loading" aria-busy="true">Checking your inboxes…</div>')+'</div>';
+  }
+  var items=d.items||[], accts=mailAccounts(), on=accts.filter(function(a){ return a.on; });
+  var reply=items.filter(function(x){ return x.Category==='reply' && (mailOpen(x) || (x.Status==='sent' && Date.now()-mailT(x.Updated)<12*36e5)); }).sort(mailSort);
+  var imp=items.filter(function(x){ return x.Category==='important' && mailOpen(x); }).sort(mailSort);
+  var fyi=items.filter(function(x){ return x.Category==='fyi' && x.Status!=='done' && mailRecent(x,7); });
+  var weed=items.filter(function(x){ return (x.Category==='junk'||x.Category==='spam') && x.Status!=='done' && mailRecent(x,7); });
+  var nReply=reply.filter(mailWaiting).length, urgent=reply.filter(function(x){ return mailWaiting(x) && Number(x.Priority)===1; }).length;
+  var oldest=Math.min.apply(null, on.map(function(a){ return mailT(a.row&&a.row.LastSync); }).filter(Boolean).concat([Infinity]));
+  var waiting=Math.min.apply(null, reply.filter(mailWaiting).map(function(x){ return mailT(x.Date); }).filter(Boolean).concat([Infinity]));
+  var tiles='<div class="grid cols-4 ml-tiles">'
+    +mailTile('Needs reply', nReply, urgent?urgent+' urgent':(nReply?(isFinite(waiting)?'oldest waiting '+mailAge(waiting):''):'all caught up'), 'mlReply')
+    +mailTile('Important', imp.length, 'worth knowing, no reply needed', 'mlImp')
+    +mailTile('Weeded out', weed.length, 'junk + spam, last 7 days', 'mlWeed')
+    +mailTile('Inboxes connected', on.length+' of '+accts.length, on.length?(isFinite(oldest)?'oldest check '+mailAgo(oldest):'connected'):'none yet — see Connect', 'mlConnect')+'</div>';
+  var meta='<div class="ml-meta">'+(MAIL.at?'Checked '+esc(new Date(MAIL.at).toLocaleTimeString('en-US',{hour:'numeric', minute:'2-digit'})):'')
+    +(MAIL.loading?' · checking again…':'')+(MAIL.err?' · <span class="warn">couldn’t refresh ('+esc(MAIL.err)+')</span>':'')
+    +' · '+(d.mode==='auto'?'junk goes to Trash after 14 days':'learning mode: junk is only archived')+'</div>';
+  var none=!on.length;
+  var replyCard=mailCard('mlReply','Needs a reply','People waiting on you, most urgent first. Draft reply writes it in your voice; nothing sends until you say so.',
+    reply.length?mailList(reply,'reply'):'<div class="empty">'+(none?'Connect an inbox below and new mail shows up here within about 10 minutes.':'No one is waiting on a reply.')+'</div>');
+  var impCard=mailCard('mlImp','Worth knowing','Bills, appointments, flight school, family, church leadership, legal and money notices — no reply needed.',
+    imp.length?mailList(imp,'imp',12,'imp','emails'):'<div class="empty">Nothing important waiting.</div>');
+  var fyiCard=mailCard('mlFyi','FYI','Receipts, routine notices and newsletters you read — archived in Gmail under Life OS/FYI. Last 7 days.',
+    fyi.length?'<details class="ml-fold"'+(MAIL.ui.fyi?' open':'')+' ontoggle="MAIL.ui.fyi=this.open"><summary>'+fyi.length+' email'+(fyi.length===1?'':'s')+' this week</summary>'+mailList(fyi,'fyi',40,'fyiAll','emails')+'</details>'
+      :'<div class="empty">No FYI mail this week.</div>');
+  var weedCard=mailCard('mlWeed','Weeded out','Junk and spam from the last 7 days — archived, never deleted. Tap Not junk and Life OS remembers that sender.',
+    weed.length?mailList(weed,'weed',6,'weed','emails'):'<div class="empty">Nothing weeded out this week.</div>');
+  var connect=mailConnectCard(d, accts);
+  return tiles+meta+mailOutbox(d)
+    +'<div class="ml-stack">'+(none?connect:'')+replyCard+impCard+fyiCard+weedCard+(none?mailTeachCard(d):'')+'</div>'
+    +(none?'':'<div class="grid cols-2" style="margin-bottom:22px">'+mailTeachCard(d)+connect+'</div>');
+}
+/* queued sends (reply / compose) and Gmail moves the agents haven't picked up yet */
+function mailQP(q){ try{ return JSON.parse(q.Payload||'{}')||{}; }catch(e){ return {}; } }
+function mailQKey(q, p){ return q.Type==='reply'?'r|'+(p.itemId||q.Qid):'c|'+String(q.Via||q.Account||'').toLowerCase()+'|'+String(p.to||'').toLowerCase()+'|'+String(p.subject||''); }
+function mailQErr(q){ var s=String(q.Result||''), e=s; try{ var o=JSON.parse(s); if(o && typeof o==='object') e=String(o.error||''); }catch(x){}   // Result is the agent's JSON, or a plain note
+  return e.replace(/^(Exception|Error):\s*/,'').trim().slice(0,120); }
+function mailOutbox(d){
+  var all=(d.pending||[]).filter(function(q){ return q.Status!=='done'; }), sends=all.filter(function(q){ return q.Type==='reply'||q.Type==='compose'; });
+  var moves=all.filter(function(q){ return q.Type==='move' && q.Status!=='error'; }).length, newest={};
+  sends.forEach(function(q){ var k=mailQKey(q, mailQP(q)), t=mailT(q.Created); if(newest[k]==null || t>newest[k]) newest[k]=t; });
+  sends=sends.filter(function(q){ if(q.Status!=='error') return true; var p=mailQP(q), it=p.itemId?mailById(p.itemId):null;
+    if(it && /^(sent|sending|drafted|done)$/i.test(String(it.Status||''))) return false;   // resent since (or Brad closed it): the old failure is history
+    return mailT(q.Created)>=newest[mailQKey(q, p)]; });                                     // a newer try of the same email is in the list
+  if(!sends.length && !moves) return '';
+  var rows=sends.map(function(q){ var p=mailQP(q);
+    var it=p.itemId?mailById(p.itemId):null, acct=q.Account||(it&&it.Account)||'', er=q.Status==='error'?mailQErr(q):'', mac=it?it.Source==='mac':mailMacAcct(q.Via||acct);
+    var what=q.Type==='reply'?'Reply to '+(it?mailName(it.From):'a thread')+(it&&has(it.Subject)?' — '+it.Subject:''):'To '+(p.to||'?')+(has(p.subject)?' — '+p.subject:'');
+    var st=q.Status==='error'?'didn’t go out'+(er?': '+er:''):q.Status==='taken'?'going out now':(p.send?'sends':mac?'opens as a draft in Mail':'saves to Gmail Drafts')+' within ~'+(mac?10:mailEta(q.Via||acct))+' min';
+    return '<div class="ml-ob"><span class="k">'+esc(what)+' <span class="ml-acct">'+esc(mailShort(acct))+'</span></span><span class="v'+(q.Status==='error'?' bad':'')+'">'+esc(st)+'</span></div>'; }).join('');
+  return '<div class="ml-stack">'+card('Outbox','Waiting for each inbox’s next check.', rows+(moves?'<div class="foot" style="margin-top:8px;color:var(--text-dim)">'+moves+' Gmail label change'+(moves===1?'':'s')+' from your teaching '+(moves===1?'is':'are')+' queued too.</div>':''))+'</div>';
+}
+function mailTeachCard(d){
+  var prof=MAIL.ui.profile!=null?MAIL.ui.profile:(d.profile||''), sign=MAIL.ui.sign!=null?MAIL.ui.sign:(d.signoff||'Brad'), mode=d.mode==='auto'?'auto':'learn';
+  var R=d.rules, nR=typeof R==='number'?R:(R&&R.total), nT=R&&R.taught;
+  var learned=nR!=null?'Learned '+nR+' rule'+(nR===1?'':'s')+' so far'+(nT!=null?' ('+nT+' you taught; the rest from people you email)':'')+'.':'It learns from every Teach ▾ tap and from the people you email.';
+  return mailCard('mlTeach','Teach it what matters','Plain words. The sorter reads this every time, along with what you’ve taught it.',
+    '<div class="efield"><label for="mlProf">What matters to you</label><textarea id="mlProf" class="ml-prof" oninput="MAIL.ui.profile=this.value">'+esc(prof)+'</textarea></div>'
+    +'<div class="efield"><label for="mlSign">Sign replies as</label><input id="mlSign" type="text" value="'+esc(sign)+'" oninput="MAIL.ui.sign=this.value"></div>'
+    +'<div class="ml-mode" role="group" aria-label="Junk handling"><span class="ml-mode-l">Junk</span><button type="button" class="ml-seg'+(mode==='learn'?' on':'')+'" aria-pressed="'+(mode==='learn')+'" onclick="mailMode(\'learn\')">Archive only</button>'
+    +'<button type="button" class="ml-seg'+(mode==='auto'?' on':'')+'" aria-pressed="'+(mode==='auto')+'" onclick="mailMode(\'auto\')">Archive, then Trash after 14 days</button></div>'
+    +'<div class="eactions ml-eact"><span class="esaved" id="mlProfMsg" role="status"></span><span class="foot" style="color:var(--text-dim);flex:1 1 200px">'+esc(learned)+'</span><button class="ebtn pri" onclick="mailSaveProfile()">Save</button></div>');
+}
+/* Connect card. Primary: the Mac — one Terminal command (`macSetup`, carries the agent key) connects every account in Apple Mail.
+   Alternative: the Google agent, one connect link per Gmail (works when the Mac is asleep). Both are copy-only buttons. */
+function mailConnectCard(d, accts){
+  var url=/^https:\/\/script\.google\.com\//.test(String(d.installUrl||''))?d.installUrl:'', share=/^https:\/\//.test(String(d.scriptShareUrl||''))?d.scriptShareUrl:'';
+  var mac=/^curl -fsSL https:\/\/[^\s"'`$;&|<>]+\/mac\/install\.sh \| bash -s -- [0-9a-f]{32,}$/.test(String(d.macSetup||''))?d.macSetup:'';
+  var rows=accts.map(function(a){ var r=a.row||{}, s;
+    if(a.on){ var last=mailT(r.LastSync), late=last && Date.now()-last>90*6e4, rt=mailRoutes(r), viaMac=rt.indexOf('mac')>=0;
+      s='<span class="ml-st '+(late?'dim':'ok')+'">✓ '+(last?'checked '+esc(mailAgo(r.LastSync)):'connected')+'</span>'+(rt.length?'<span class="ml-st dim">'+esc(mailRouteTxt(rt))+'</span>':'')
+        +(has(r.Items)?'<span class="ml-st dim">'+esc(Number(r.Items)||0)+' sorted</span>':'')
+        +(late?'<span class="ml-st warn">'+(viaMac?'Your Mac hasn’t checked in a while — it checks only while the Mac is awake. If it stays quiet, paste the Mac command again.'
+          :'Hasn’t checked in a while — open the connect link again from this account.')+'</span>':''); }
+    else s='<span class="ml-st dim">Not connected'+(a.mac||a.fwd?' — connects from your Mac':'')+'</span>';
+    if(has(r.LastError)) s+='<span class="ml-st warn">'+esc(String(r.LastError).slice(0,200))+'</span>';
+    return '<div class="ml-acc"><div class="ml-acc-n"><b>'+esc(a.n)+'</b><span>'+esc(a.a)+'</span></div><div class="ml-acc-s">'+s+'</div></div>'; }).join('');
+  var allOn=accts.length && accts.every(function(a){ return a.on; }), n=accts.length, macOnly=accts.filter(function(a){ return a.mac||a.fwd; }).map(function(a){ return a.n; });
+  var macPart='<div class="ml-sec-h">Easiest: connect '+(n>1?'all '+(n===4?'four':n)+' at once':'it')+' from your Mac</div>'
+    +'<ol class="al-steps ml-steps">'
+    +'<li>On your Mac, open <b>Terminal</b> — or ask Claude on your Mac to do it for you.</li>'
+    +'<li>Paste this command and press Return:'+(mac
+      ?'<div class="ml-cmd"><code>'+esc(mac.replace(/[0-9a-f]{32,}$/,'••••••'))+'</code><button class="ebtn pri" id="mlCopyMac" onclick="mailCopyMac()">Copy command</button></div>'
+      :'<div class="empty">The Mac command isn’t ready yet — it appears here once the Life OS Mail update is on the server.</div>')+'</li>'
+    +'<li>When your Mac asks to let it control <b>Mail</b>, click <b>OK</b>.</li>'
+    +'<li>Done — every inbox in Apple Mail is sorted every 10 minutes while the Mac is awake.</li></ol>'
+    +'<div class="ml-note">It uses the accounts already signed in to Apple Mail, so there’s nothing to sign in to. Replies still go out from the inbox each email came to.</div>';
+  var link=url?'<div class="ml-linkbox"><button class="ebtn" id="mlCopyLink" onclick="mailCopyLink()">Copy connect link</button></div>'   // copy only: opening it here would connect whichever Google account this browser picks
+    :'<div class="empty">The connect link isn’t ready yet — it appears here once the Life OS Mail helper is deployed.</div>';
+  var goog='<details class="ml-fold ml-alt"'+(MAIL.ui.goog?' open':'')+' ontoggle="MAIL.ui.goog=this.open"><summary>Alternative: connect a Gmail through Google (works when the Mac is asleep)</summary>'
+    +'<div class="ml-note">Pick one way per inbox — an inbox connected both ways lists each email twice.'+(macOnly.length?' <b>'+esc(macOnly.join(', '))+'</b> can only connect from your Mac.':'')+'</div>'
+    +link+'<ol class="al-steps ml-steps">'
+    +'<li>Each Gmail except Anchor Soul needs to be able to see the helper: share the <b>Life OS Mail</b> script with that address as a <b>Viewer</b>'+(share?' (<a href="'+esc(share)+'" target="_blank" rel="noopener">open sharing ↗</a>)':'')+'.</li>'
+    +'<li>Copy the connect link and open it in a <b>private / incognito window</b>.</li>'
+    +'<li>Sign in to <b>just that one account</b> — other signed-in accounts confuse Google.</li>'
+    +'<li>“Google hasn’t verified this app” → tap <b>Advanced</b> → <b>Go to Life OS Mail</b> → <b>Allow</b>.</li>'
+    +'<li>You’ll see <b>Connected</b>. Close the window and repeat for the next Gmail.</li></ol>'
+    +'<div class="ml-note"><b>Church inbox says “This app is blocked”?</b> Your church’s Google admin has to allow it: ask them to trust Life OS Mail (Admin console → Security → API controls → mark it Trusted).</div></details>';
+  return mailCard('mlConnect','Connect your inboxes', allOn?'All your inboxes are connected.':'Easiest from your Mac: one command connects every inbox in Apple Mail.',
+    rows+(allOn?'<details class="ml-fold" style="margin-top:8px"><summary>How to reconnect an inbox</summary>'+macPart+goog+'</details>':macPart+goog));
+}
+async function mailCopyText(u, ok, ask){ if(!u) return; try{ await navigator.clipboard.writeText(u); toast(ok); }catch(e){ window.prompt(ask, u); } }
+function mailCopyLink(){ return mailCopyText(MAIL.data&&MAIL.data.installUrl, 'Copied — paste it into a private window', 'Copy this link, then open it in a private window:'); }
+function mailCopyMac(){ return mailCopyText(MAIL.data&&MAIL.data.macSetup, 'Copied — paste it into Terminal on your Mac', 'Copy this, then paste it into Terminal on your Mac:'); }
+async function mailSaveProfile(){
+  var m=$('mlProf'), s=$('mlSign'), msg=$('mlProfMsg'); if(!m) return;
+  var row={mail_profile:m.value.trim(), mail_signoff:(s&&s.value.trim())||'Brad'};
+  if(!row.mail_profile){ msg.className='esaved bad'; msg.textContent='Write a few lines about what matters first.'; return; }
+  msg.className='esaved'; msg.textContent='Saving…';
+  var r=await mailMut('setkv',{tab:'Config', row:JSON.stringify(row)});
+  msg=$('mlProfMsg');
+  if(r&&r.ok){ if(MAIL.data){ MAIL.data.profile=row.mail_profile; MAIL.data.signoff=row.mail_signoff; } MAIL.ui.profile=null; MAIL.ui.sign=null;
+    if(DATA){ DATA.Config=DATA.Config||{}; DATA.Config.mail_profile=row.mail_profile; DATA.Config.mail_signoff=row.mail_signoff; }
+    if(msg){ msg.className='esaved ok'; msg.textContent='Saved ✓ The sorter uses it from the next check.'; } }
+  else if(msg){ msg.className='esaved bad'; msg.textContent='Couldn’t save — '+mailErr(r); }
+}
+async function mailMode(m){
+  var d=MAIL.data; if(!d || (d.mode==='auto')===(m==='auto')) return;
+  if(m==='auto' && !window.confirm('Move junk to Gmail Trash after 14 days? Gmail keeps Trash for 30 more days, so you can still rescue anything.')) return;
+  var was=d.mode; d.mode=m; render('mail');
+  var r=await mailMut('setkv',{tab:'Config', row:JSON.stringify({mail_mode:m})});
+  if(!(r&&r.ok)){ d.mode=was; render('mail'); toast('Couldn’t change that — '+mailErr(r)); }
+  else toast(m==='auto'?'Junk older than 14 days will go to Trash.':'Junk will only be archived.');
+}
+/* ---- one-tap actions (optimistic; put things back if the server says no) ---- */
+function mailToast(msg, undo){ var t=document.createElement('div'); t.className='ml-toast'; t.setAttribute('role','status');
+  var s=document.createElement('span'); s.textContent=msg; t.appendChild(s);
+  if(undo){ var b=document.createElement('button'); b.type='button'; b.textContent='Undo'; b.onclick=function(){ t.remove(); undo(); }; t.appendChild(b); }
+  document.querySelectorAll('.ml-toast').forEach(function(o){ o.remove(); }); document.body.appendChild(t); setTimeout(function(){ t.remove(); }, 6000); }
+async function mailDone(el){
+  var x=mailItem(el); if(!x) return; var grp=mailThread(x), before=grp.map(function(y){ return y.Status; });
+  grp.forEach(function(y){ y.Status='done'; }); render('mail');
+  var r=await mailMut('mailact',{ids:x.Id, act:'done'});
+  if(!(r&&r.ok)){ grp.forEach(function(y,i){ y.Status=before[i]; }); render('mail'); toast('Couldn’t mark that done — '+mailErr(r)); return; }
+  mailToast('Marked done', function(){
+    // reopen only what this Done closed — older messages in the thread that were already done/sent stay that way
+    var ids=grp.filter(function(y,i){ return !/^(done|sent)$/i.test(String(before[i]||'')); }).map(function(y){ return y.Id; });
+    grp.forEach(function(y,i){ y.Status=before[i]; }); render('mail'); if(!ids.length) return;
+    mailMut('mailact',{ids:ids.join(','), act:'reopen'}).then(function(r2){ if(!(r2&&r2.ok)) toast('Couldn’t undo — '+mailErr(r2)); });
+  });
+}
+function mailNotJunk(el){ var x=mailItem(el); if(x) mailTeachDo(x.Id, 'important', 'sender'); }
+async function mailTeachDo(id, cat, scope, undo){
+  var x=mailById(id); if(!x) return; var grp=mailThread(x), before=grp.map(function(y){ return {c:y.Category, w:y.Why, s:y.Status}; }), label=mailCatLabel(cat), prev=x.Category, was={};
+  grp.forEach(function(y,i){ was[y.Id]=before[i]; var u=undo&&undo[y.Id]; if(u){ y.Category=u.c; y.Why=u.w; y.Status=u.s; return; }
+    y.Category=cat; y.Why='You taught it: '+label; if(cat==='reply' && y.Status==='done') y.Status='open'; });
+  render('mail');
+  var r=await mailMut('mailact',{ids:id, act:'teach', cat:cat, scope:scope});
+  if(!(r&&r.ok)){ grp.forEach(function(y,i){ y.Category=before[i].c; y.Why=before[i].w; y.Status=before[i].s; }); render('mail'); toast('Couldn’t '+(undo?'undo':'save')+' that — '+mailErr(r)); return; }
+  if(undo) return toast('Undone.');
+  var R=MAIL.data&&MAIL.data.rules; if(R && typeof R==='object' && r.rules){ R.total=(R.total||0)+r.rules; R.taught=(R.taught||0)+r.rules; }
+  var who=x.FromEmail||mailAddr(x.From)||'this sender';
+  // Undo = teach the old category back with the same scope (overwrites the sender rule a mis-tap just wrote, and moves the thread back in Gmail)
+  mailToast(scope==='sender'?'Got it — mail from '+who+' is '+label+' from now on.':'Moved to '+label+'.',
+    (prev && prev!==cat && MAIL_CATS.some(function(k){ return k[0]===prev; }))?function(){ mailTeachDo(id, prev, scope, was); }:null);
+}
+/* Teach ▾ — a small menu pinned to the button (on <body>, so cards never clip it) */
+function mailTeach(el){
+  var cur=$('mlPop'); if(cur && cur._src===el){ mailPopClose(); return; }
+  mailPopClose(); var x=mailItem(el); if(!x) return;
+  var p=document.createElement('div'); p.id='mlPop'; p.className='ml-pop'; p.setAttribute('role','menu'); p._src=el;
+  p.innerHTML='<div class="ml-pop-h">Sort this as</div>'+MAIL_CATS.map(function(c){ var on=x.Category===c[0];
+      return '<button type="button" role="menuitem" class="ml-opt'+(on?' on':'')+'" data-cat="'+c[0]+'">'+(on?'✓ ':'')+c[1]+'</button>'; }).join('')
+    +'<label class="ml-pop-chk"><input type="checkbox" id="mlPopAll"'+(MAIL.ui.teachSender?' checked':'')+'> Always for this sender</label>'
+    +'<div class="ml-pop-s">'+esc(x.FromEmail||mailAddr(x.From))+'</div>';
+  document.body.appendChild(p); mailPopPlace();
+  p.addEventListener('click', function(e){ var b=e.target.closest('button[data-cat]'); if(!b) return;
+    var all=$('mlPopAll').checked; MAIL.ui.teachSender=all; mailPopClose(); mailTeachDo(x.Id, b.getAttribute('data-cat'), all?'sender':'message'); });
+  p.addEventListener('keydown', function(e){ var bs=[].slice.call(p.querySelectorAll('button')), i=bs.indexOf(document.activeElement);
+    if(e.key==='ArrowDown'||e.key==='ArrowUp'){ e.preventDefault(); bs[(i+(e.key==='ArrowDown'?1:bs.length-1))%bs.length].focus(); } });
+  setTimeout(function(){ document.addEventListener('click', mailPopOutside, true); }, 0);
+  var f=p.querySelector('.ml-opt'); if(f) try{ f.focus({preventScroll:true}); }catch(e){}
+}
+function mailPopPlace(){ var p=$('mlPop'), el=p&&p._src; if(!p) return; if(!el || !el.isConnected) return mailPopClose();
+  var r=el.getBoundingClientRect(), W=document.documentElement.clientWidth, H=window.innerHeight, w=p.offsetWidth, h=p.offsetHeight;
+  if(r.bottom<0 || r.top>H) return mailPopClose();   // its button scrolled away
+  var top=r.bottom+6; if(top+h>H-8) top=Math.max(8, r.top-h-6);
+  p.style.left=Math.max(8, Math.min(r.right-w, W-w-8))+'px'; p.style.top=top+'px'; }
+function mailPopOutside(e){ var p=$('mlPop'); if(p && !p.contains(e.target) && !(p._src && p._src.contains(e.target))) mailPopClose(); }
+function mailPopClose(){ var p=$('mlPop'); if(p){ var s=p._src, had=p.contains(document.activeElement); p.remove(); if(had && s && s.isConnected) try{ s.focus({preventScroll:true}); }catch(e){} } document.removeEventListener('click', mailPopOutside, true); }
+window.addEventListener('resize', function(){ mailPopClose(); });
+window.addEventListener('scroll', function(){ if($('mlPop')) mailPopPlace(); }, {passive:true});   // follow the button; close once it's off screen
+document.addEventListener('keydown', function(e){ if(e.key==='Escape' && $('mlPop')){ e.stopPropagation(); mailPopClose(); } }, true);
+/* two taps to send: the first arms the button for 4 s */
+function mailArm(id, txt){ var b=$(id); if(!b) return false;
+  if(b.dataset.armed==='1'){ b.dataset.armed=''; b.textContent=b.dataset.label||b.textContent; return true; }
+  b.dataset.label=b.textContent; b.dataset.armed='1'; b.textContent=txt;
+  setTimeout(function(){ if(b.isConnected && b.dataset.armed==='1'){ b.dataset.armed=''; b.textContent=b.dataset.label; } }, 4000); return false; }
+function mailBusy(on, ids){ ids.forEach(function(i){ var b=$(i); if(b) b.disabled=on; }); }
+function mailLock(ids){ ids.forEach(function(i){ var e=$(i); if(!e) return; if(e.tagName==='TEXTAREA') e.readOnly=true; else e.disabled=true; }); }   // queued: nothing left to edit
+function mailMsg(id, txt, cls){ var m=$(id); if(m){ m.className='esaved'+(cls?' '+cls:''); m.textContent=txt; } }
+/* each reply / new-email window is its own session (MAIL.modal): a slow Claude call from a window Brad closed or replaced
+   never locks, unlocks or overwrites the one he has open now */
+function mailLive(s){ return !!s && MAIL.modal===s && !!$(s.kind==='reply'?'mlBody':'mcBody'); }
+/* ---- Draft reply: Claude writes it (maildraft), Brad edits / rewrites, then Send or Save as a Gmail draft (mailsend) ---- */
+function mailDraftOpen(el){
+  var x=typeof el==='string'?mailById(el):mailItem(el); if(!x) return; mailPopClose();
+  var pre=MAIL.drafts[x.Id]!=null?MAIL.drafts[x.Id]:String(x.Draft||''), s={kind:'reply', id:x.Id, busy:false};
+  $('modalSheet').innerHTML='<button class="mclose" onclick="closeModal()" aria-label="Close">×</button><div class="mhead"><h2>Reply</h2></div>'
+    +'<div class="ml-mh"><div class="ml-mh-from"><b>'+esc(mailName(x.From))+'</b><span>'+esc(x.FromEmail||mailAddr(x.From))+'</span></div><div class="ml-mh-subj">'+esc(x.Subject||'(no subject)')+'</div></div>'
+    +'<div class="ml-orig" id="mlOrig">'+esc(x.Snippet||x.Summary||'')+'</div>'
+    +'<div class="efield"><label for="mlBody">Your reply</label><textarea id="mlBody" class="ml-body" data-id="'+esc(x.Id)+'" oninput="MAIL.drafts[this.dataset.id]=this.value">'+esc(pre)+'</textarea></div>'
+    +'<div class="ml-rw"><input id="mlAsk" type="text" aria-label="How should it change?" placeholder="Change it — “shorter”, “say Thursday works”, “decline kindly”" onkeydown="if(event.key===\'Enter\'){event.preventDefault();mailRewrite();}"><button class="ebtn" id="mlRw" onclick="mailRewrite()">Rewrite</button></div>'
+    +'<label class="ml-chk"><input type="checkbox" id="mlAll"> Reply all</label>'
+    +'<div class="ml-sendfrom">Sends from your <b>'+esc(mailShort(x.Account))+'</b> inbox'+(x.Via?' (through '+esc(mailShort(x.Via))+')':'')+' — the one this email came to.</div>'
+    +'<div class="eactions ml-eact" id="mlActs"><span class="esaved" id="mlMsg" role="status"></span><span class="spacer"></span><button class="ebtn" onclick="closeModal()">Cancel</button>'
+    +'<button class="ebtn" id="mlSave" onclick="mailSendReply(0)">'+(x.Source==='mac'?'Save as draft':'Save as Gmail draft')+'</button><button class="ebtn pri" id="mlSend" onclick="mailSendReply(1)">Send</button></div>';
+  $('modal').classList.remove('hidden'); MAIL.modal=MAIL.rp=s;
+  if(!pre.trim()) mailWrite(s, ''); else mailMsg('mlMsg', 'Your last draft — edit it, or tell it what to change.');
+}
+function mailRewrite(){ var s=MAIL.rp, a=$('mlAsk'); if(!mailLive(s)) return; if(s.busy) return mailMsg('mlMsg','Still working on it — one moment…');
+  var ask=(a&&a.value||'').trim();
+  if(!ask){ if(a) a.focus(); mailMsg('mlMsg','Type what to change, then tap Rewrite.','bad'); return; } mailWrite(s, ask); }
+async function mailWrite(s, ask){
+  var ta=$('mlBody'); if(!ta || !mailLive(s)) return; var id=s.id, old=ta.value, ids=['mlRw','mlSave','mlSend'], job, r=null;
+  s.busy=true; mailBusy(true, ids); ta.classList.add('is-busy'); ta.readOnly=true;
+  mailMsg('mlMsg', ask?'Rewriting…':'Writing a reply in your voice… about 15–30 seconds');
+  if(!ask && MAIL.wr[id]) job=MAIL.wr[id];   // closed and reopened while the first draft was still being written: wait for that same one
+  else { var p={id:id}; if(ask){ p.ask=ask; p.draft=old; } job=mailPost('maildraft', p, 120000);
+    if(!ask){ MAIL.wr[id]=job; job.then(function(x){ delete MAIL.wr[id]; var it=mailById(id); if(x&&x.ok&&it) it.Draft=String(x.draft||''); }, function(){ delete MAIL.wr[id]; }); } }
+  try{ r=await job; }catch(e){}
+  s.busy=false; if(!mailLive(s)) return;   // closed, or another email opened meanwhile: leave that window alone
+  ta=$('mlBody'); mailBusy(false, ids); ta.classList.remove('is-busy'); ta.readOnly=false;
+  if(r&&r.ok){ ta.value=String(r.draft||''); MAIL.drafts[id]=ta.value; var x=mailById(id); if(x) x.Draft=ta.value;
+    if(r.item && has(r.item.body) && $('mlOrig')) $('mlOrig').textContent=String(r.item.body);
+    if(ask && $('mlAsk')) $('mlAsk').value='';
+    mailMsg('mlMsg', ask?'Rewritten ✓':'Draft ready — edit anything, then send.','ok'); }
+  else mailMsg('mlMsg', 'Couldn’t write it ('+mailErr(r)+'). Type your reply, or try again.','bad');
+}
+async function mailSendReply(send){
+  var s=MAIL.rp, ta=$('mlBody'); if(!ta || !mailLive(s)) return; if(s.busy) return mailMsg('mlMsg','Still working on it — one moment…');
+  var id=s.id, body=ta.value.trim(), x=mailById(id);
+  if(!body){ mailMsg('mlMsg','Write something first.','bad'); return; }
+  if(send && !mailArm('mlSend','Tap again to send')) return;
+  var ids=['mlRw','mlSave','mlSend']; s.busy=true; mailBusy(true, ids); mailMsg('mlMsg', send?'Sending…':'Saving…');
+  var r=await mailMut('mailsend',{id:id, body:body, send:send?'1':'0', replyAll:($('mlAll')&&$('mlAll').checked)?'1':'0'});
+  s.busy=false; var live=mailLive(s); if(live) mailBusy(false, ids);
+  if(!(r&&r.ok)){ if(live) mailMsg('mlMsg','Didn’t go through ('+mailErr(r)+'). Try again.','bad'); else toast('Your reply didn’t go through ('+mailErr(r)+') — open it and try again.'); return; }
+  var acct=r.account||(x&&x.Account)||'', mac=!!(x&&x.Source==='mac'), eta=mac?10:mailEta(r.via||(x&&x.Via)||acct);
+  if(x){ x.Status=r.status||(send?'sending':'drafted'); x.Draft=body; }
+  delete MAIL.drafts[id];
+  if(MAIL.data && r.qid){ MAIL.data.pending=(MAIL.data.pending||[]).filter(function(q){ return q.Qid!==r.qid; })
+    .concat([{Qid:r.qid, Account:acct, Via:r.via||(x&&x.Via)||'', Type:'reply', Payload:JSON.stringify({itemId:id, send:!!send}), Status:'queued', Created:new Date().toISOString()}]); }
+  var done=send?'Queued — goes out within ~'+eta+' minutes from your '+mailShort(acct)+' inbox.'
+    :mac?'Saved — it’ll open as a draft in Mail on your Mac within ~'+eta+' minutes (while the Mac is awake), ready to send.':'Saved — it’ll be in your '+mailShort(acct)+' Gmail Drafts within ~'+eta+' minutes.';
+  if(live){ mailLock(['mlBody','mlAsk','mlRw','mlAll']);
+    $('mlActs').innerHTML='<span class="esaved ok" role="status">'+esc(done)+'</span><span class="spacer"></span><button class="ebtn pri" onclick="closeModal()">Done</button>'; }
+  else toast('Reply '+done.charAt(0).toLowerCase()+done.slice(1));
+  if(CURRENT==='mail') render('mail');
+}
+/* ---- New email: Life OS picks the inbox (Brad can override); "Write it for me" drafts it in his voice ----
+   `account` goes to the server only when Brad picked one ("change") or the server already picked one (Write it for me);
+   otherwise the server picks (it also knows who Brad has written to, which this page can't see). The page's own guess — who
+   has emailed Brad where — is never shown as the answer; it's only a fallback for an older server that can't pick by itself. */
+function mailGuess(to){
+  var e=mailAddr(to); if(!e) return null;
+  var ok={}; mailAccounts().forEach(function(a){ if(a.on && !a.fwd) ok[a.a]=1; });
+  var dom=e.split('@')[1], best=null, bestD=null;
+  ((MAIL.data&&MAIL.data.items)||[]).forEach(function(x){ var acc=String(x.Account||'').toLowerCase(), f=String(x.FromEmail||mailAddr(x.From)).toLowerCase();
+    if(x.Via || !ok[acc] || (x.Category!=='reply' && x.Category!=='important')) return;   // real correspondence only — never marketing / junk / spam
+    if(f===e){ if(!best || mailT(x.Date)>mailT(best.Date)) best=x; }
+    else if(!MAIL_PUBLIC[dom] && f.split('@')[1]===dom){ if(!bestD || mailT(x.Date)>mailT(bestD.Date)) bestD=x; } });
+  if(best) return {a:String(best.Account).toLowerCase(), why:'they’ve emailed you there'};
+  if(bestD) return {a:String(bestD.Account).toLowerCase(), why:dom+' emails you there'};
+  return null;
+}
+function mailSenderShow(){
+  var el=$('mcFrom'), c=MAIL.cmp; if(!el || !c) return;
+  var on=mailAccounts().filter(function(a){ return a.on && !a.fwd; }), a=c.over||c.pick, why=c.over?'you picked it':c.why||'';
+  c.cur=a;
+  el.innerHTML=(a?'Sends from <b>'+esc(mailShort(a))+'</b>'+(why?' ('+esc(why)+')':''):'Sends from <b>the right inbox</b> — Life OS picks it when you send')
+    +(on.length?' · <button type="button" class="ml-link" onclick="MAIL.cmp.chg=!MAIL.cmp.chg;mailSenderShow()">'+(c.chg?'close':'change')+'</button>':'')
+    +(c.chg?'<select id="mcAcct" aria-label="Send from" onchange="MAIL.cmp.over=this.value;MAIL.cmp.chg=false;mailSenderShow()"><option value="">Automatic</option>'
+      +on.map(function(x){ return '<option value="'+esc(x.a)+'"'+(x.a===c.over?' selected':'')+'>'+esc(x.n)+' — '+esc(x.a)+'</option>'; }).join('')+'</select>':'')
+    +(!on.length?'<div class="ml-st warn" style="margin:4px 0 0">No inbox is connected yet, so this will wait until one is.</div>':'');
+}
+/* maildraft compose / mailcompose with the account rule above */
+async function mailAcctCall(action, p, c){
+  var run=function(){ return action==='maildraft'?mailPost(action, p, 120000):mailMut(action, p); };
+  var a=c.over||c.pick; if(a) p.account=a;
+  var r=await run();
+  if(!a && r && r.ok===false && /unknown account/i.test(String(r.error||''))){ var g=mailGuess(p.to);   // older server: no pick of its own
+    if(g){ p.account=g.a; r=await run(); if(r && r.ok && !r.account){ r.account=g.a; } if(r && r.ok && !has(r.accountWhy)) r.accountWhy=g.why; } }
+  return r;
+}
+function mailCompose(){
+  if(ROLE==='chelsea') return; mailPopClose(); MAIL.cmp={kind:'compose', over:'', pick:'', why:'', cur:'', chg:false, busy:false};
+  $('modalSheet').innerHTML='<button class="mclose" onclick="closeModal()" aria-label="Close">×</button><div class="mhead"><h2>New email</h2></div>'
+    +'<div class="efield"><label for="mcTo">To</label><input id="mcTo" type="email" multiple autocomplete="email" placeholder="name@example.com" oninput="if(MAIL.cmp){MAIL.cmp.pick=\'\';MAIL.cmp.why=\'\';mailSenderShow();}"></div>'
+    +'<div class="efield"><label for="mcCc">Cc <span class="opt">(optional)</span></label><input id="mcCc" type="email" multiple autocomplete="email"></div>'
+    +'<div class="efield"><label for="mcSubj">Subject</label><input id="mcSubj" type="text"></div>'
+    +'<div class="efield"><label for="mcAsk">What should it say? <span class="opt">(Life OS writes it in your voice)</span></label><div class="ml-rw" style="margin:0"><input id="mcAsk" type="text" placeholder="e.g. ask if Thursday at 2 still works for the walkthrough" onkeydown="if(event.key===\'Enter\'){event.preventDefault();mailComposeWrite();}"><button class="ebtn" id="mcWrite" onclick="mailComposeWrite()">Write it for me</button></div></div>'
+    +'<div class="efield"><label for="mcBody">Message</label><textarea id="mcBody" class="ml-body"></textarea></div>'
+    +'<div class="ml-sendfrom" id="mcFrom"></div>'
+    +'<div class="eactions ml-eact" id="mcActs"><span class="esaved" id="mcMsg" role="status"></span><span class="spacer"></span><button class="ebtn" onclick="closeModal()">Cancel</button>'
+    +'<button class="ebtn" id="mcSave" onclick="mailComposeSend(0)">Save as draft</button><button class="ebtn pri" id="mcSend" onclick="mailComposeSend(1)">Send</button></div>';
+  $('modal').classList.remove('hidden'); MAIL.modal=MAIL.cmp; mailSenderShow();
+  setTimeout(function(){ var t=$('mcTo'); if(t && window.innerWidth>640) t.focus(); }, 60);
+}
+async function mailComposeWrite(){
+  var c=MAIL.cmp; if(!mailLive(c)) return; if(c.busy) return mailMsg('mcMsg','Still working on it — one moment…');
+  var ask=($('mcAsk').value||'').trim();
+  if(!ask){ mailMsg('mcMsg','Say what it should say first.','bad'); $('mcAsk').focus(); return; }
+  var ids=['mcWrite','mcSave','mcSend'], body=$('mcBody'); c.busy=true; mailBusy(true, ids); body.classList.add('is-busy'); mailMsg('mcMsg','Writing… about 15–30 seconds');
+  var r=null; try{ r=await mailAcctCall('maildraft', {compose:'1', to:$('mcTo').value.trim(), subject:$('mcSubj').value.trim(), ask:ask}, c); }catch(e){}
+  c.busy=false; if(!mailLive(c)) return;   // closed or replaced meanwhile
+  mailBusy(false, ids); body=$('mcBody'); body.classList.remove('is-busy');
+  if(r&&r.ok){ body.value=String(r.body||r.draft||''); var s=$('mcSubj'); if(s && !s.value.trim() && has(r.subject)) s.value=String(r.subject);
+    if(r.account && !c.over){ c.pick=String(r.account).toLowerCase(); c.why=r.accountWhy||''; } mailSenderShow();
+    mailMsg('mcMsg','Written ✓ — edit anything, then send.','ok'); }
+  else mailMsg('mcMsg','Couldn’t write it ('+mailErr(r)+'). Type it yourself, or try again.','bad');
+}
+async function mailComposeSend(send){
+  var c=MAIL.cmp; if(!mailLive(c)) return; if(c.busy) return mailMsg('mcMsg','Still working on it — one moment…');
+  var to=$('mcTo').value.trim(), cc=$('mcCc').value.trim(), subject=$('mcSubj').value.trim(), body=$('mcBody').value.trim();
+  if(!mailAddr(to)){ mailMsg('mcMsg','Add who it goes to (an email address).','bad'); $('mcTo').focus(); return; }
+  if(!body){ mailMsg('mcMsg','Write the message first — or tap Write it for me.','bad'); return; }
+  if(send && !mailArm('mcSend','Tap again to send')) return;
+  var ids=['mcWrite','mcSave','mcSend']; c.busy=true; mailBusy(true, ids); mailMsg('mcMsg', send?'Sending…':'Saving…');
+  var r=null; try{ r=await mailAcctCall('mailcompose', {to:to, cc:cc, subject:subject, body:body, send:send?'1':'0'}, c); }catch(e){}
+  c.busy=false; var live=mailLive(c); if(live) mailBusy(false, ids);
+  if(!(r&&r.ok)){ if(live) mailMsg('mcMsg','Didn’t go through ('+mailErr(r)+'). Try again.','bad'); else toast('Your email to '+mailAddr(to)+' didn’t go through ('+mailErr(r)+').'); return; }
+  var who=String(r.account||''), eta=mailEta(r.via||who), name=who?mailShort(who):'the right', mac=mailMacAcct(r.via||who);
+  if(MAIL.data && r.qid){ MAIL.data.pending=(MAIL.data.pending||[]).filter(function(q){ return q.Qid!==r.qid; })
+    .concat([{Qid:r.qid, Account:who, Via:r.via||'', Type:'compose', Payload:JSON.stringify({to:to, subject:subject, send:!!send}), Status:'queued', Created:new Date().toISOString()}]); }
+  var done=(send?'Queued — goes out within ~'+eta+' minutes from your '+name+' inbox':mac?'Saved — it’ll open as a draft in Mail on your Mac within ~'+eta+' minutes, from your '+name+' inbox':'Saved — it’ll be in your '+name+' Gmail Drafts within ~'+eta+' minutes')
+    +(has(r.accountWhy)?' ('+r.accountWhy+')':'')+'.'+(r.connected===false?' That inbox isn’t connected yet, so it waits until it is.':'');
+  if(MAIL.cmp===c) MAIL.cmp=null;
+  if(live){ $('mcActs').innerHTML='<span class="esaved ok" role="status">'+esc(done)+'</span><span class="spacer"></span><button class="ebtn pri" onclick="closeModal()">Done</button>';
+    mailLock(['mcTo','mcCc','mcSubj','mcAsk','mcWrite','mcBody','mcAcct']); var fr=$('mcFrom'); if(fr) fr.querySelectorAll('button, select').forEach(function(e){ e.remove(); }); }
+  else toast('Email '+done.charAt(0).toLowerCase()+done.slice(1));
+  if(CURRENT==='mail') render('mail');
 }
 
 /* ---- PWA: register service worker so Life OS installs to the home screen & works offline ---- */
