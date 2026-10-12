@@ -6468,6 +6468,7 @@ function renderMail(){
     :imp1?'No one’s waiting on you. Worth a look: <b>'+esc(mailName(imp1.From))+'</b> — '+esc(mailClip(imp1.Summary||imp1.Subject||'', 110))
     :imp.length?'No one’s waiting on you. '+imp.length+' worth knowing below.'
     :none?'Connect an inbox below to start sorting.':'All clear — nothing needs you.';
+  var nMoves=(d.pending||[]).filter(function(q){ return q.Type==='move' && q.Status!=='done' && q.Status!=='error'; }).length;
   var triN=mailTriageList().length, stale=on.filter(function(a){ return Date.now()-mailT(a.row&&a.row.LastSync)>36e5; }).length;
   var chip=function(n, label, target, cls){ return '<button type="button" class="ml-chip'+(cls?' '+cls:'')+(n?'':' zero')+'" onclick="mailJump(\''+target+'\')"><b>'+n+'</b> '+label+'</button>'; };
   var tiles='<div class="ml-brief" role="region" aria-label="Mail summary">'
@@ -6475,7 +6476,7 @@ function renderMail(){
     +'<div class="ml-brief-r">'
       +chip(nReply, 'need'+(nReply===1?'s':'')+' reply', 'mlReply', urgent?'hot':'')+chip(imp.length, 'important', 'mlImp')+chip(fyi.length, 'FYI', 'mlFyi')+chip(weed.length, 'weeded', 'mlWeed')
       +'<span class="ml-health'+(stale||on.length<accts.length?' warn':'')+'" title="'+esc(on.map(function(a){ return a.n+': checked '+mailAgo(a.row&&a.row.LastSync); }).join('\n'))+'" onclick="mailJump(\'mlConnect\')">'
-        +'<i></i>'+on.length+' of '+accts.length+' inboxes'+(MAIL.at?' · '+esc(new Date(MAIL.at).toLocaleTimeString('en-US',{hour:'numeric', minute:'2-digit'})):'')+(MAIL.loading?' · checking…':'')+'</span>'
+        +'<i></i>'+on.length+' of '+accts.length+' inboxes'+(nMoves?' · '+nMoves+' change'+(nMoves===1?'':'s')+' queued':'')+(MAIL.at?' · '+esc(new Date(MAIL.at).toLocaleTimeString('en-US',{hour:'numeric', minute:'2-digit'})):'')+(MAIL.loading?' · checking…':'')+'</span>'
       +(triN?'<button type="button" class="ebtn pri ml-go" onclick="mailTriage()" title="One at a time — r reply · e done · j skip">Go through '+triN+' →</button>':'')
     +'</div>'
     +(MAIL.err?'<div class="ml-meta"><span class="warn">Couldn’t refresh ('+esc(MAIL.err)+')</span></div>':'')
@@ -6493,7 +6494,7 @@ function renderMail(){
     weed.length?mailList(weed,'weed',6,'weed','emails'):'<div class="empty">Nothing weeded out this week.</div>');
   var connect=mailConnectCard(d, accts);
   return tiles+meta+mailOutbox(d)
-    +'<div class="ml-stack">'+(none?connect:'')+replyCard+impCard+fyiCard+weedCard+(none?mailTeachCard(d):'')+'</div>'
+    +'<div class="ml-stack">'+(none?connect:'')+(reply.length||none?replyCard:'')+(imp.length||none?impCard:'')+fyiCard+weedCard+(none?mailTeachCard(d):'')+'</div>'
     +(none?'':'<div class="grid cols-2" style="margin-bottom:22px">'+mailTeachCard(d)+connect+'</div>');
 }
 /* queued sends (reply / compose) and Gmail moves the agents haven't picked up yet */
@@ -6508,7 +6509,7 @@ function mailOutbox(d){
   sends=sends.filter(function(q){ if(q.Status!=='error') return true; var p=mailQP(q), it=p.itemId?mailById(p.itemId):null;
     if(it && /^(sent|sending|drafted|done)$/i.test(String(it.Status||''))) return false;   // resent since (or Brad closed it): the old failure is history
     return mailT(q.Created)>=newest[mailQKey(q, p)]; });                                     // a newer try of the same email is in the list
-  if(!sends.length && !moves) return '';
+  if(!sends.length) return '';   // moves alone are mentioned in the brief bar, not a card of their own
   var rows=sends.map(function(q){ var p=mailQP(q);
     var it=p.itemId?mailById(p.itemId):null, acct=q.Account||(it&&it.Account)||'', er=q.Status==='error'?mailQErr(q):'';
     var where=it?(it.Source==='mac'?'mac':'google'):mailWhere(q.Via||acct), eta=it?(it.Source==='mac'?10:mailGEta(q.Via||acct)):mailEta(q.Via||acct);   // a reply goes to the agent that read the email
