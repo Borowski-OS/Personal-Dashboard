@@ -973,6 +973,11 @@
     box-shadow:0 10px 30px rgba(0,0,0,.5), 0 0 26px rgba(122,162,247,.28), inset 0 0 18px rgba(179,146,240,.18); transition:transform .18s, box-shadow .18s; overflow:hidden; }
   #aiFab:hover { transform:scale(1.07); box-shadow:0 12px 34px rgba(0,0,0,.55), 0 0 34px rgba(179,146,240,.45), inset 0 0 22px rgba(95,208,197,.22); }
   #aiFab.hidden { display:none; } #aiHive { width:100%; height:100%; display:block; }
+  /* Pam embed */
+  .aiBody.pam-body { padding:0; display:flex; flex-direction:column; background:#050b16; }
+  #pamFrame { flex:1; width:100%; border:0; background:#050b16; min-height:0; }
+  #pamFrame.hidden { display:none; }
+  #pamOffline { padding:30px 20px; } #pamOffline .ai-sugg { flex-direction:row; justify-content:center; }
   @media (max-width:640px){ #aiFab { right:14px; bottom:calc(74px + env(safe-area-inset-bottom)) !important; width:58px !important; height:58px !important; padding:0; } }
 
   /* Taxes page */
@@ -1380,19 +1385,22 @@
 
 <!-- Floating AI assistant -->
 <button id="aiFab" class="hidden" onclick="openAI()" title="Ask Life OS (⌘J)" aria-label="Ask Life OS AI"><canvas id="aiHive" class="ai-sphere"></canvas></button>
-<div id="aiPanel" class="hidden" role="dialog" aria-label="Life OS AI">
+<div id="aiPanel" class="hidden" role="dialog" aria-label="Pam">
   <div class="aiHead">
     <span class="ai-orb sm"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5l1.9 5.6 5.6 1.9-5.6 1.9L12 17.5l-1.9-5.6L4.5 10l5.6-1.9z"/></svg></span>
-    <div class="aiTitle"><strong>Life OS AI</strong><span>Knows your dashboard · searches the web · can add tasks</span></div>
-    <button class="ai-ic" onclick="aiNew()" title="New chat"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+    <div class="aiTitle"><strong>Pam</strong><span>Talks, codes and runs your projects · from the Mac over Tailscale</span></div>
+    <button class="ai-ic" onclick="pamOpenTab()" title="Open Pam full screen"><svg viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-8 8M10 6H5v13h13v-5"/></svg></button>
     <button class="ai-ic ai-exp" onclick="aiExpand()" title="Expand"><svg viewBox="0 0 24 24"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg></button>
     <button class="ai-ic" onclick="closeAI()" title="Close (Esc)"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
   </div>
-  <div id="aiBody" class="aiBody"></div>
-  <div class="aiInputWrap">
-    <textarea id="aiInput" rows="1" placeholder="Ask anything, or say “add a task to…”" autocomplete="off" oninput="aiGrow(this)" onkeydown="aiKey(event)"></textarea>
-    <button class="ai-ic ai-mic hidden" id="aiMic" onclick="aiVoice()" title="Speak"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
-    <button class="ai-send" onclick="askAI()" id="aiSend" title="Send"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+  <div id="aiBody" class="aiBody pam-body">
+    <div id="pamOffline" class="ai-hello hidden">
+      <canvas class="ai-sphere ai-hello-orb"></canvas>
+      <h3>Pam is out of reach</h3>
+      <p>She runs on your Mac and is reachable only through Tailscale. Make sure the Mac is awake and this device is signed into Tailscale, then try again.</p>
+      <div class="ai-sugg"><button onclick="openAI()">Try again</button><button onclick="pamOpenTab()">Open Pam directly</button></div>
+    </div>
+    <iframe id="pamFrame" title="Pam" allow="microphone; autoplay; clipboard-write" referrerpolicy="no-referrer"></iframe>
   </div>
 </div>
 
@@ -5679,82 +5687,23 @@ function closePalette(){ $('palette').classList.add('hidden'); }
   document.addEventListener('visibilitychange', function(){ if(!document.hidden) wake(); });
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', wake); else wake();
 })();
-/* ---------- AI assistant: memory, live data, web search, actions ---------- */
-var AI_LS='lifeos_ai_chat', AI_MSGS=[], AI_BUSY=false;
-try{ AI_MSGS=JSON.parse(localStorage.getItem(AI_LS)||'[]')||[]; }catch(e){ AI_MSGS=[]; }
-function aiSave(){ try{ localStorage.setItem(AI_LS, JSON.stringify(AI_MSGS.slice(-30))); }catch(e){} }
-function openAI(){ $('aiPanel').classList.remove('hidden'); $('aiFab').classList.add('hidden'); document.body.classList.add('ai-open');
-  if(window.SpeechRecognition||window.webkitSpeechRecognition) $('aiMic').classList.remove('hidden');
-  $('aiInput').placeholder = window.innerWidth<=640 ? 'Ask anything…' : 'Ask anything, or say “add a task to…”';
-  aiRender(); setTimeout(function(){ if(window.innerWidth>640) $('aiInput').focus(); },60); }
+/* ---------- Pam: the voice coding assistant, embedded from the Mac over Tailscale ---------- */
+var PAM_URL='https://bradleys-macbook-pro.taila89b12.ts.net';
+var PAM_LOADED=false;
+function openAI(){
+  $('aiPanel').classList.remove('hidden'); $('aiFab').classList.add('hidden'); document.body.classList.add('ai-open');
+  var off=$('pamOffline'), fr=$('pamFrame');
+  off.classList.add('hidden'); fr.classList.remove('hidden');
+  // Reachability probe (Tailscale-only host): show a friendly notice instead of a blank frame.
+  var ctl=('AbortController' in window)?new AbortController():null, timer=ctl&&setTimeout(function(){ctl.abort();},6000);
+  fetch(PAM_URL+'/api/health',{mode:'cors',signal:ctl?ctl.signal:undefined}).then(function(r){ if(!r.ok) throw 0; return r.json(); })
+    .then(function(){ clearTimeout(timer); if(!PAM_LOADED){ fr.src=PAM_URL+'/'; PAM_LOADED=true; } })
+    .catch(function(){ clearTimeout(timer); fr.classList.add('hidden'); off.classList.remove('hidden'); if(window.aiHiveWake) aiHiveWake(); });
+}
 function closeAI(){ $('aiPanel').classList.add('hidden'); $('aiFab').classList.remove('hidden'); document.body.classList.remove('ai-open'); if(window.aiHiveWake) aiHiveWake(); }
 function aiExpand(){ $('aiPanel').classList.toggle('big'); }
-function aiNew(){ if(AI_BUSY) return; AI_MSGS=[]; aiSave(); aiRender(); $('aiInput').focus(); }
-function aiGrow(t){ t.style.height='auto'; t.style.height=Math.min(140,t.scrollHeight)+'px'; }
-function aiKey(e){ if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); askAI(); } if(e.key==='Escape') closeAI(); }
-document.addEventListener('keydown',function(e){ if((e.metaKey||e.ctrlKey)&&(e.key==='j'||e.key==='J')){ if(ROLE==='chelsea'||!DATA) return; e.preventDefault(); $('aiPanel').classList.contains('hidden')?openAI():closeAI(); } });
-function aiSuggestions(){
-  var by={overview:['What should I focus on today?','Anything I’m forgetting this week?','How am I doing overall?'],
-    home:['Where am I overspending?','Should I refinance either mortgage?','How much house equity do I have?'],
-    ventures:['Which deal is closest to working?','How much cash could I raise for a deal?','Explain my best rental option'],
-    flying:['Can I fly this weekend?','How much do I owe Jeremy?','What should I practice next lesson?'],
-    health:['How is my recovery trending?','Plan my workouts this week','How do I get to my goal weight?'],
-    life:['What car maintenance is due?','Who am I calling this week?','What home projects are open?'],
-    faith:['Give me a short prayer for today','How are my rhythms going?','Suggest a Sabbath plan']};
-  return (by[CURRENT]||by.overview).concat(['Add a task: '+(CURRENT==='flying'?'book the written test':'call the insurance agent')]); }
-function aiMd(t){
-  var out=[], list=null, flush=function(){ if(list){ out.push('<'+list.t+'>'+list.i.join('')+'</'+list.t+'>'); list=null; } };
-  var inl=function(x){ return esc(x).replace(/\[([^\]]+)\]\((https?:[^)\s]+)\)/g,'<a href="$2" target="_blank" rel="noopener">$1</a>')
-    .replace(/\*\*([^*]+)\*\*/g,'<b>$1</b>').replace(/(^|[^*])\*([^*\n]+)\*/g,'$1<i>$2</i>').replace(/`([^`]+)`/g,'<code>$1</code>'); };
-  String(t||'').split('\n').forEach(function(line){ var m;
-    if((m=line.match(/^\s*[-*•]\s+(.*)/))){ if(!list||list.t!=='ul'){ flush(); list={t:'ul',i:[]}; } list.i.push('<li>'+inl(m[1])+'</li>'); return; }
-    if((m=line.match(/^\s*\d+[.)]\s+(.*)/))){ if(!list||list.t!=='ol'){ flush(); list={t:'ol',i:[]}; } list.i.push('<li>'+inl(m[1])+'</li>'); return; }
-    flush(); if((m=line.match(/^#{1,4}\s+(.*)/))) out.push('<h4>'+inl(m[1])+'</h4>'); else if(line.trim()) out.push('<p>'+inl(line)+'</p>'); });
-  flush(); return out.join(''); }
-function aiRender(){
-  var b=$('aiBody'); if(!b) return;
-  if(!AI_MSGS.length){
-    b.innerHTML='<div class="ai-hello"><canvas class="ai-sphere ai-hello-orb"></canvas>'
-      +'<h3>Hi Brad. What’s on your mind?</h3><p>I can see your money, flying, health, calendar, deals and home, look things up on the web, and add tasks for you.</p>'
-      +'<div class="ai-sugg">'+aiSuggestions().map(function(x){ return '<button onclick="aiAskText(this.textContent)">'+esc(x)+'</button>'; }).join('')+'</div></div>';
-    if(window.aiHiveWake) aiHiveWake(); return; }
-  b.innerHTML=AI_MSGS.map(function(m,i){
-    if(m.role==='user') return '<div class="aiMsg u"><div class="bub">'+esc(m.content).replace(/\n/g,'<br>')+'</div></div>';
-    return '<div class="aiMsg a'+(m.error?' err':'')+'"><span class="ai-orb xs"><svg viewBox="0 0 24 24"><path d="M12 2.5l1.9 5.6 5.6 1.9-5.6 1.9L12 17.5l-1.9-5.6L4.5 10l5.6-1.9z"/></svg></span><div class="bub">'
-      +(m.pending?'<div class="ai-typing"><i></i><i></i><i></i><span id="aiStatus">Reading your dashboard…</span></div>':aiMd(m.content))
-      +((m.actions||[]).length?'<div class="ai-acts">'+m.actions.map(function(a){return '<span>✓ '+esc(a)+'</span>';}).join('')+'</div>':'')
-      +((m.sources||[]).length?'<div class="ai-src">'+m.sources.map(function(s){ var h=''; try{ h=new URL(s.url).hostname.replace(/^www\./,''); }catch(e){}
-          return '<a href="'+esc(s.url)+'" target="_blank" rel="noopener" title="'+esc(s.title||'')+'">'+esc(h||'source')+'</a>'; }).join('')+'</div>':'')
-      +(!m.pending&&!m.error?'<button class="ai-copy" onclick="aiCopy('+i+')" title="Copy">Copy</button>':'')+'</div></div>';
-  }).join('');
-  b.scrollTop=b.scrollHeight; }
-function aiCopy(i){ var m=AI_MSGS[i]; if(!m) return; try{ navigator.clipboard.writeText(m.content); toast('Copied'); }catch(e){} }
-function aiAskText(t){ $('aiInput').value=t.replace(/^Add a task: /,'Add a task to ')+(t.indexOf('Add a task')===0?'':''); askAI(); }
-async function askAI(){
-  var inp=$('aiInput'), q=(inp.value||'').trim(); if(!q||AI_BUSY) return;
-  inp.value=''; aiGrow(inp); AI_BUSY=true; $('aiSend').disabled=true;
-  var hist=AI_MSGS.filter(function(m){return !m.pending&&!m.error;}).slice(-12).map(function(m){return {role:m.role, content:m.content};});
-  AI_MSGS.push({role:'user', content:q}); var pend={role:'assistant', content:'', pending:true}; AI_MSGS.push(pend); aiRender();
-  var t0=Date.now(), steps=['Reading your dashboard…','Checking the numbers…','Thinking it through…','Searching the web…','Almost there…'];
-  var tick=setInterval(function(){ var s=$('aiStatus'); if(!s) return; var k=Math.min(steps.length-1, Math.floor((Date.now()-t0)/8000)); s.textContent=steps[k]+' '+Math.round((Date.now()-t0)/1000)+'s'; },1000);
-  var res=null;
-  try{ res=await fetch(API_URL,{method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
-      body:JSON.stringify({pw:sessionStorage.getItem(SS_PW), action:'ask', q:q, history:hist, tab:(TABS[CURRENT]||{}).title||CURRENT})}).then(function(r){return r.json();}); }
-  catch(e){ try{ res=await jsonp(API_URL+'?pw='+sessionStorage.getItem(SS_PW)+'&action=ask&q='+encodeURIComponent(q), 120000); }catch(e2){ res=null; } }
-  clearInterval(tick); pend.pending=false;
-  if(res&&res.ok){ pend.content=res.answer; pend.actions=res.actions||[]; pend.sources=res.sources||[]; if(pend.actions.length) afterWriteQuiet(); }
-  else { pend.error=true; pend.content=(res&&res.error==='no key')?'AI isn’t connected yet.':'Sorry, that didn’t go through ('+((res&&res.error)||'connection')+'). Try again.'; }
-  AI_BUSY=false; $('aiSend').disabled=false; aiSave(); aiRender();
-}
-var AI_REC=null;
-function aiVoice(){
-  var R=window.SpeechRecognition||window.webkitSpeechRecognition; if(!R) return;
-  if(AI_REC){ AI_REC.stop(); return; }
-  AI_REC=new R(); AI_REC.lang='en-US'; AI_REC.interimResults=true; var mic=$('aiMic'); mic.classList.add('on');
-  AI_REC.onresult=function(e){ var t=''; for(var i=0;i<e.results.length;i++) t+=e.results[i][0].transcript; $('aiInput').value=t; aiGrow($('aiInput'));
-    if(e.results[e.results.length-1].isFinal){ AI_REC.stop(); setTimeout(askAI,250); } };
-  AI_REC.onend=function(){ mic.classList.remove('on'); AI_REC=null; }; AI_REC.onerror=AI_REC.onend; AI_REC.start();
-}
+function pamOpenTab(){ window.open(PAM_URL+'/','_blank','noopener'); }
+document.addEventListener('keydown',function(e){ if((e.metaKey||e.ctrlKey)&&(e.key==='j'||e.key==='J')){ if(ROLE==='chelsea'||!DATA) return; e.preventDefault(); $('aiPanel').classList.contains('hidden')?openAI():closeAI(); } if(e.key==='Escape'&&!$('aiPanel').classList.contains('hidden')) closeAI(); });
 function palRender(){
   var q=($('palInput').value||'').trim().toLowerCase();
   var all=palIndex();
