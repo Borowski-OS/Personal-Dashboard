@@ -168,3 +168,8 @@
   Per-account rules + the "what Brad cares about" profile (Config mail_profile) are editable on the Mail tab. Never commit
   email content or keys; the Mail tab's "Connect from your Mac" card shows the one-line install command (contains the key).
   The AI chat bubble is now Pam (see Pam notes); Pam or any Claude session can draft/send via maildraft + mailsend.
+  Mail tab UX (Oct 12 2026): a brief bar (mailBrief in renderMail: "Start with X" = mailFirst — urgent, then longest waiting;
+  count chips jump to sections; inbox health dot) replaced the four stat tiles; the page map is skipped on Mail. "Go through N"
+  (mailTriage) = one email at a time in the modal, keys r/e/j/k/t/o, swipe right = done / left = skip on phones; after a reply
+  is saved/sent from triage, "Next email →" continues. List keys on the Mail tab: j/k select, r/e/t/o act, g triage, ? help.
+  Today shows mailBar() (only when someone waits on a reply or an urgent item exists); it lazily runs mailLoad at most every 10 min.

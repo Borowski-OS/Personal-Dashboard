@@ -906,6 +906,7 @@
   .wi-f em { position:absolute; right:10px; bottom:9px; font-style:normal; font-size:11px; color:var(--text-dim); pointer-events:none; }
   body.role-chelsea #navTabs .nav-tab:not([data-tab="overview"]):not([data-tab="life"]), body.role-chelsea .b-only, body.role-chelsea #aiFab, body.role-chelsea .hero-actions { display:none !important; }
 
+  .mail-bar { border-left-color:var(--amber); } #mailBar:empty { display:none; }
   .call-bar { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:8px 12px; margin:-8px 0 22px; padding:12px 16px; border-radius:12px; background:var(--card-bg); border:1px solid var(--card-border); border-left:3px solid var(--accent); }
   .call-main { font-size:15px; } .call-btns { display:flex; gap:8px; } .call-btns .ebtn { text-decoration:none; }
   .call-next { flex-basis:100%; display:flex; flex-wrap:wrap; gap:4px 16px; font-size:12.5px; color:var(--text-muted); }
@@ -1323,6 +1324,36 @@
   /* rail keyboard focus (Round 2): ring drawn inside the button so the rail's edges never clip it */
   #topNav .nav-tab:focus-visible { outline:2px solid rgba(var(--accent-rgb),.75); outline-offset:-3px; }
   /* ================= Mail tab (Oct 2026): every inbox in one list, sorted by Life OS Mail ================= */
+  /* Mail brief bar (replaces the four stat tiles) + triage + keyboard selection — Oct 2026 */
+  .ml-brief { background:var(--card-bg); border:1px solid var(--card-border); border-radius:14px; padding:14px 16px 12px; margin-bottom:18px; box-shadow:inset 0 1px 0 rgba(255,255,255,.03); }
+  .ml-brief-t { font-size:15px; line-height:1.45; color:var(--text); overflow-wrap:anywhere; }
+  .ml-brief-t b { color:#eef1f6; font-weight:650; } .ml-then { color:var(--text-muted); }
+  .ml-late { display:inline-block; font-size:11.5px; font-weight:600; color:var(--amber); background:rgba(220,179,94,.1); border-radius:20px; padding:0 8px; line-height:19px; vertical-align:1px; }
+  .ml-brief-r { display:flex; flex-wrap:wrap; align-items:center; gap:6px 8px; margin-top:11px; }
+  .ml-chip { appearance:none; font:500 12.5px Inter,sans-serif; color:var(--text-muted); background:var(--card-2); border:1px solid var(--card-border); border-radius:999px; padding:5px 11px; cursor:pointer; min-height:30px; }
+  .ml-chip b { color:#eef1f6; font-weight:650; margin-right:2px; } .ml-chip:hover { border-color:var(--card-border-2); color:var(--text); }
+  .ml-chip.hot { border-color:rgba(220,179,94,.45); } .ml-chip.hot b { color:var(--amber); } .ml-chip.zero { opacity:.55; }
+  .ml-health { display:inline-flex; align-items:center; gap:6px; font-size:12px; color:var(--text-dim); margin-left:auto; cursor:pointer; white-space:nowrap; }
+  .ml-health i { width:7px; height:7px; border-radius:50%; background:var(--green); box-shadow:0 0 6px rgba(107,196,138,.6); } .ml-health.warn i { background:var(--amber); box-shadow:0 0 6px rgba(220,179,94,.6); }
+  .ml-go { min-height:32px; padding:6px 14px; }
+  .ml-age.late { color:var(--amber); font-weight:600; }
+  .ml-row.kb { background:rgba(var(--accent-rgb),.06); box-shadow:-12px 0 0 rgba(var(--accent-rgb),.06), 12px 0 0 rgba(var(--accent-rgb),.06); border-radius:2px; outline:none; }
+  .ml-row.kb .ml-from::before { content:'›'; color:var(--accent); margin-right:6px; font-weight:700; }
+  .ml-tri { padding-top:4px; touch-action:pan-y; position:relative; }
+  .ml-tri[data-sw="done"]::after, .ml-tri[data-sw="skip"]::after { position:absolute; top:6px; right:6px; font:700 12px Inter,sans-serif; letter-spacing:.08em; text-transform:uppercase; padding:4px 10px; border-radius:20px; }
+  .ml-tri[data-sw="done"]::after { content:'Done ✓'; color:var(--green); border:1px solid var(--green); } .ml-tri[data-sw="skip"]::after { content:'Skip'; color:var(--text-muted); border:1px solid var(--card-border-2); }
+  .ml-tri-prog { display:flex; align-items:center; gap:10px; font-size:11.5px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.06em; font-weight:600; margin:0 0 14px; }
+  .ml-tri-bar { flex:1; height:3px; border-radius:3px; background:var(--card-2); overflow:hidden; } .ml-tri-bar i { display:block; height:100%; background:var(--accent-grad); transition:width .3s; }
+  .ml-tri .ml-from { font-size:16px; } .ml-tri-subj { font-size:17px; font-weight:650; color:#eef1f6; margin:6px 0 8px; overflow-wrap:anywhere; }
+  .ml-tri-sum { font-size:14.5px; line-height:1.5; color:var(--text); margin-bottom:6px; overflow-wrap:anywhere; }
+  .ml-tri-orig { margin-top:10px; max-height:220px; }
+  .ml-tri-acts { display:flex; flex-wrap:wrap; gap:8px; margin-top:16px; } .ml-tri-acts .ebtn { min-height:38px; padding:8px 14px; font-size:13.5px; text-decoration:none; display:inline-flex; align-items:center; gap:8px; }
+  .ml-tri-acts kbd { font:600 10px ui-monospace,Menlo,monospace; color:var(--text-dim); border:1px solid var(--card-border-2); border-radius:4px; padding:0 4px; line-height:15px; }
+  .ml-tri-acts .ebtn.pri kbd { color:inherit; border-color:currentColor; opacity:.7; }
+  @media (hover:none) { .ml-tri-acts kbd { display:none; } }
+  .ml-tri-end { text-align:center; padding:26px 10px 10px; } .ml-tri-end h2 { margin:8px 0 4px; } .ml-tri-end p { color:var(--text-muted); margin:0 0 18px; }
+  .ml-tri-big { width:56px; height:56px; margin:0 auto; border-radius:50%; display:grid; place-items:center; font-size:26px; color:var(--green); background:rgba(107,196,138,.1); border:1px solid rgba(107,196,138,.35); }
+  @media (max-width:640px) { .ml-health { margin-left:0; flex-basis:100%; } .ml-go { flex:1 1 100%; justify-content:center; } }
   .ml-tiles { margin-bottom:10px; }
   .ml-meta { font-size:12px; color:var(--text-dim); margin:0 2px 18px; } .ml-meta .warn { color:var(--amber); }
   .ml-stack { display:grid; gap:22px; margin-bottom:22px; } .ml-stack > * { min-width:0; }
@@ -1995,6 +2026,7 @@ function pageMap(){
   var p=$('panels'); if(!p) return; if(PAGEMAP.io){ PAGEMAP.io.disconnect(); PAGEMAP.io=null; }
   var old=p.querySelector(':scope > .subnav, :scope > .pagemap'); var extra=old?[].slice.call(old.querySelectorAll('a')).filter(function(a){ return /navGo/.test(a.getAttribute('onclick')||''); }):[];
   if(p.scrollHeight < window.innerHeight*2.2){ return; }
+  if(CURRENT==='mail') return;   // Mail's brief bar chips already jump to each section
   var divs=[].slice.call(p.querySelectorAll('.domain-sec')), targets=[];
   // a hand-made subnav with 4+ named sections wins (its labels are better than anything inferred)
   var named=old?[].slice.call(old.querySelectorAll('a')).map(function(a){ var m=(a.getAttribute('onclick')||'').match(/getElementById\('([^']+)'\)/); var el=m&&document.getElementById(m[1]); return el?{el:el, t:a.textContent.trim()}:null; }).filter(Boolean):[];
@@ -2744,7 +2776,7 @@ function renderOverview(){
     + trendCard('Flight hours · 90 days', h90.toFixed(1)+' h', null, '--accent', (daysSinceFlight()!=null?daysSinceFlight()+' days since last flight':'no flights logged'))
     + '</div>';
   var trends='';
-  return todayHero() + testDayBar() + callBar()
+  return todayHero() + testDayBar() + callBar() + mailBar()
     + '<div class="grid g-today" style="margin-bottom:22px">' + big3Card() + rhythmCard() + pulse + '</div>'
     + scorecardCard() + '<div style="height:22px"></div>'
     + '<div class="grid cols-2" style="margin-bottom:22px">'
@@ -5109,6 +5141,20 @@ function callBar(){
   var btns=p&&!called?telLink(p,'Call '+String(p.Name).split(' ')[0])+'<button class="ebtn" onclick="markCalled('+p.__row+')">✓ Called</button>':'';
   return '<div class="call-bar"><div class="call-main">'+main+'</div><div class="call-btns">'+btns+'</div>'+(next?'<div class="call-next">Up next · '+next+'</div>':'')+'</div>';
 }
+/* Today: one slim line when someone is waiting on an email reply (hidden when nothing needs Brad). Uses the Mail tab's data,
+   fetched quietly at most every 10 minutes; the bar repaints in place when it arrives. */
+function mailBar(){
+  if(ROLE==='chelsea') return '';
+  if(!MAIL.data && !MAIL.loading && Date.now()-MAIL.tried>6e5) setTimeout(function(){ mailLoad(); }, 1200);
+  var d=MAIL.data; if(!d) return '<div id="mailBar"></div>';
+  var it=d.items||[], wait=it.filter(function(x){ return x.Category==='reply' && mailWaiting(x); }).sort(mailFirst);
+  var imp1=it.filter(function(x){ return x.Category==='important' && mailOpen(x) && Number(x.Priority)===1; });
+  if(!wait.length && !imp1.length) return '<div id="mailBar"></div>';
+  var f=wait[0], main=f?'✉️&nbsp; <b>'+wait.length+'</b> '+(wait.length===1?'person is':'people are')+' waiting on a reply — start with <b>'+esc(mailName(f.From))+'</b>'+(Date.now()-mailT(f.Date)>864e5?' <span class="ml-late">'+esc(mailAge(f.Date))+'</span>':'')
+      :'✉️ Urgent: <b>'+esc(mailName(imp1[0].From))+'</b> — '+esc(mailClip(imp1[0].Summary||imp1[0].Subject||'', 70));
+  return '<div class="call-bar mail-bar" id="mailBar"><div class="call-main">'+main+'</div><div class="call-btns">'
+    +(f?'<button class="ebtn pri" onclick="navGo(\'mail\');setTimeout(mailTriage,50)">Go through →</button>':'')+'<button class="ebtn" onclick="navGo(\'mail\')">Open Mail</button></div></div>';
+}
 function callRotationCard(){
   var ps=callPeople(), sch=callSchedule(12), nextFor={};
   sch.forEach(function(x){ if(!nextFor[x.p.__row]) nextFor[x.p.__row]=x.date; });
@@ -6241,6 +6287,7 @@ function mailLoad(force){
     if(MAIL.acts || started<MAIL.actAt){ if(MAIL.acts) MAIL.wantLoad=true; else mailLoad(force); return; }   // a Done/Teach/Send landed meanwhile: this copy may predate it
     if(r&&r.ok){ MAIL.data=r; MAIL.at=Date.now(); MAIL.err=''; } else MAIL.err=mailErr(r);
     if(CURRENT==='mail') render('mail');
+    else if(CURRENT==='overview' && $('mailBar')){ var mb=document.createElement('div'); mb.innerHTML=mailBar(); $('mailBar').replaceWith(mb.firstChild); }
     if(force && !(r&&r.ok)) toast('Couldn’t check mail — '+MAIL.err);
   });
 }
@@ -6303,8 +6350,8 @@ function mailRow(x, kind){
   if(link) acts+='<a class="ebtn" href="'+esc(link)+'"'+(/^message:/.test(link)?' title="Opens in Mail on your Mac"':' target="_blank" rel="noopener"')+'>Open ↗</a>';
   if(kind!=='weed' && st!=='sent') acts+='<button class="ebtn" onclick="mailDone(this)" aria-label="Mark done">Done ✓</button>';
   acts+='<button class="ebtn" onclick="mailTeach(this)" aria-haspopup="menu" aria-label="Teach: sort this email">Teach ▾</button>';
-  return '<div class="ml-row'+(st==='sent'?' is-sent':'')+'" data-id="'+esc(x.Id)+'"><div class="ml-main">'
-    +'<div class="ml-top"><span class="ml-from" title="'+esc(em)+'">'+esc(mailName(x.From))+'</span>'+mailChip(x)+'<span class="ml-age" title="'+esc(mailWhen(x.Date))+'">'+esc(mailAge(x.Date))+'</span></div>'
+  return '<div class="ml-row'+(st==='sent'?' is-sent':'')+'" data-id="'+esc(x.Id)+'" tabindex="-1"><div class="ml-main">'
+    +'<div class="ml-top"><span class="ml-from" title="'+esc(em)+'">'+esc(mailName(x.From))+'</span>'+mailChip(x)+'<span class="ml-age'+(kind==='reply' && mailWaiting(x) && Date.now()-mailT(x.Date)>48*36e5?' late':'')+'" title="'+esc(mailWhen(x.Date))+'">'+esc(mailAge(x.Date))+'</span></div>'
     +'<div class="ml-subj">'+tags+esc(x.Subject||'(no subject)')+'</div>'
     +((has(x.Summary)||has(x.Snippet))?'<div class="ml-sum">'+esc(has(x.Summary)?x.Summary:x.Snippet)+'</div>':'')
     +(has(x.Why)&&kind!=='fyi'?'<div class="ml-why">'+esc(x.Why)+'</div>':'')
@@ -6321,6 +6368,79 @@ function mailTile(label, value, foot, target){
   return '<div class="stat link" onclick="mailJump(\''+target+'\')"><div class="label">'+esc(label)+'</div><div class="value">'+value+'</div>'+(foot?'<div class="foot">'+esc(foot)+'</div>':'')+'</div>'; }
 function mailJump(id){ var c=$(id); if(!c) return; if(c.classList.contains('folded')) foldToggle(c,false);
   c.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion:reduce)').matches?'auto':'smooth', block:'start'}); }
+function mailClip(t, n){ t=String(t||'').replace(/\s+/g,' ').trim(); return t.length>n?t.slice(0,n-1).replace(/[\s,;:.]+\S*$/,'')+'…':t; }
+/* who to answer first: urgent, then whoever has waited longest */
+function mailFirst(a,b){ return ((Number(a.Priority)||2)-(Number(b.Priority)||2)) || (mailT(a.Date)-mailT(b.Date)); }
+/* ---- Go through them: one email at a time, keyboard-first (r reply · e done · j/→ skip · k/← back · t teach · o open · Esc) ---- */
+function mailTriageList(){ var it=(MAIL.data&&MAIL.data.items)||[], seen={};
+  var r=it.filter(function(x){ return x.Category==='reply' && mailWaiting(x); }).sort(mailFirst);
+  var i=it.filter(function(x){ return x.Category==='important' && mailOpen(x); }).sort(mailSort);
+  return r.concat(i).filter(function(x){ var k=x.ThreadId?(x.Via||x.Account)+'|'+x.ThreadId:x.Id; if(seen[k]) return false; seen[k]=1; return true; }); }
+function mailTriage(start){
+  var list=mailTriageList(); if(!list.length){ toast('Nothing left to go through.'); return; }
+  MAIL.tri={ids:list.map(function(x){ return x.Id; }), i:0, done:0}; if(start){ var k=MAIL.tri.ids.indexOf(start); if(k>=0) MAIL.tri.i=k; }
+  $('modal').classList.remove('hidden'); MAIL.modal={kind:'triage'}; mailTriShow();
+}
+function mailTriShow(){
+  var t=MAIL.tri; if(!t) return; var x=null;
+  while(t.i<t.ids.length){ x=mailById(t.ids[t.i]); if(x && mailWaiting(x)) break; x=null; t.i++; }
+  if(!x){ $('modalSheet').innerHTML='<button class="mclose" onclick="mailTriEnd()" aria-label="Close">×</button><div class="ml-tri-end"><div class="ml-tri-big">✓</div><h2>Inbox handled</h2><p>'+(t.done?t.done+' cleared. ':'')+'Nothing else needs you right now.</p><button class="ebtn pri" onclick="mailTriEnd()">Close</button></div>'; return; }
+  var link=mailLink(x), isR=x.Category==='reply', n=t.ids.length;
+  $('modalSheet').innerHTML='<button class="mclose" onclick="mailTriEnd()" aria-label="Close">×</button>'
+    +'<div class="ml-tri" data-id="'+esc(x.Id)+'">'
+    +'<div class="ml-tri-prog"><span>'+(t.i+1)+' of '+n+'</span><span class="ml-tri-bar"><i style="width:'+Math.round(100*(t.i)/n)+'%"></i></span><span>'+(isR?'Needs reply':'Worth knowing')+'</span></div>'
+    +'<div class="ml-top"><span class="ml-from">'+esc(mailName(x.From))+'</span>'+mailChip(x)+'<span class="ml-age'+(isR && Date.now()-mailT(x.Date)>48*36e5?' late':'')+'">'+esc(mailAgo(x.Date))+'</span></div>'
+    +'<div class="ml-tri-subj">'+(Number(x.Priority)===1?'<span class="tag blocked">Urgent</span> ':'')+esc(x.Subject||'(no subject)')+'</div>'
+    +(has(x.Summary)?'<div class="ml-tri-sum">'+esc(x.Summary)+'</div>':'')
+    +(has(x.Why)?'<div class="ml-why">'+esc(x.Why)+'</div>':'')
+    +(has(x.Snippet)&&x.Snippet!==x.Summary?'<div class="ml-orig ml-tri-orig">'+esc(x.Snippet)+'</div>':'')
+    +'<div class="ml-tri-acts">'
+      +(isR?'<button class="ebtn pri" onclick="mailTriAct(\'r\')">'+(has(x.Draft)?'Edit reply':'Draft reply')+' <kbd>R</kbd></button>':'')
+      +'<button class="ebtn" onclick="mailTriAct(\'e\')">Done <kbd>E</kbd></button>'
+      +'<button class="ebtn" onclick="mailTriAct(\'j\')">Skip <kbd>J</kbd></button>'
+      +'<button class="ebtn" onclick="mailTriAct(\'t\', this)" aria-haspopup="menu">Teach ▾ <kbd>T</kbd></button>'
+      +(link?'<a class="ebtn" href="'+esc(link)+'"'+(/^message:/.test(link)?'':' target="_blank" rel="noopener"')+'>Open ↗ <kbd>O</kbd></a>':'')
+    +'</div></div>';
+}
+async function mailTriAct(k, el){
+  var t=MAIL.tri; if(!t) return; var x=mailById(t.ids[t.i]); if(!x) return;
+  if(k==='r'){ MAIL.triResume=true; mailDraftOpen(x.Id); return; }
+  if(k==='e'){ var row=document.querySelector('.ml-tri'); t.i++; t.done++; mailTriShow(); if(row) await mailDone(row); return; }
+  if(k==='j'){ t.i++; mailTriShow(); return; }
+  if(k==='k'){ t.i=Math.max(0, t.i-1); mailTriShow(); return; }
+  if(k==='t'){ mailTeach(el||document.querySelector('.ml-tri-acts [aria-haspopup]')); return; }
+  if(k==='o'){ var a=document.querySelector('.ml-tri-acts a'); if(a) a.click(); }
+}
+/* phones: swipe the triage card right = Done, left = Skip */
+document.addEventListener('touchstart', function(e){ var c=e.target.closest&&e.target.closest('.ml-tri'); if(!c || e.target.closest('button,a,textarea,input')) return;
+  MAIL.sw={x:e.touches[0].clientX, y:e.touches[0].clientY, el:c, dx:0}; }, {passive:true});
+document.addEventListener('touchmove', function(e){ var w=MAIL.sw; if(!w) return; w.dx=e.touches[0].clientX-w.x; var dy=e.touches[0].clientY-w.y;
+  if(Math.abs(dy)>Math.abs(w.dx)*1.2){ w.el.style.transform=''; MAIL.sw=null; return; }
+  w.el.style.transform='translateX('+w.dx+'px) rotate('+(w.dx/40)+'deg)'; w.el.style.opacity=String(1-Math.min(.5, Math.abs(w.dx)/400));
+  w.el.dataset.sw=w.dx>70?'done':w.dx<-70?'skip':''; }, {passive:true});
+document.addEventListener('touchend', function(){ var w=MAIL.sw; MAIL.sw=null; if(!w) return; var act=w.el.dataset.sw;
+  w.el.style.transition='transform .18s, opacity .18s'; w.el.style.transform=''; w.el.style.opacity='';
+  if(act==='done') mailTriAct('e'); else if(act==='skip') mailTriAct('j'); });
+function mailTriEnd(){ MAIL.tri=null; MAIL.triResume=false; closeModal(); if(CURRENT==='mail') render('mail'); }
+/* ---- keyboard: on the Mail tab, j/k move between emails, r reply, e done, t teach, o open, g go through, ? help ---- */
+function mailKeyRows(){ return [].slice.call(document.querySelectorAll('#panels .ml-row')).filter(function(r){ return r.offsetParent; }); }
+document.addEventListener('keydown', function(e){
+  if(CURRENT!=='mail' || ROLE==='chelsea' || e.metaKey || e.ctrlKey || e.altKey) return;
+  var tg=e.target, typing=tg && (tg.tagName==='INPUT' || tg.tagName==='TEXTAREA' || tg.tagName==='SELECT' || tg.isContentEditable);
+  if(typing || $('mlPop')) return;
+  var k=e.key.toLowerCase(), modalOpen=!$('modal').classList.contains('hidden');
+  if(modalOpen){ if(MAIL.tri && MAIL.modal && MAIL.modal.kind==='triage'){ var m={r:'r',e:'e',j:'j',arrowright:'j',k:'k',arrowleft:'k',t:'t',o:'o'}[k]; if(m){ e.preventDefault(); mailTriAct(m); } } return; }
+  if(k==='g'){ e.preventDefault(); mailTriage(); return; }
+  if(k==='?'){ e.preventDefault(); mailToast('j / k move · r reply · e done · t teach · o open · g go through them'); return; }
+  var rows=mailKeyRows(); if(!rows.length) return;
+  var cur=document.querySelector('#panels .ml-row.kb'), i=rows.indexOf(cur);
+  if(k==='j' || k==='k'){ e.preventDefault(); i=k==='j'?Math.min(rows.length-1, i+1):Math.max(0, i<0?0:i-1);
+    if(cur) cur.classList.remove('kb'); var r=rows[i]; r.classList.add('kb'); r.focus({preventScroll:true}); r.scrollIntoView({block:'nearest'}); return; }
+  if(!cur) return;
+  var btn=function(sel){ return cur.querySelector(sel); }, b=null;
+  if(k==='r') b=btn('.ebtn.pri'); else if(k==='e') b=btn('[aria-label="Mark done"]'); else if(k==='t') b=btn('[aria-haspopup="menu"]'); else if(k==='o') b=btn('a.ebtn');
+  if(b){ e.preventDefault(); b.click(); }
+});
 function renderMail(){
   mailPopClose();
   if(ROLE==='chelsea') return '';
@@ -6339,23 +6459,37 @@ function renderMail(){
   var nReply=reply.filter(mailWaiting).length, urgent=reply.filter(function(x){ return mailWaiting(x) && Number(x.Priority)===1; }).length;
   var oldest=Math.min.apply(null, on.map(function(a){ return mailT(a.row&&a.row.LastSync); }).filter(Boolean).concat([Infinity]));
   var waiting=Math.min.apply(null, reply.filter(mailWaiting).map(function(x){ return mailT(x.Date); }).filter(Boolean).concat([Infinity]));
-  var tiles='<div class="grid cols-4 ml-tiles">'
-    +mailTile('Needs reply', nReply, urgent?urgent+' urgent':(nReply?(isFinite(waiting)?'oldest waiting '+mailAge(waiting):''):'all caught up'), 'mlReply')
-    +mailTile('Important', imp.length, 'worth knowing, no reply needed', 'mlImp')
-    +mailTile('Weeded out', weed.length, 'junk + spam, last 7 days', 'mlWeed')
-    +mailTile('Inboxes connected', on.length+' of '+accts.length, on.length?(isFinite(oldest)?'oldest check '+mailAgo(oldest):'connected'):'none yet — see Connect', 'mlConnect')+'</div>';
-  var meta='<div class="ml-meta">'+(MAIL.at?'Checked '+esc(new Date(MAIL.at).toLocaleTimeString('en-US',{hour:'numeric', minute:'2-digit'})):'')
-    +(MAIL.loading?' · checking again…':'')+(MAIL.err?' · <span class="warn">couldn’t refresh ('+esc(MAIL.err)+')</span>':'')
-    +' · '+(d.mode!=='auto'?'learning mode: junk is only archived':mx.all?'junk stays in Life OS/Junk (your Mac never trashes mail)':'junk goes to Trash after 14 days'+(mx.any?' (except inboxes your Mac sorts)':''))+'</div>';
+  // Brief bar: one plain sentence on what to do first, compact counts (tap to jump), inbox health, and the triage button.
+  // Replaced the four big stat tiles (Oct 2026): same numbers in a third of the height.
+  var waitList=reply.filter(mailWaiting), first=waitList.slice().sort(mailFirst)[0], imp1=imp.filter(function(x){ return Number(x.Priority)===1; })[0];
+  var head=first?'Start with <b>'+esc(mailName(first.From))+'</b>'+(has(first.Summary)?' — '+esc(mailClip(first.Summary, 110)):has(first.Subject)?' — '+esc(first.Subject):'')
+      +(Date.now()-mailT(first.Date)>36e5*24?' <span class="ml-late">waiting '+esc(mailAge(first.Date))+'</span>':'')
+      +(nReply>1?'<span class="ml-then"> · then '+(nReply-1)+' more '+(nReply===2?'person':'people')+' waiting on you</span>':'')
+    :imp1?'No one’s waiting on you. Worth a look: <b>'+esc(mailName(imp1.From))+'</b> — '+esc(mailClip(imp1.Summary||imp1.Subject||'', 110))
+    :imp.length?'No one’s waiting on you. '+imp.length+' worth knowing below.'
+    :none?'Connect an inbox below to start sorting.':'All clear — nothing needs you.';
+  var triN=mailTriageList().length, stale=on.filter(function(a){ return Date.now()-mailT(a.row&&a.row.LastSync)>36e5; }).length;
+  var chip=function(n, label, target, cls){ return '<button type="button" class="ml-chip'+(cls?' '+cls:'')+(n?'':' zero')+'" onclick="mailJump(\''+target+'\')"><b>'+n+'</b> '+label+'</button>'; };
+  var tiles='<div class="ml-brief" role="region" aria-label="Mail summary">'
+    +'<div class="ml-brief-t">'+head+'</div>'
+    +'<div class="ml-brief-r">'
+      +chip(nReply, 'need'+(nReply===1?'s':'')+' reply', 'mlReply', urgent?'hot':'')+chip(imp.length, 'important', 'mlImp')+chip(fyi.length, 'FYI', 'mlFyi')+chip(weed.length, 'weeded', 'mlWeed')
+      +'<span class="ml-health'+(stale||on.length<accts.length?' warn':'')+'" title="'+esc(on.map(function(a){ return a.n+': checked '+mailAgo(a.row&&a.row.LastSync); }).join('\n'))+'" onclick="mailJump(\'mlConnect\')">'
+        +'<i></i>'+on.length+' of '+accts.length+' inboxes'+(MAIL.at?' · '+esc(new Date(MAIL.at).toLocaleTimeString('en-US',{hour:'numeric', minute:'2-digit'})):'')+(MAIL.loading?' · checking…':'')+'</span>'
+      +(triN?'<button type="button" class="ebtn pri ml-go" onclick="mailTriage()" title="One at a time — r reply · e done · j skip">Go through '+triN+' →</button>':'')
+    +'</div>'
+    +(MAIL.err?'<div class="ml-meta"><span class="warn">Couldn’t refresh ('+esc(MAIL.err)+')</span></div>':'')
+    +'</div>';
+  var meta='';
   var none=!on.length;
-  var replyCard=mailCard('mlReply','Needs a reply','People waiting on you, most urgent first. Draft reply writes it in your voice; nothing sends until you say so.',
+  var replyCard=mailCard('mlReply','Needs a reply','Most urgent first. Draft reply writes it in your voice; nothing sends until you say so.',
     reply.length?mailList(reply,'reply'):'<div class="empty">'+(none?'Connect an inbox below and new mail shows up here within about 10 minutes.':'No one is waiting on a reply.')+'</div>');
-  var impCard=mailCard('mlImp','Worth knowing','Bills, appointments, flight school, family, church leadership, legal and money notices — no reply needed.',
+  var impCard=mailCard('mlImp','Worth knowing','No reply needed: bills, appointments, flight school, family, church, money.',
     imp.length?mailList(imp,'imp',12,'imp','emails'):'<div class="empty">Nothing important waiting.</div>');
-  var fyiCard=mailCard('mlFyi','FYI','Receipts, routine notices and newsletters you read — archived under Life OS/FYI. Last 7 days.',
+  var fyiCard=mailCard('mlFyi','FYI','Receipts and routine notices, filed under Life OS/FYI. Last 7 days.',
     fyi.length?'<details class="ml-fold"'+(MAIL.ui.fyi?' open':'')+' ontoggle="MAIL.ui.fyi=this.open"><summary>'+fyi.length+' email'+(fyi.length===1?'':'s')+' this week</summary>'+mailList(fyi,'fyi',40,'fyiAll','emails')+'</details>'
       :'<div class="empty">No FYI mail this week.</div>');
-  var weedCard=mailCard('mlWeed','Weeded out','Junk and spam from the last 7 days — archived, never deleted. Tap Not junk and Life OS remembers that sender.',
+  var weedCard=mailCard('mlWeed','Weeded out','Last 7 days, archived (never deleted). Not junk teaches it that sender.',
     weed.length?mailList(weed,'weed',6,'weed','emails'):'<div class="empty">Nothing weeded out this week.</div>');
   var connect=mailConnectCard(d, accts);
   return tiles+meta+mailOutbox(d)
@@ -6591,7 +6725,8 @@ async function mailSendReply(send){
   var done=send?'Queued — goes out within ~'+eta+' minutes from your '+mailShort(acct)+' inbox.'
     :mac?'Saved — it’ll open as a draft in Mail on your Mac within ~'+eta+' minutes (while the Mac is awake), ready to send.':'Saved — it’ll be in your '+mailShort(acct)+' Gmail Drafts within ~'+eta+' minutes.';
   if(live){ mailLock(['mlBody','mlAsk','mlRw','mlAll']);
-    $('mlActs').innerHTML='<span class="esaved ok" role="status">'+esc(done)+'</span><span class="spacer"></span><button class="ebtn pri" onclick="closeModal()">Done</button>'; }
+    $('mlActs').innerHTML='<span class="esaved ok" role="status">'+esc(done)+'</span><span class="spacer"></span>'
+      +(MAIL.tri&&MAIL.triResume?'<button class="ebtn" onclick="mailTriEnd()">Close</button><button class="ebtn pri" onclick="MAIL.tri.i++;MAIL.tri.done++;MAIL.modal={kind:\'triage\'};mailTriShow()">Next email →</button>':'<button class="ebtn pri" onclick="closeModal()">Done</button>'); }
   else toast('Reply '+done.charAt(0).toLowerCase()+done.slice(1));
   if(CURRENT==='mail') render('mail');
 }
