@@ -1465,6 +1465,10 @@
   .card > .foot:last-child:nth-child(n+4) { margin-top:14px !important; padding-top:10px; border-top:1px solid var(--card-border); }
   /* Round 8: touch screens — action buttons were 20–22px tall; give them a 36px tap height (desktop unchanged) */
   @media (pointer:coarse){ button.ebtn { min-height:36px; } }
+  /* Round 9: link buttons (call/tel, outbound) get the same 36px touch height — they were inline, so min-height didn't apply */
+  @media (pointer:coarse){ a.ebtn { display:inline-flex; align-items:center; justify-content:center; min-height:36px; box-sizing:border-box; vertical-align:middle; } }
+  /* Round 9: phone — long auto-built step titles in "more on your list" clamp to two lines (full text on hover / screen reader / the tab it opens) */
+  @media (max-width:640px){ .mit-sm .mit-tx { display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; line-clamp:2; overflow:hidden; } }
 </style>
 </head>
 <body>
@@ -2724,7 +2728,7 @@ function big3Card(){
   function item(s,i,big){
     var box = s.row ? '<button class="chk" title="Mark done" onclick="event.stopPropagation();this.disabled=true;this.textContent=\'✓\';markActionDone('+s.row+')"></button>' : '<span class="chk chk-auto" title="Auto-built from your data">•</span>';
     return '<div class="'+(big?'mit':'mit-sm')+'">'+box+(big?'<span class="mit-n">'+(i+1)+'</span>':'')
-      +'<button type="button" class="mit-t mit-go" onclick="'+(s.act?s.act:'navGo(\''+s.tab+'\')')+'">'+esc(s.t)+'</button><span class="mit-r">'+domChip(s.tab)+(s.d!=null?' <span class="'+dueClass(s.d)+'">'+fmtDue(s.d)+'</span>':'')+'</span></div>'; }
+      +'<button type="button" class="mit-t mit-go"'+(big?'':' title="'+esc(s.t)+'"')+' onclick="'+(s.act?s.act:'navGo(\''+s.tab+'\')')+'"><span class="mit-tx">'+esc(s.t)+'</span></button><span class="mit-r">'+domChip(s.tab)+(s.d!=null?' <span class="'+dueClass(s.d)+'">'+fmtDue(s.d)+'</span>':'')+'</span></div>'; }
   var top=steps.slice(0,3).map(function(s,i){return item(s,i,true);}).join('');
   var rest=steps.slice(3);
   var more=rest.length?'<details class="mit-more"><summary>'+rest.length+' more on your list</summary>'+rest.map(function(s,i){return item(s,i,false);}).join('')+'</details>':'';
