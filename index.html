@@ -1470,6 +1470,7 @@
   /* Round 9: phone — long auto-built step titles in "more on your list" clamp to two lines (full text on hover / screen reader / the tab it opens) */
   /* Round 9: modifier classes for the most common inline .foot styles (same look) */
   .foot.foot-dim { color:var(--text-dim); } .foot.foot-inline { display:inline; }
+  .foot.foot-gap { margin:12px 0 0; } .foot.foot-gap-m { margin:10px 0 0; } .foot.foot-gap-s { margin:8px 0 0; }
   @media (max-width:640px){ .mit-sm .mit-tx { display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; line-clamp:2; overflow:hidden; } }
 </style>
 </head>
@@ -2526,7 +2527,7 @@ function vfrWindowCard(){
     +'<div class="kv-row"><span class="k">Evening civil twilight (night begins)</span><span class="v mono">'+fmtT(dusk)+'</span></div>';
   var daylen = (sr&&ss)? Math.round((ss-sr)/6e4) : null;
   var foot = daylen!=null ? Math.floor(daylen/60)+'h '+(daylen%60)+'m of daylight · Day VFR runs sunrise→sunset; night currency & lighting apply after evening twilight.' : '';
-  return card('VFR day window — KMEV','Local Pacific time. Plan your flying hours.', rows+(foot?'<p class="foot" style="margin:12px 0 0;color:var(--text-dim)">'+foot+'</p>':''), '--sky');
+  return card('VFR day window — KMEV','Local Pacific time. Plan your flying hours.', rows+(foot?'<p class="foot foot-dim foot-gap">'+foot+'</p>':''), '--sky');
 }
 /* ---------- Go / no-go takeoff performance at current density altitude ---------- */
 function goNoGoCard(){
@@ -2564,7 +2565,7 @@ function goNoGoCard(){
   if(sk) rows='<div style="border:1px solid var(--amber);border-radius:10px;padding:10px 12px;margin-bottom:10px;color:var(--amber);font-weight:600">🤒 IMSAFE — you\'re logged as sick (day '+sk.day+'). Don\'t fly until you\'re symptom-free and off cold meds.</div>'+rows;
   return card('Go / no-go — takeoff @ KMEV','Weather (KMEV TAF + nearest observation) and runway performance ('+da.src+', '+da.tempC+'°C).',
     rows+'<p style="font-size:12.5px;color:var(--text-muted);margin:12px 0 0">'+advice+'</p>'
-    +'<p class="foot" style="margin:8px 0 0;color:var(--text-dim)">Rough estimate for planning only — not a substitute for the POH performance charts and your own weight & balance.</p>','--sky');
+    +'<p class="foot foot-dim foot-gap-s">Rough estimate for planning only — not a substitute for the POH performance charts and your own weight & balance.</p>','--sky');
 }
 /* ---------- Overview: the top idea from each venture track (Deals, Properties, side income) ---------- */
 function ventureBestBetsCard(){
@@ -2617,7 +2618,7 @@ function btcScenarioCard(){
   var head='<div class="kv-row"><span class="k">Crypto position now</span><span class="v mono">'+money(crypto)+'</span></div>'
     +'<div class="kv-row"><span class="k">BTC spot (live)</span><span class="v mono" '+(spot?'':'data-live="btc"')+'>'+(spot?'$'+Math.round(spot).toLocaleString():'…')+'</span></div>';
   return card('BTC → acquisition capital','If your position tracks BTC, what each rung could free (trim ≈ half, illustrative).', head+rowsBody
-    +'<p class="foot" style="margin:12px 0 0;color:var(--text-dim)">'+(num(kv('Config').btc_qty)?'Uses your '+kv('Config').btc_qty+' BTC'+(num(kv('Config').sol_qty)?' (+ '+kv('Config').sol_qty+' SOL held at today’s price)':'')+'.':'Assumes the whole crypto position moves with BTC. Add btc_qty in Config for exact math.')+'</p>','--gold');
+    +'<p class="foot foot-dim foot-gap">'+(num(kv('Config').btc_qty)?'Uses your '+kv('Config').btc_qty+' BTC'+(num(kv('Config').sol_qty)?' (+ '+kv('Config').sol_qty+' SOL held at today’s price)':'')+'.':'Assumes the whole crypto position moves with BTC. Add btc_qty in Config for exact math.')+'</p>','--gold');
 }
 /* ---------- Side-income funnel: church web + coaching toward MRR goals ---------- */
 function sideIncomeFunnelCard(){
@@ -2907,7 +2908,7 @@ function pointsPlanCard(points){
     + cur('Chase Ultimate Rewards'+bal(/chase|ultimate/i),'Hyatt → Southwest → Aeroplan (United)')
     + cur('Amex Membership Rewards'+bal(/amex|membership/i),'Aeroplan → Flying Blue · avoid “pay with points” (~0.6¢)')
     + cur('Capital One'+bal(/capital one/i),'Purchase Eraser for AK/hunting trips (1¢) · Aeroplan / Flying Blue / BA for flights')
-    + '<p class="foot" style="margin:12px 0 0;color:var(--text-dim)">Rules of thumb: find the award seat first, then transfer. Keep small airline balances alive (United and Southwest miles don’t expire). Transfer ratios and bonuses change — check before moving points.</p>';
+    + '<p class="foot foot-dim foot-gap">Rules of thumb: find the award seat first, then transfer. Keep small airline balances alive (United and Southwest miles don’t expire). Transfer ratios and bonuses change — check before moving points.</p>';
   return card('Points game plan', 'Where your points go furthest for the trips you actually take (home airport: Reno).', body, '--cyan');
 }
 function renderLife(){
@@ -4289,8 +4290,8 @@ function budgetPlanHtml(){
   var grandAct=cats.reduce(function(s,c){var a=num(c.MonthlyActual);return s+(isNaN(a)?0:a);},0);
   var head='<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px"><span class="foot">'+(grandAct?'Avg spend / Planned':'Planned total')+'</span><span class="mono" style="font-size:18px;font-weight:700">'+(grandAct?money(grandAct)+' / ':'')+money(grand)+'/mo</span></div>';
   var note = anyActual
-    ? '<p class="foot" style="margin:12px 0 0;color:var(--text-dim)">Avg = your average monthly spend on that line (from your transactions). Red = running over budget. Re-upload a Monarch CSV anytime and I\'ll refresh these.</p>'
-    : '<p class="foot" style="margin:12px 0 0;color:var(--text-dim)">Showing your plan. Send me a Monarch CSV export and each line gets an average-spend and trend vs budget.</p>';
+    ? '<p class="foot foot-dim foot-gap">Avg = your average monthly spend on that line (from your transactions). Red = running over budget. Re-upload a Monarch CSV anytime and I\'ll refresh these.</p>'
+    : '<p class="foot foot-dim foot-gap">Showing your plan. Send me a Monarch CSV export and each line gets an average-spend and trend vs budget.</p>';
   var ov=budgetOverruns(), ovTot=ov.reduce(function(s,o){return s+o.over;},0);
   var alert=ov.length?'<div class="bud-alert"><b>'+ov.length+' lines over plan · +'+money(ovTot)+'/mo.</b> Biggest: '+ov.slice(0,4).map(function(o){return esc(o.cat)+' +'+money(o.over);}).join(' · ')+'</div>':'';
   var bnote=String(kv('Config').budget_note||''); if(bnote) alert+='<div class="foot" style="margin:-4px 0 12px;color:var(--text-dim)">'+esc(bnote)+'</div>';
@@ -4326,7 +4327,7 @@ function rentalReturnHtml(r){
     +row('Tax savings', taxSave, 'depreciation × '+(taxPct*100)+'% bracket')
     +'<div class="kv-row" style="border-top:1px solid var(--card-border);margin-top:4px;padding-top:8px"><span class="k"><strong>Total return</strong></span><span class="v mono" style="color:var(--green)">'+money(Math.round(monthly))+'/mo · '+money(Math.round(yearly))+'/yr</span></div>'
     +'<div class="kv-row"><span class="k">Est. value if held to 2045</span><span class="v mono">'+money(Math.round(projValue))+'</span></div>'
-    +'<p class="foot" style="margin:10px 0 0;color:var(--text-dim)">Cash flow is real money; the other three build net worth on paper. Assumptions ('+(appPct*100)+'% appreciation, '+(taxPct*100)+'% tax bracket, '+(landPct*100)+'% land) are editable in Config (re_appreciation_pct, re_marginal_tax_pct, re_land_pct).</p>';
+    +'<p class="foot foot-dim foot-gap-m">Cash flow is real money; the other three build net worth on paper. Assumptions ('+(appPct*100)+'% appreciation, '+(taxPct*100)+'% tax bracket, '+(landPct*100)+'% land) are editable in Config (re_appreciation_pct, re_marginal_tax_pct, re_land_pct).</p>';
   return '<div class="card" style="border-top:3px solid var(--emerald);margin-bottom:0"><div style="display:flex;justify-content:space-between"><h2 style="font-size:15px">'+esc(r.Property)+' — total return</h2>'
     +'<span class="tag active">'+money(Math.round(monthly))+'/mo</span></div>'+body+'</div>';
 }
@@ -5100,7 +5101,7 @@ function checkrideForecastHtml(){
       +'<div><div class="dk-l">FAA minimum</div><div class="dk-v">'+mo(minEta)+'</div><div class="foot">at 40 hrs</div></div>'
       +'<div><div class="dk-l">Cost to finish</div><div class="dk-v">'+money(cost)+'</div><div class="foot">'+(dualLeft+soloLeft).toFixed(1)+' hrs × '+money(rate)+(soloRate!==rate?' ('+soloLeft.toFixed(1)+' solo × '+money(soloRate)+')':'')+' + tests '+money(fixed)+'</div></div></div>'
     +'<div class="section-title" style="margin:14px 0 6px">One-time items</div><div class="once-list">'+once+'</div>'
-    +'<p class="foot" style="color:var(--text-dim);margin:8px 0 0">Assumes '+target+' hrs total (most students finish at 60–70), the plane at '+money(rate)+'/hr dual and '+money(soloRate)+'/hr solo (Jeremy’s instruction is free), examiner ~'+money(num(f.dpe_fee)||1000)+'. Change them in Flying: ppl_target_hours, solo_rate, dpe_fee. Keep your pace up: 2–3 flights a week is the cheapest way to finish.</p></div>';
+    +'<p class="foot foot-dim foot-gap-s">Assumes '+target+' hrs total (most students finish at 60–70), the plane at '+money(rate)+'/hr dual and '+money(soloRate)+'/hr solo (Jeremy’s instruction is free), examiner ~'+money(num(f.dpe_fee)||1000)+'. Change them in Flying: ppl_target_hours, solo_rate, dpe_fee. Keep your pace up: 2–3 flights a week is the cheapest way to finish.</p></div>';
 }
 function setOnce(key, on){ var o={}; o[key]=on?'yes':''; var f=kv('Flying'); f[key]=o[key];
   apiWrite({action:'setkv', tab:'Flying', row:JSON.stringify(o)}).then(function(r){ if(!(r&&r.ok)) toast('Couldn’t save that.'); }); render(CURRENT); }
@@ -5149,7 +5150,7 @@ function wiRun(){
     +[['You sell',sell.toFixed(2)+' BTC · '+money(gross)],['Tax (~15% long-term)',money(tax)],['Your cash in',money(mine)+(leftover>0?' ('+money(leftover)+' left over)':'')],['Partners / hard money',money(partner)+(partner?' · they own '+Math.round((1-share)*100)+'%':'')],
       ['Monthly cash to you',(w.cf*share>=0?'+':'')+money(w.cf*share)+'/mo'],['5 years: deal vs. hold BTC','<span style="color:'+(diff>=0?'var(--green)':'var(--red)')+'">'+(diff>=0?'+':'')+money(diff)+'</span>']]
       .map(function(k){return '<div class="dk"><div class="dk-l">'+k[0]+'</div><div class="dk-v">'+k[1]+'</div></div>';}).join('')+'</div>'
-    +'<p class="foot" style="color:var(--text-dim);margin:8px 0 0">Deal side = your share of equity (value '+(w.re?'grows '+w.appr+'%/yr':'held flat')+', loan paid down) + your share of cash flow. Hold side = the same BTC growing '+w.btcG+'%/yr. Tax uses your cost basis at 15%; ask your CPA. Rough planning only.</p>';
+    +'<p class="foot foot-dim foot-gap-s">Deal side = your share of equity (value '+(w.re?'grows '+w.appr+'%/yr':'held flat')+', loan paid down) + your share of cash flow. Hold side = the same BTC growing '+w.btcG+'%/yr. Tax uses your cost basis at 15%; ask your CPA. Rough planning only.</p>';
   var cv=$('wiChart'); if(!cv||typeof Chart==='undefined') return;
   if(window.__wiChart){ try{ window.__wiChart.destroy(); }catch(e){} }
   window.__wiChart=new Chart(cv.getContext('2d'),{type:'line', data:{labels:yrs.map(function(y){return y?'Yr '+y:'Now';}),
@@ -5428,7 +5429,7 @@ function renderTaxes(){
       return '<div class="tb-row"><span>'+x[0]+'</span><div class="tb-bar"><i style="width:'+(x[1]/m*100)+'%;'+(x[1]===r.excl?'background:var(--green)':'')+'"></i></div><b>'+taxMoney(x[1])+'</b></div>'; }).join('')+'</div>'
     +'<p class="foot" style="color:var(--text-muted);margin:8px 0 0">Tax-free = the <b>smallest</b> of the three ('+taxMoney(r.excl)+', set by '+(r.excl===r.actual?'your actual housing costs':r.excl===r.frv?'fair rental value':'the church designation')+'). The rest ('+taxMoney(r.excess)+') is taxable.'+(r.excl===r.actual?' <b>Every housing dollar you spend and document raises the tax-free amount</b> (up to fair rental value): mortgage payments, property tax, insurance, utilities, furniture and décor, appliances, repairs, yard care, and improvements like the roof, exterior and floors if paid this year.':'')+' Fair rental value = market rent for your home'+(has(kv('Tax').frv_note)?' ('+esc(kv('Tax').frv_note)+')':'')+' plus furnishings and utilities. Actual costs = mortgage, property tax, insurance, utilities, repairs and improvements, furnishings. All of the allowance still counts for self-employment tax.</p>';
   var led=[]; try{ led=JSON.parse(t.rental_ledger||'[]'); }catch(e){}
-  var rental=led.length ? led.map(function(x){ return L(esc(x[0]), taxMoney(x[1]), esc(x[2]||'')); }).join('')+L('<b>Net (Schedule E)</b>', '<b>'+taxMoney(r.rentNet)+'</b>', r.rentSuspended?'loss suspended (income over $150K), carries forward':(r.rentNet>0?'taxable rental income':''))+(has(t.rental_notes)?'<p class="foot" style="color:var(--text-dim);margin:8px 0 0">'+esc(t.rental_notes)+'</p>':'')
+  var rental=led.length ? led.map(function(x){ return L(esc(x[0]), taxMoney(x[1]), esc(x[2]||'')); }).join('')+L('<b>Net (Schedule E)</b>', '<b>'+taxMoney(r.rentNet)+'</b>', r.rentSuspended?'loss suspended (income over $150K), carries forward':(r.rentNet>0?'taxable rental income':''))+(has(t.rental_notes)?'<p class="foot foot-dim foot-gap-s">'+esc(t.rental_notes)+'</p>':'')
     : L('Rent', taxMoney(num(t.rental_rent_yr)))+L('Mortgage interest', taxMoney(-num(t.rental_interest)))+L('Property tax', taxMoney(-num(t.rental_prop_tax)), 'county actual')
     +L('Insurance', taxMoney(-num(t.rental_insurance)))+L('Lawn care', taxMoney(-num(t.rental_lawn)))+(num(t.rental_repairs)?L('Repairs', taxMoney(-num(t.rental_repairs))):'')
     +L('Depreciation', taxMoney(-r.depr), taxMoney(num(t.rental_basis))+' × '+(100-num(t.rental_land_pct))+'% building ÷ 27.5 yrs')
@@ -6069,7 +6070,7 @@ function coverageCard(){
     return '<details class="cov-sec"'+(covOpen[name]?' open':'')+' ontoggle="covToggle(\''+name+'\',this.open)"><summary><span class="cov-n">'+name+'</span><span class="cov-s">'+esc(summary||'')+'</span></summary><div class="cov-b">'+body+'</div></details>'; };
   var plans=fold('Medical', med, h.ins_medical) + fold('Dental', dental, h.ins_dental) + fold('Vision', vision, h.ins_vision) + fold('Life', life, has(h.ins_life)?String(h.ins_life).split('·')[0]:'');
   return card('Insurance & coverage','Your plans, who to call, and what things cost.', plans
-    +'<p class="foot" style="margin:12px 0 0;color:var(--text-dim)">Tip: urgent care usually costs a fraction of the ER for non-emergencies. Member IDs are blurred — tap to show.</p>', '--pink');
+    +'<p class="foot foot-dim foot-gap">Tip: urgent care usually costs a fraction of the ER for non-emergencies. Member IDs are blurred — tap to show.</p>', '--pink');
 }
 /* ---------- Recovery & sleep (WHOOP → Cronometer biometrics export → Recovery tab) ---------- */
 function recoveryRows(){ return arr('Recovery').map(function(r){ return {d:String(r.Date||'').slice(0,10), rec:num(r.Recovery), hrv:num(r.HRV), rhr:num(r.RestingHR), sleep:num(r.Sleep), score:num(r.SleepScore)}; })
@@ -6102,7 +6103,7 @@ function trainingTargetsCard(){
   var bars = goalBar('Zone 2 cardio → 150 min', t.z2/150*100, fmtMins(t.z2)+' this week at '+t.z2lo+'–'+t.z2hi+' bpm avg HR', '--sky')
     + goalBar('Strength sessions → 2', t.strength/2*100, t.strength+' this week', '--pink')
     + goalBar('Hard effort (VO₂ max) → 1', t.hard/1*100, t.hard+' this week (avg HR above '+t.z2hi+')', '--amber');
-  return card('This week vs. your longevity targets', 'Peter Attia’s framework: lots of easy Zone 2, 2+ strength days, one hard interval session. Auto-computed from Strava ('+t.sessions+' sessions, '+fmtMins(t.total)+').', bars+'<p class="foot" style="margin:10px 0 0;color:var(--text-dim)">Zones estimated from max HR '+hrMax()+' (220 − age). Add <span class="mono">max_hr</span> to Health settings for a tested number.</p>', '--pink');
+  return card('This week vs. your longevity targets', 'Peter Attia’s framework: lots of easy Zone 2, 2+ strength days, one hard interval session. Auto-computed from Strava ('+t.sessions+' sessions, '+fmtMins(t.total)+').', bars+'<p class="foot foot-dim foot-gap-m">Zones estimated from max HR '+hrMax()+' (220 − age). Add <span class="mono">max_hr</span> to Health settings for a tested number.</p>', '--pink');
 }
 function covToggle(name, open){ try{ var o=JSON.parse(localStorage.getItem('lifeos_cov')||'{"Medical":1}'); if(open) o[name]=1; else delete o[name]; localStorage.setItem('lifeos_cov', JSON.stringify(o)); }catch(e){} }
 function renderHealth(){
