@@ -906,6 +906,7 @@
   .wi-f em { position:absolute; right:10px; bottom:9px; font-style:normal; font-size:11px; color:var(--text-dim); pointer-events:none; }
   body.role-chelsea #navTabs .nav-tab:not([data-tab="overview"]):not([data-tab="life"]), body.role-chelsea .b-only, body.role-chelsea #aiFab, body.role-chelsea .hero-actions { display:none !important; }
 
+  .flog.clip .tbl tbody tr:nth-child(n+13) { display:none; }
   .mail-bar { border-left-color:var(--amber); } #mailBar:empty { display:none; }
   .call-bar { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:8px 12px; margin:-8px 0 22px; padding:12px 16px; border-radius:12px; background:var(--card-bg); border:1px solid var(--card-border); border-left:3px solid var(--accent); }
   .call-main { font-size:15px; } .call-btns { display:flex; gap:8px; } .call-btns .ebtn { text-decoration:none; }
@@ -4128,8 +4129,16 @@ function renderFlying(){
     + (renderVehicles('air')
         ? renderVehicles('air').replace(/<\/div>$/, aircraftPerfCard()+'</div>')+gap      // aircraft card beside its performance card
         : card('Aircraft','', tableEl(acCols, ac, {empty:'Add your aircraft (e.g. Maule N51207) in the Aircraft tab.',editTab:'Aircraft'}), '--sky')+gap+aircraftPerfCard()+gap)
-    + card('Flight log','Most recent flights.', tableEl(logCols, log.slice().sort(function(a,b){ return String(b.Date).localeCompare(String(a.Date)); }), {empty:'Log flights in the FlightLog tab.',editTab:'FlightLog'}), '--sky')
+    + flightLogCard(logCols, log)
     + oralPrepCard();
+}
+/* Flight log: the 12 most recent flights, the rest one tap away (the full list ran ~4,000px on a phone).
+   Toggled in place with a class, not a re-render — re-rendering Flying re-mounts the live map (FlightAware lookups). */
+function flightLogCard(cols, log){
+  var rows=log.slice().sort(function(a,b){ return String(b.Date).localeCompare(String(a.Date)); }), N=12;
+  return card('Flight log', rows.length>N?'Your '+N+' most recent of '+rows.length+' flights.':'Most recent flights.',
+    '<div class="flog'+(rows.length>N?' clip':'')+'">'+tableEl(cols, rows, {empty:'Log flights in the FlightLog tab.',editTab:'FlightLog'})+'</div>'
+    +(rows.length>N?'<button class="ebtn" style="margin-top:10px" onclick="var f=this.previousElementSibling,c=f.classList.toggle(\'clip\');this.textContent=c?\'Show all '+rows.length+' flights\':\'Show recent only\'">Show all '+rows.length+' flights</button>':''), '--sky');
 }
 function airportsHtml(){
   var aps=arr('Airports').filter(function(a){return has(a.Icao);});
