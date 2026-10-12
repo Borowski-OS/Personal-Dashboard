@@ -1336,6 +1336,11 @@
   .op-gap input:focus-visible { outline:none; }
   details.op-arch summary { min-height:44px; display:flex; align-items:center; gap:6px; border-radius:8px; }
   details.op-arch summary:hover { color:var(--text-muted); }
+
+  /* Round 8: phone — "more on your list" rows wrap like the top 3 (title was squeezed to 0px wide) */
+  @media (max-width:640px){ .mit-sm { flex-wrap:wrap; } .mit-sm .mit-go { flex:1 1 60%; } .mit-sm .mit-r { padding-left:38px; } }
+  /* Round 8: a footnote that ends a card reads as the card's footer — same gap + hairline everywhere (inline gaps were 8/10/12px) */
+  .card > .foot:last-child:nth-child(n+4) { margin-top:14px !important; padding-top:10px; border-top:1px solid var(--card-border); }
 </style>
 </head>
 <body>
