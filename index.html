@@ -1316,6 +1316,26 @@
   @media (prefers-reduced-motion:reduce){ .empty.is-loading, .empty.is-loading::before { animation:none; } }
   /* rail keyboard focus (Round 2): ring drawn inside the button so the rail's edges never clip it */
   #topNav .nav-tab:focus-visible { outline:2px solid rgba(var(--accent-rgb),.75); outline-offset:-3px; }
+
+  /* Round 7: stretched-button rows (Today top 3, Who's flying) + oral prep polish */
+  .mit, .mit-sm { position:relative; }
+  .mit-go { all:unset; display:block; flex:1; min-width:0; cursor:pointer; }
+  .mit-go::after { content:''; position:absolute; inset:0; border-radius:inherit; }
+  .mit .chk, .mit-sm .chk { position:relative; z-index:1; }
+  .mit-go:focus-visible { outline:none; }
+  .mit:has(.mit-go:focus-visible), .mit-sm:has(.mit-go:focus-visible) { outline:2px solid rgba(var(--accent-rgb),.65); outline-offset:2px; }
+  .at-row { position:relative; }
+  .at-sel { all:unset; cursor:pointer; }
+  .at-sel::after { content:''; position:absolute; inset:0; border-radius:inherit; }
+  .at-sel:focus-visible { outline:none; }
+  .at-row:has(.at-sel:focus-visible) { outline:2px solid var(--sky); outline-offset:2px; }
+  .at-row a { position:relative; z-index:1; }
+  .op-gap { min-height:44px; box-sizing:border-box; border-radius:8px; }
+  .op-gap:hover { background:rgba(255,255,255,.025); }
+  .op-gap:has(input:focus-visible) { outline:2px solid rgba(var(--accent-rgb),.65); outline-offset:2px; }
+  .op-gap input:focus-visible { outline:none; }
+  details.op-arch summary { min-height:44px; display:flex; align-items:center; gap:6px; border-radius:8px; }
+  details.op-arch summary:hover { color:var(--text-muted); }
 </style>
 </head>
 <body>
@@ -2548,8 +2568,8 @@ function big3Card(){
   if(!steps.length) return card('Today’s top 3','','<div class="empty">All clear. Add a to-do with ＋ Quick add.</div>','--gold');
   function item(s,i,big){
     var box = s.row ? '<button class="chk" title="Mark done" onclick="event.stopPropagation();this.disabled=true;this.textContent=\'✓\';markActionDone('+s.row+')"></button>' : '<span class="chk chk-auto" title="Auto-built from your data">•</span>';
-    return '<div class="'+(big?'mit':'mit-sm')+'" onclick="'+(s.act?s.act:'navGo(\''+s.tab+'\')')+'">'+box+(big?'<span class="mit-n">'+(i+1)+'</span>':'')
-      +'<span class="mit-t">'+esc(s.t)+'</span><span class="mit-r">'+domChip(s.tab)+(s.d!=null?' <span class="'+dueClass(s.d)+'">'+fmtDue(s.d)+'</span>':'')+'</span></div>'; }
+    return '<div class="'+(big?'mit':'mit-sm')+'">'+box+(big?'<span class="mit-n">'+(i+1)+'</span>':'')
+      +'<button type="button" class="mit-t mit-go" onclick="'+(s.act?s.act:'navGo(\''+s.tab+'\')')+'">'+esc(s.t)+'</button><span class="mit-r">'+domChip(s.tab)+(s.d!=null?' <span class="'+dueClass(s.d)+'">'+fmtDue(s.d)+'</span>':'')+'</span></div>'; }
   var top=steps.slice(0,3).map(function(s,i){return item(s,i,true);}).join('');
   var rest=steps.slice(3);
   var more=rest.length?'<details class="mit-more"><summary>'+rest.length+' more on your list</summary>'+rest.map(function(s,i){return item(s,i,false);}).join('')+'</details>':'';
@@ -3665,8 +3685,6 @@ function atBuild(){
   el.addEventListener('click', function(e){
     if(e.target.closest('a')) return;
     var row=e.target.closest('.at-row'); if(row) atSelect(row.getAttribute('data-tail')); });
-  el.addEventListener('keydown', function(e){
-    var row=e.target.closest&&e.target.closest('.at-row'); if(row&&(e.key==='Enter'||e.key===' ')){ e.preventDefault(); atSelect(row.getAttribute('data-tail')); } });
   return el;
 }
 function atPaint(){
@@ -3693,8 +3711,8 @@ function atPaint(){
     var foot=st.k==='air' ? (where?'Now '+where:'')
       : (st.k==='gnd'||st.k==='park') ? (fl&&/^[A-Z0-9]{3,4}$/i.test(fl.destination||'')?'At '+atCode(fl.destination):(where?'Near '+where.replace(/^at /,''):'Last spot on the map'))
       : 'No flights on FlightAware in the last two weeks';
-    return '<div class="at-row'+(AT.sel===p.tail?' sel':'')+'" role="button" tabindex="0" data-tail="'+esc(p.tail)+'" aria-pressed="'+(AT.sel===p.tail)+'">'
-      +'<div class="at-r1"><b>'+esc(p.tail)+'</b>'+pill+'</div>'
+    return '<div class="at-row'+(AT.sel===p.tail?' sel':'')+'" data-tail="'+esc(p.tail)+'">'
+      +'<div class="at-r1"><button type="button" class="at-sel" data-tail="'+esc(p.tail)+'" aria-pressed="'+(AT.sel===p.tail)+'" title="Show on the map"><b>'+esc(p.tail)+'</b></button>'+pill+'</div>'
       +(meta?'<div class="at-r2">'+esc(meta)+'</div>':'')+line
       +(route?'<div class="at-r3">'+route+'</div>':'')
       +'<div class="at-r4"><span>'+esc(foot)+'</span><a href="https://www.flightaware.com/live/flight/'+encodeURIComponent(p.tail)+'" target="_blank" rel="noopener">FlightAware ↗</a></div></div>';
@@ -3781,12 +3799,14 @@ function atLayer(k){ atApplyLayer(k); }
 function atUserMoved(){ if(AT.prog) return; AT.follow=false; var b=AT.el&&AT.el.querySelector('#atFollow'); if(b) b.classList.remove('on'); }
 function atFollowOn(){ AT.follow=true; AT.sel=null; AT.el.querySelector('#atFollow').classList.add('on'); AT.fitKey=''; atPaint(); }
 function atSelect(tail){
+  var ae=document.activeElement, refocus=!!(ae&&ae.classList&&ae.classList.contains('at-sel'));
   AT.sel=AT.sel===tail?null:tail;
   var p=atPlanes().filter(function(x){ return x.tail===tail; })[0], st=p?atStatus(p):null;
   if(AT.sel&&st&&st.s&&AT.map){ AT.follow=false; AT.el.querySelector('#atFollow').classList.remove('on'); AT.prog=true;
     if(atMapUsable()) try{ AT.map.flyTo([st.s.lat,st.s.lon], st.k==='air'?9:12, {duration:0.8}); }catch(e){ try{ AT.map.setView([st.s.lat,st.s.lon], st.k==='air'?9:12); }catch(e2){} }
     if(window.innerWidth<900){ var mw=AT.el.querySelector('.at-mapwrap'); if(mw) mw.scrollIntoView({behavior:'smooth', block:'center'}); } }
   atPaint();
+  if(refocus){ var b=AT.el.querySelector('.at-sel[data-tail="'+tail+'"]'); if(b) b.focus({preventScroll:true}); }
 }
 function atMapUsable(){ try{ var c=AT.map&&AT.map.getContainer(); if(!c||!document.body.contains(c)) return false; var r=c.getBoundingClientRect(); if(!(r.width>20&&r.height>20)) return false; AT.map.invalidateSize(false); var z=AT.map.getSize(); return z.x>20&&z.y>20; }catch(e){ return false; } }
 function atDraw(planes){
@@ -4562,7 +4582,7 @@ function oralPrepCard(){
   var gaps=D.gaps||[], doneN=gaps.filter(function(g){ return truthy(f['oral_gap_'+g[0]]); }).length;
   var gapHtml='<div class="op-sec"><div class="op-h">Gaps to close before the checkride <span>'+doneN+' of '+gaps.length+' confident</span></div>'+gaps.map(function(g){ var on=truthy(f['oral_gap_'+g[0]]);
       return '<label class="op-gap'+(on?' on':'')+'"><input type="checkbox"'+(on?' checked':'')+' onchange="oralGapSave(\''+esc(g[0])+'\',this.checked)"><span><b>'+esc(g[0])+'</b> '+esc(g[1])+'<small>'+esc(g[2])+'</small></span></label>'; }).join('')+'</div>';
-  var arch='<details class="op-arch" ontoggle="oralArchOpen(this)"><summary>Archived: written-test prep (question bank, mock tests, progress)</summary><div id="parHostArch"><div class="empty">Loading the question bank…</div></div></details>';
+  var arch='<details class="op-arch" ontoggle="oralArchOpen(this)"><summary>Archived: written-test prep (question bank, mock tests, progress)</summary><div id="parHostArch"><div class="empty is-loading" aria-busy="true">Loading the question bank…</div></div></details>';
   return '<div style="height:22px"></div>'+card(D.title||'Checkride Oral Prep','What the examiner will likely ask first, from your knowledge test report.', head+gapHtml+codes+qs+notes+arch, '--gold');
 }
 /* ---------- Planes down (Flying kv aircraft_down) + FAA written test prep (Flying kv written_date) ---------- */
