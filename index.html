@@ -1471,6 +1471,13 @@
   /* Round 9: modifier classes for the most common inline .foot styles (same look) */
   .foot.foot-dim { color:var(--text-dim); } .foot.foot-inline { display:inline; }
   .foot.foot-gap { margin:12px 0 0; } .foot.foot-gap-m { margin:10px 0 0; } .foot.foot-gap-s { margin:8px 0 0; }
+  /* Round 10: Today's action buttons stay on one swipeable row on phones (was two rows) */
+  @media (max-width:600px) {
+    .deck-strip .hero-actions { flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none; overscroll-behavior-x:contain; padding-right:28px;
+      -webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 28px),transparent); mask-image:linear-gradient(90deg,#000 calc(100% - 28px),transparent); }
+    .deck-strip .hero-actions::-webkit-scrollbar { display:none; }
+    .deck-strip .hero-actions > .ebtn { flex:0 0 auto; white-space:nowrap; }
+  }
   @media (max-width:640px){ .mit-sm .mit-tx { display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; line-clamp:2; overflow:hidden; } }
 </style>
 </head>
