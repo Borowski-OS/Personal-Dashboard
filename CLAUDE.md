@@ -186,3 +186,4 @@
 - Default folds (Oct 2026): FOLD_DEFAULT lists reference cards that start folded on Brad's view (vendor contacts, buy-boxes,
   capital plan, codes/utilities/insurance look-ups, hunt point tables, points table, Mail's Teach/Connect). Opening one stores 0
   in lifeos_folds so it stays open on that device. Chelsea's view never default-folds.
+- The voice assistant formerly called Pam is now named **Atlas** (Oct 12 2026). Code identifiers (pamFrame, PAM_URL, ~/Pam on the Mac) keep the old name on purpose.

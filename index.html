@@ -1503,22 +1503,22 @@
 
 <!-- Floating AI assistant -->
 <button id="aiFab" class="hidden" onclick="openAI()" title="Ask Life OS (⌘J)" aria-label="Ask Life OS AI"><canvas id="aiHive" class="ai-sphere"></canvas></button>
-<div id="aiPanel" class="hidden" role="dialog" aria-label="Pam">
+<div id="aiPanel" class="hidden" role="dialog" aria-label="Atlas">
   <div class="aiHead">
     <span class="ai-orb sm"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5l1.9 5.6 5.6 1.9-5.6 1.9L12 17.5l-1.9-5.6L4.5 10l5.6-1.9z"/></svg></span>
-    <div class="aiTitle"><strong>Pam</strong><span>Talks, codes and runs your projects · from the Mac over Tailscale</span></div>
-    <button class="ai-ic" onclick="pamOpenTab()" title="Open Pam full screen"><svg viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-8 8M10 6H5v13h13v-5"/></svg></button>
+    <div class="aiTitle"><strong>Atlas</strong><span>Talks, codes and runs your projects · from the Mac over Tailscale</span></div>
+    <button class="ai-ic" onclick="pamOpenTab()" title="Open Atlas full screen"><svg viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-8 8M10 6H5v13h13v-5"/></svg></button>
     <button class="ai-ic ai-exp" onclick="aiExpand()" title="Expand"><svg viewBox="0 0 24 24"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg></button>
     <button class="ai-ic" onclick="closeAI()" title="Close (Esc)"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
   </div>
   <div id="aiBody" class="aiBody pam-body">
     <div id="pamOffline" class="ai-hello hidden">
       <canvas class="ai-sphere ai-hello-orb"></canvas>
-      <h3>Pam is out of reach</h3>
+      <h3>Atlas is out of reach</h3>
       <p>She runs on your Mac and is reachable only through Tailscale. Make sure the Mac is awake and this device is signed into Tailscale, then try again.</p>
-      <div class="ai-sugg"><button onclick="openAI()">Try again</button><button onclick="pamOpenTab()">Open Pam directly</button></div>
+      <div class="ai-sugg"><button onclick="openAI()">Try again</button><button onclick="pamOpenTab()">Open Atlas directly</button></div>
     </div>
-    <iframe id="pamFrame" title="Pam" allow="microphone; autoplay; clipboard-write" referrerpolicy="no-referrer" scrolling="no"></iframe>
+    <iframe id="pamFrame" title="Atlas" allow="microphone; autoplay; clipboard-write" referrerpolicy="no-referrer" scrolling="no"></iframe>
   </div>
 </div>
 
