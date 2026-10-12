@@ -40,6 +40,7 @@ function run(argv){
   if(!DRY && !cfg.key) throw new Error('Life OS Mail isn’t set up yet: run the install command from the Life OS Mail page (Mail → Connect your inboxes).');
   var lk=DRY?'':lock_();
   if(lk===null){ say_('busy: the last run is still going'); return; }
+  if(!DRY) scrub_();
   try{ return DRY?dry_():sync_(cfg); }
   catch(e){ var pm=permMsg_(e); say_('ERROR '+(pm||msg_(e))); if(pm) throw new Error(pm); }
   finally{ if(lk) rm_(lk); }
@@ -620,10 +621,15 @@ function lock_(){
 function fm_(){ return $.NSFileManager.defaultManager; }
 function readFile_(p){ try{ var s=$.NSString.stringWithContentsOfFileEncodingError(p, $.NSUTF8StringEncoding, null), v=ObjC.unwrap(s); return typeof v==='string'?v:null; }catch(_){ return null; } }
 function writeFile_(p, txt){ try{ return !!$(String(txt)).writeToFileAtomicallyEncodingError(p, true, $.NSUTF8StringEncoding, null); }catch(_){ return false; } }   // atomically = temp file + rename
-function mkdir_(p, deep){ try{ return !!fm_().createDirectoryAtPathWithIntermediateDirectoriesAttributesError(p, !!deep, null, null); }catch(_){ return false; } }
+// mkdir / exists / rm go through the shell: the ObjC file calls answered wrongly under launchd (the run lock was never
+// removed, so every run reported "couldn't make the run lock" and temp files could pile up). A non-zero exit → null.
+function sh_(cmd){ try{ return String(SA.doShellScript(cmd)).trim(); }catch(_){ return null; } }
+function mkdir_(p, deep){ return sh_('/bin/mkdir '+(deep?'-p ':'')+q_(p)+' 2>/dev/null && echo ok')==='ok'; }
 function mtime_(p){ try{ var d=fm_().attributesOfItemAtPathError(p, null).objectForKey('NSFileModificationDate'); return Math.round(+d.timeIntervalSince1970*1000)||0; }catch(_){ return 0; } }
-function exists_(p){ try{ return !!fm_().fileExistsAtPath(p); }catch(_){ return false; } }
-function rm_(p){ try{ if(exists_(p)) fm_().removeItemAtPathError(p, null); }catch(_){} }
+function exists_(p){ return sh_('[ -e '+q_(p)+' ] && echo y || echo n')==='y'; }
+function rm_(p){ p=String(p||''); if(!DIR || p.indexOf(DIR+'/')!==0 || /\/\.\.?(\/|$)/.test(p)) return; sh_('/bin/rm -rf '+q_(p)); }   // only ever inside our own folder
+// leftovers from runs that died mid-post (they hold mail text): anything older than 10 minutes goes
+function scrub_(){ sh_('/usr/bin/find '+q_(DIR)+' -maxdepth 1 -type f \\( -name '+q_('post-*.json')+' -o -name '+q_('resp-*.json')+' \\) -mmin +10 -delete'); }
 function env_(k){ try{ var v=ObjC.unwrap($.NSProcessInfo.processInfo.environment.objectForKey(k)); return typeof v==='string'?v:''; }catch(_){ return ''; } }
 function dir_(){
   var d=env_('LIFEOS_MAIL_DIR')||(ObjC.unwrap($.NSHomeDirectory())+'/Library/Application Support/LifeOSMail');
