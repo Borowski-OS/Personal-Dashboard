@@ -5,20 +5,25 @@ It connects all of them at once. There's nothing to sign in to and no Google scr
 
 Every 10 minutes, while your Mac is awake, it reads what's new in Mail and sends it to Life OS to sort. Then it tidies Mail:
 
-| Life OS says   | What you see in Apple Mail                          |
-|----------------|-----------------------------------------------------|
-| Needs a reply  | **red flag**, stays in the inbox                     |
-| Worth knowing  | **orange flag**, stays in the inbox                  |
-| FYI            | moved to the **Life OS → FYI** mailbox               |
-| Junk           | moved to the **Life OS → Junk** mailbox              |
-| Spam           | moved to that account's **Junk** mailbox             |
+| Life OS says   | What you see in Apple Mail                                       |
+|----------------|------------------------------------------------------------------|
+| Needs a reply  | **red flag**, stays in the inbox                                  |
+| Worth knowing  | **orange flag**, stays in the inbox                               |
+| FYI            | moved to the **Life OS → FYI** mailbox                            |
+| Unimportant    | moved to the **Life OS → Unimportant** mailbox (real senders you don't need) |
+| Spam / Junk    | moved to that account's **Junk** mailbox (scams and garbage)      |
 
-- Anything you flagged yourself stays in your inbox with your flag. Nothing is ever deleted.
-- If you drag something back from Life OS → Junk or FYI into your inbox, Life OS learns that sender matters.
+- Anything you flagged yourself keeps your flag: it stays in your inbox, and it never goes to Junk (even if you flagged it
+  in Life OS → Unimportant). Nothing is ever deleted.
+- Mail from people you know, or a reply in a conversation you started, never goes to Junk. At most it's Unimportant.
+- If you drag something back into your inbox from Life OS → FYI, Life OS → Unimportant or the Junk mailbox, Life OS
+  learns that sender matters.
 - Replies you write on the Life OS Mail page (or ask the AI chat for) go out from the same account the email came to,
   within about 10 minutes. "Save as draft" opens the reply in Mail, ready for you to press Send.
-- On the Gmail accounts, the Life OS → FYI and Life OS → Junk mailboxes are the same as Gmail's "Life OS/FYI" and
-  "Life OS/Junk" labels. A red or orange flag shows up as a star in Gmail.
+- On the Gmail accounts, the Life OS → FYI and Life OS → Unimportant mailboxes are the same as Gmail's "Life OS/FYI" and
+  "Life OS/Unimportant" labels, and the Junk mailbox is Gmail's Spam. A red or orange flag shows up as a star in Gmail.
+- If you set up the Mac before Unimportant existed, run the setup command once more to update it. Until then, unimportant
+  mail goes to Life OS → Junk as before.
 
 ## Set it up (about 2 minutes)
 
@@ -55,14 +60,15 @@ up, as long as it came in within the last 3 days.
   it, then run the setup command again.
 - The Mail page says the key wasn't accepted: copy the command from the Mail page again and run it. It's safe to
   run it any number of times.
-- "couldn't create Life OS/FYI" (or Junk): make the mailboxes yourself, once per account. In Mail, choose
+- "couldn't create Life OS/FYI" (or Unimportant): make the mailboxes yourself, once per account. In Mail, choose
   **Mailbox → New Mailbox**, set **Location** to the account, and name it `Life OS`. Then select that new mailbox and
-  make `FYI` and `Junk` inside it. On the Gmail accounts they may already be there as labels. Until they exist, that
-  mail goes to the account's Archive instead, and the agent tries making them again once a day.
+  make `FYI` and `Unimportant` inside it. On the Gmail accounts they may already be there as labels. Until they exist,
+  that mail goes to the account's Archive instead, and the agent tries making them again once a day. (`Life OS/Junk` is
+  only made for an account that has no Junk mailbox.)
 - A reply on the Mail page says "it's open in Mail on the Mac": Mail didn't take the text, or wanted to send it from a
   different account, so nothing was sent. The reply is waiting in a Mail window. Check it, then press Send.
-- Replies only work for email that is still in that account's inbox, in Life OS → FYI or Junk, or in its Junk mailbox.
-  Email you archived yourself is left alone.
+- Replies only work for email that is still in that account's inbox, in Life OS → FYI, Unimportant or Junk, or in its
+  Junk mailbox. Email you archived yourself is left alone.
 
 ---
 
@@ -111,23 +117,31 @@ How it works:
   The contract is the same one the Google agent uses; see MAIL_SPEC "Agent → brain".
 - Reading: each account's own inbox (and the combined Sent) is listed with one `whose()` plus batch property reads,
   sorted here, and only the chosen emails are read one by one, round-robin across accounts. Commands look an email up
-  by Message-ID in that account's inbox, then in the mailbox it was moved to, then Life OS/Junk, Life OS/FYI and Junk.
+  by Message-ID in that account's inbox, then in the mailbox it was moved to, then Life OS/Unimportant, Life OS/Junk,
+  Life OS/FYI and Junk.
   They never search `[Gmail]/All Mail`: it is too big, and moving mail out of it would trash it on Gmail.
 - Replies and new emails: the text is set, read back and checked (Brad's text first, then Mail's quote of the
   original). If Mail doesn't keep it, or picks another account to send from, nothing is sent. The message is left
   open in Mail and the result says so.
 - `id` and `threadId` are the Message-ID header without `<>`. Mail has no thread ids.
+- Categories: `reply` (red flag), `important` (orange flag), `fyi` → Life OS/FYI, `unimportant` → Life OS/Unimportant,
+  `junk` ("Spam / Junk", sent with `spam:true`) → the account's Junk mailbox, or Life OS/Junk when it has none. Older
+  Life OS answers still work: `spam` means junk, and junk with `spam:false` goes to Life OS/Junk. Junk for a flagged
+  email or a reply to Brad's own mail is filed as Unimportant and stays put. The agent sends `agentVersion:'2'`; Life OS
+  gives a v1 agent Unimportant as its old Life OS/Junk.
 - Corrections:
-  - `rescued`: something the agent moved out of the inbox is back in an inbox.
+  - `rescued`: something the agent moved out of the inbox (FYI, Unimportant, Junk mailbox, Archive) is back in an inbox.
   - `replied`: a Needs-reply email now shows as replied in Mail. The agent then clears its red flag.
 - Mail that Life OS hasn't sorted yet stays unmarked and goes again on the next run. A failed POST commits nothing.
 - A command's qid is saved to `state.json` before Mail is touched, so a crash can't send anything twice. Its real
   result is saved as soon as it finishes. An interrupted command is reported as interrupted and is never re-run.
-- `Life OS/FYI` and `Life OS/Junk` are created inside each account if they're missing. If Mail puts one somewhere
+- `Life OS/FYI`, `Life OS/Unimportant` (and `Life OS/Junk` when there's no Junk mailbox) are created inside each account
+  if they're missing. If Mail puts one somewhere
   else (On My Mac), the agent stops and says where. A failed attempt is retried once a day.
 - `config.stop` from Life OS turns that one inbox off. If every inbox is off, the agent runs
   `launchctl disable` + `bootout` on its own job. `install.sh` turns it back on with `launchctl enable`.
-- A `move` to `trash` is handled as Life OS/Junk. The Mac agent never deletes or trashes anything.
+- A `move` to `trash` is handled like archive (Life OS/Junk unless its label says FYI or Unimportant). The Mac agent never
+  deletes or trashes anything, so Auto mode's "Trash after 14 days" only applies to inboxes connected through Google.
 - HTTP goes through `/usr/bin/curl -L --data-binary @file`, without `-X POST`. Apps Script answers with a 302 that
   has to be followed as a GET, and `-X POST` would force POST on the redirect too.
 - An offline test harness that uses a fake Mail object model lives outside the repo, because it isn't needed on

@@ -156,15 +156,25 @@
 
 - Life OS Mail (Oct 12 2026): one sorted inbox across Brad's four addresses. Brain = backend Mail.js (not in this repo):
   action `mailsync` (agents; Script Property MAIL_AGENT_KEY, never the dashboard pw) sorts each new email with Claude into
-  reply / important / fyi / junk / spam, learns from Teach clicks + who Brad writes to (MailRules), and queues commands
+  reply / important / fyi / unimportant / junk, learns from Teach clicks + who Brad writes to (MailRules), and queues commands
   (reply/compose/move) for the agent that owns that inbox. Page actions (Brad pw): mail, mailact, maildraft, mailsend,
   mailcompose, mailsetup, mailtest (dry run: AI sorts sample items, stores nothing). Mail* sheet tabs are skipped by readAll_.
   Replies always go out from the inbox that received the thread; new emails pick the sender automatically (mailPickAccount_).
   Agents: (1) PRIMARY `mac/lifeos-mail.js` (JXA, launchd every 10 min via mac/install.sh <key>; reads Apple Mail, which has all
-  four accounts incl. Cox; flags red = Needs reply, orange = Important; files FYI/Junk into "Life OS/FYI|Junk" mailboxes;
+  four accounts incl. Cox; flags red = Needs reply, orange = Important; files FYI/Unimportant into "Life OS/FYI|Unimportant"
+  mailboxes and Spam / Junk into the account's Junk mailbox;
   sends through Mail so the right account is used automatically). Logs: ~/Library/Logs/LifeOSMail.log; `--dry`, `--status`.
   (2) fallback Google agent (Apps Script project "Life OS Mail", owned by the Anchor Soul account, web app executing as the
   visitor; Config mail_agent_url / mail_agent_script). Off switch: Config mail_stop_<account> = yes (or mac / google).
+  Categories (Oct 12 2026, Brad: "junk and spam into one, plus unimportant"): unimportant = real sender he doesn't need →
+  archived under Life OS/Unimportant (auto mode trashes it after 14 days on Google; the Mac never trashes); junk ("Spam /
+  Junk") = garbage → the inbox's Spam folder, except a thread Brad wrote in, a starred one, or someone he knows → Unimportant
+  ("Kept out of Spam: …"; also his own addresses; Google agents re-check starred/Brad-wrote before any Spam move). 'spam' is a
+  legacy alias of junk everywhere (rows, rules, agents). One-time migration (Script Property MAIL_CATS_V2): rows/rules saved
+  before the change with old 'junk' (= archive-only) became 'unimportant', old 'spam' became 'junk'. The page sends cv=2 with
+  Teach; a mailact 'junk' without it (an old tab) means Unimportant. Unimportant from someone he knows carries keep:true and
+  the Google agent never auto-trashes it (UserProperty ring MAIL_NOTRASH). Agents send agentVersion 2 (MailAccounts.MacVersion);
+  a v1 Mac agent gets Unimportant as its old Life OS/Junk and the Connect card asks Brad to re-run the Mac command.
   Per-account rules + the "what Brad cares about" profile (Config mail_profile) are editable on the Mail tab. Never commit
   email content or keys; the Mail tab's "Connect from your Mac" card shows the one-line install command (contains the key).
   The AI chat bubble is now Pam (see Pam notes); Pam or any Claude session can draft/send via maildraft + mailsend.

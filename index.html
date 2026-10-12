@@ -1417,6 +1417,8 @@
   .ml-steps { margin:10px 0 4px; } .ml-steps li { overflow-wrap:anywhere; }
   .ml-note { font-size:12.5px; color:var(--text-muted); background:var(--card-2); border-radius:10px; padding:9px 12px; margin-top:8px; line-height:1.5; overflow-wrap:anywhere; }
   .ml-sec-h { font-size:13.5px; font-weight:600; color:#e6e9ee; margin:16px 0 0; }
+  .ml-grp-h { display:flex; flex-wrap:wrap; align-items:baseline; gap:2px 8px; margin:16px 0 0; font-size:11px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--text-dim); }
+  .ml-grp-h:first-child { margin-top:2px; } .ml-grp-h span { font-weight:500; letter-spacing:0; text-transform:none; font-size:11.5px; }
   .ml-cmd { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin:8px 0 4px; }
   .ml-cmd code { flex:1 1 220px; min-width:0; font-family:ui-monospace,Menlo,monospace; font-size:12px; line-height:1.45; color:var(--text-muted); background:#111419;
     border:1px solid var(--card-border-2); border-radius:8px; padding:7px 10px; overflow-wrap:anywhere; }
@@ -6292,14 +6294,14 @@ function renderTravel(){
    MAIL — every inbox in one list. A small Life OS Mail agent ships new mail to the backend brain (Mail.js): the Mac agent
    (mac/ in this repo; reads every account in Apple Mail every 10 min while the Mac is awake — the primary route, set up with the
    one-line Terminal command `macSetup`) or, as the fallback, a Google agent inside each Gmail (every 5–10 min). The brain
-   sorts it with Claude (reply / important / fyi / junk / spam), learns from
+   sorts it with Claude (reply / important / fyi / unimportant / junk — "Spam / Junk"; legacy 'spam' rows read as junk), learns from
    Teach ▾ and from who Brad writes to, writes replies in his voice, and queues sends for the agent. Replies always go out
    from the inbox the thread arrived in. Page actions (POST, Brad only): mail, mailact, maildraft, mailsend, mailcompose;
    the profile/mode are Config kv (setkv). Email content lives only in memory here — never in localStorage or this repo.
    ============================================================ */
-var MAIL={data:null, loading:false, err:'', at:0, tried:0, acts:0, actAt:0, wantLoad:false, drafts:{}, wr:{}, modal:null, rp:null, cmp:null, ui:{teachSender:true, imp:false, weed:false, fyi:false, goog:false, profile:null, sign:null}};
+var MAIL={data:null, loading:false, err:'', at:0, tried:0, acts:0, actAt:0, wantLoad:false, drafts:{}, wr:{}, modal:null, rp:null, cmp:null, ui:{teachSender:true, imp:false, weed:false, unimp:false, fyi:false, goog:false, profile:null, sign:null}};
 /* the inbox list + short names come from the server (Mail.js `expected`) — no addresses in this public file */
-var MAIL_CATS=[['reply','Needs reply'],['important','Important'],['fyi','FYI'],['junk','Junk'],['spam','Spam']];
+var MAIL_CATS=[['reply','Needs reply'],['important','Important'],['fyi','FYI'],['unimportant','Unimportant'],['junk','Spam / Junk']];   // 'spam' (older rows) = junk
 var MAIL_PUBLIC={'gmail.com':1,'googlemail.com':1,'yahoo.com':1,'ymail.com':1,'hotmail.com':1,'outlook.com':1,'live.com':1,'msn.com':1,'icloud.com':1,'me.com':1,'mac.com':1,'aol.com':1,'cox.net':1,'comcast.net':1,'att.net':1,'sbcglobal.net':1,'charter.net':1,'verizon.net':1,'protonmail.com':1,'proton.me':1};
 /* POST like snapFile / the AI chat; JSONP fallback when POST fails and the request is small enough for a URL */
 async function mailPost(action, params, ms){
@@ -6322,7 +6324,7 @@ function mailLoad(force){
   mailPost('mail',{},90000).then(function(r){
     MAIL.loading=false;
     if(MAIL.acts || started<MAIL.actAt){ if(MAIL.acts) MAIL.wantLoad=true; else mailLoad(force); return; }   // a Done/Teach/Send landed meanwhile: this copy may predate it
-    if(r&&r.ok){ MAIL.data=r; MAIL.at=Date.now(); MAIL.err=''; } else MAIL.err=mailErr(r);
+    if(r&&r.ok){ (r.items||[]).forEach(function(x){ if(x && x.Category==='spam') x.Category='junk'; }); MAIL.data=r; MAIL.at=Date.now(); MAIL.err=''; } else MAIL.err=mailErr(r);
     if(CURRENT==='mail') render('mail');
     else if(CURRENT==='overview' && $('mailBar')){ var mb=document.createElement('div'); mb.innerHTML=mailBar(); $('mailBar').replaceWith(mb.firstChild); }
     if(force && !(r&&r.ok)) toast('Couldn’t check mail — '+MAIL.err);
@@ -6379,13 +6381,13 @@ function mailSort(a,b){ return ((a.Status==='sent')-(b.Status==='sent')) || ((Nu
 function mailCatLabel(c){ var x=MAIL_CATS.filter(function(k){ return k[0]===c; })[0]; return x?x[1]:c; }
 function mailRow(x, kind){
   var st=String(x.Status||'').toLowerCase(), link=mailLink(x), em=x.FromEmail||mailAddr(x.From), tags='';
-  if(Number(x.Priority)===1 && kind!=='weed' && st!=='sent') tags+='<span class="tag blocked">Urgent</span>';
+  var weed=kind==='weed'||kind==='unimp';   // Weeded out: Spam / Junk rows, Unimportant rows
+  if(Number(x.Priority)===1 && !weed && st!=='sent') tags+='<span class="tag blocked">Urgent</span>';
   tags+=({drafted:'<span class="tag planning">'+(x.Source==='mac'?'Draft open in Mail':'Draft in Gmail')+'</span>', sending:'<span class="tag planning">Sending…</span>', sent:'<span class="tag active">Sent ✓</span>', error:'<span class="tag blocked">Didn’t send</span>'})[st]||'';
-  if(kind==='weed') tags+='<span class="tag done">'+(x.Category==='spam'?'Spam':'Junk')+'</span>';
   var acts=(kind==='reply' && st!=='sent' && st!=='sending')?'<button class="ebtn pri" onclick="mailDraftOpen(this)">'+(has(x.Draft)?'Edit reply':'Draft reply')+'</button>':'';
-  if(kind==='weed') acts+='<button class="ebtn" onclick="mailNotJunk(this)">Not junk</button>';
+  if(weed) acts+='<button class="ebtn" onclick="mailNotJunk(this)">Not junk</button>';
   if(link) acts+='<a class="ebtn" href="'+esc(link)+'"'+(/^message:/.test(link)?' title="Opens in Mail on your Mac"':' target="_blank" rel="noopener"')+'>Open ↗</a>';
-  if(kind!=='weed' && st!=='sent') acts+='<button class="ebtn" onclick="mailDone(this)" aria-label="Mark done">Done ✓</button>';
+  if(!weed && st!=='sent') acts+='<button class="ebtn" onclick="mailDone(this)" aria-label="Mark done">Done ✓</button>';
   acts+='<button class="ebtn" onclick="mailTeach(this)" aria-haspopup="menu" aria-label="Teach: sort this email">Teach ▾</button>';
   return '<div class="ml-row'+(st==='sent'?' is-sent':'')+'" data-id="'+esc(x.Id)+'" tabindex="-1"><div class="ml-main">'
     +'<div class="ml-top"><span class="ml-from" title="'+esc(em)+'">'+esc(mailName(x.From))+'</span>'+mailChip(x)+'<span class="ml-age'+(kind==='reply' && mailWaiting(x) && Date.now()-mailT(x.Date)>48*36e5?' late':'')+'" title="'+esc(mailWhen(x.Date))+'">'+esc(mailAge(x.Date))+'</span></div>'
@@ -6492,10 +6494,12 @@ function renderMail(){
   var reply=items.filter(function(x){ return x.Category==='reply' && (mailOpen(x) || (x.Status==='sent' && Date.now()-mailT(x.Updated)<12*36e5)); }).sort(mailSort);
   var imp=items.filter(function(x){ return x.Category==='important' && mailOpen(x); }).sort(mailSort);
   var fyi=items.filter(function(x){ return x.Category==='fyi' && x.Status!=='done' && mailRecent(x,7); });
-  var weed=items.filter(function(x){ return (x.Category==='junk'||x.Category==='spam') && x.Status!=='done' && mailRecent(x,7); });
+  var unimp=items.filter(function(x){ return x.Category==='unimportant' && x.Status!=='done' && mailRecent(x,7); });
+  var junk=items.filter(function(x){ return (x.Category==='junk'||x.Category==='spam') && x.Status!=='done' && mailRecent(x,7); });
   var nReply=reply.filter(mailWaiting).length, urgent=reply.filter(function(x){ return mailWaiting(x) && Number(x.Priority)===1; }).length;
   var oldest=Math.min.apply(null, on.map(function(a){ return mailT(a.row&&a.row.LastSync); }).filter(Boolean).concat([Infinity]));
   var waiting=Math.min.apply(null, reply.filter(mailWaiting).map(function(x){ return mailT(x.Date); }).filter(Boolean).concat([Infinity]));
+  var weed=unimp.concat(junk), none=!on.length;   // Weeded out = Unimportant + Spam / Junk
   // Brief bar: one plain sentence on what to do first, compact counts (tap to jump), inbox health, and the triage button.
   // Replaced the four big stat tiles (Oct 2026): same numbers in a third of the height.
   var waitList=reply.filter(mailWaiting), first=waitList.slice().sort(mailFirst)[0], imp1=imp.filter(function(x){ return Number(x.Priority)===1; })[0];
@@ -6527,8 +6531,10 @@ function renderMail(){
   var fyiCard=mailCard('mlFyi','FYI','Receipts and routine notices, filed under Life OS/FYI. Last 7 days.',
     fyi.length?'<details class="ml-fold"'+(MAIL.ui.fyi?' open':'')+' ontoggle="MAIL.ui.fyi=this.open"><summary>'+fyi.length+' email'+(fyi.length===1?'':'s')+' this week</summary>'+mailList(fyi,'fyi',40,'fyiAll','emails')+'</details>'
       :'<div class="empty">No FYI mail this week.</div>');
-  var weedCard=mailCard('mlWeed','Weeded out','Last 7 days, archived (never deleted). Not junk teaches it that sender.',
-    weed.length?mailList(weed,'weed',6,'weed','emails'):'<div class="empty">Nothing weeded out this week.</div>');
+  var grp=function(t, note, list, kind, key){ return list.length?'<div class="ml-grp-h">'+t+' · '+list.length+'<span>'+note+'</span></div>'+mailList(list, kind, 6, key, 'emails'):''; };
+  var weedCard=mailCard('mlWeed','Weeded out','Last 7 days. Unimportant mail is filed away; spam and junk go to each inbox’s Spam folder. Tap Not junk and Life OS remembers that sender.',
+    (unimp.length||junk.length)?grp('Unimportant (filed away)', 'real senders you don’t need', unimp, 'unimp', 'unimp')+grp('Spam / Junk', 'scams and garbage', junk, 'weed', 'weed')
+      :'<div class="empty">Nothing weeded out this week.</div>');
   var connect=mailConnectCard(d, accts);
   return tiles+meta+mailOutbox(d)
     +'<div class="ml-stack">'+(none?connect:'')+(reply.length||none?replyCard:'')+(imp.length||none?impCard:'')+fyiCard+weedCard+(none?mailTeachCard(d):'')+'</div>'
@@ -6562,9 +6568,10 @@ function mailTeachCard(d){
   return mailCard('mlTeach','Teach it what matters','Plain words. The sorter reads this every time, along with what you’ve taught it.',
     '<div class="efield"><label for="mlProf">What matters to you</label><textarea id="mlProf" class="ml-prof" oninput="MAIL.ui.profile=this.value">'+esc(prof)+'</textarea></div>'
     +'<div class="efield"><label for="mlSign">Sign replies as</label><input id="mlSign" type="text" value="'+esc(sign)+'" oninput="MAIL.ui.sign=this.value"></div>'
-    +'<div class="ml-mode" role="group" aria-label="Junk handling"><span class="ml-mode-l">Junk</span><button type="button" class="ml-seg'+(mode==='learn'?' on':'')+'" aria-pressed="'+(mode==='learn')+'" onclick="mailMode(\'learn\')">Archive only</button>'
+    +'<div class="ml-mode" role="group" aria-label="Unimportant mail handling"><span class="ml-mode-l">Unimportant</span><button type="button" class="ml-seg'+(mode==='learn'?' on':'')+'" aria-pressed="'+(mode==='learn')+'" onclick="mailMode(\'learn\')">Archive only</button>'
     +'<button type="button" class="ml-seg'+(mode==='auto'?' on':'')+'" aria-pressed="'+(mode==='auto')+'" onclick="mailMode(\'auto\')">Archive, then Trash after 14 days</button></div>'
-    +(mx.any?'<div class="ml-note">'+(mx.all?'Your Mac never trashes anything — junk it sorts stays in Life OS/Junk, so this only matters for inboxes connected through Google.':'Inboxes your Mac sorts keep junk in Life OS/Junk — the Mac never trashes anything.')+'</div>':'')
+    +'<div class="ml-note">Spam / Junk goes straight to each inbox’s Spam folder (Gmail empties it after 30 days). Mail from people you know, or a thread you wrote in, is never sent there — at most it’s Unimportant, and it’s never trashed.'
+    +(mx.any?' '+(mx.all?'Your Mac never trashes anything — unimportant mail it sorts stays in Life OS/Unimportant, so the Trash setting only matters for inboxes connected through Google.':'Inboxes your Mac sorts keep unimportant mail in Life OS/Unimportant — the Mac never trashes anything.'):'')+'</div>'
     +'<div class="eactions ml-eact"><span class="esaved" id="mlProfMsg" role="status"></span><span class="foot" style="color:var(--text-dim);flex:1 1 200px">'+esc(learned)+'</span><button class="ebtn pri" onclick="mailSaveProfile()">Save</button></div>');
 }
 /* Connect card. Primary: the Mac — one Terminal command (`macSetup`, carries the agent key) connects every account in Apple Mail.
@@ -6580,7 +6587,9 @@ function mailConnectCard(d, accts){
         +(late?'<span class="ml-st warn">'+(viaMac?'Your Mac hasn’t checked in a while — it checks only while the Mac is awake. If it stays quiet, paste the Mac command again.'
           :'Hasn’t checked in a while — open the connect link again from this account.')+'</span>':'')
         +(rt.length===2?'<span class="ml-st warn">Connected both ways (Mac + Google), so an email can show up twice. <button type="button" class="ml-link" data-acct="'+esc(a.a)+'" onclick="mailStopGoogle(this)">Use only the Mac</button></span>':'')
-        +(r.Stop==='google'||r.Stop==='mac'?'<span class="ml-st dim">'+(r.Stop==='google'?'Google':'Mac')+' connection switched off</span>':''); }
+        +(r.Stop==='google'||r.Stop==='mac'?'<span class="ml-st dim">'+(r.Stop==='google'?'Google':'Mac')+' connection switched off</span>':'')
+        +(viaMac && has(r.MacVersion) && Number(r.MacVersion)<2?'<span class="ml-st warn">Your Mac needs a quick update for Unimportant (until then it files that mail in Life OS/Junk): copy the Mac command and run it once in Terminal.'
+          +(mac?' <button type="button" class="ml-link" onclick="mailCopyMac()">Copy the Mac command</button>':'')+'</span>':''); }
     else s='<span class="ml-st dim">Not connected'+(a.mac||a.fwd?' — connects from your Mac':'')+'</span>';
     if(has(r.LastError)) s+='<span class="ml-st warn">'+esc(String(r.LastError).slice(0,200))+'</span>';
     return '<div class="ml-acc"><div class="ml-acc-n"><b>'+esc(a.n)+'</b><span>'+esc(a.a)+'</span></div><div class="ml-acc-s">'+s+'</div></div>'; }).join('');
@@ -6635,11 +6644,11 @@ async function mailSaveProfile(){
 async function mailMode(m){
   var d=MAIL.data; if(!d || (d.mode==='auto')===(m==='auto')) return;
   var mx=mailMacMix();
-  if(m==='auto' && !window.confirm('Move junk to Gmail Trash after 14 days? Gmail keeps Trash for 30 more days, so you can still rescue anything.'+(mx.any?'\n\nInboxes your Mac sorts keep junk in Life OS/Junk — the Mac never trashes anything.':''))) return;
+  if(m==='auto' && !window.confirm('Move unimportant mail to Gmail Trash after 14 days? Gmail keeps Trash for 30 more days, so you can still rescue anything. (Spam / Junk already goes to the Spam folder. Mail from people you know is never trashed.)'+(mx.any?'\n\nInboxes your Mac sorts keep unimportant mail in Life OS/Unimportant — the Mac never trashes anything.':''))) return;
   var was=d.mode; d.mode=m; render('mail');
   var r=await mailMut('setkv',{tab:'Config', row:JSON.stringify({mail_mode:m})});
   if(!(r&&r.ok)){ d.mode=was; render('mail'); toast('Couldn’t change that — '+mailErr(r)); }
-  else toast(m!=='auto'?'Junk will only be archived.':mx.all?'Saved — your Mac still keeps junk in Life OS/Junk.':'Junk older than 14 days will go to Trash'+(mx.any?' (except inboxes your Mac sorts).':'.'));
+  else toast(m!=='auto'?'Unimportant mail will only be archived.':mx.all?'Saved — your Mac still keeps unimportant mail in Life OS/Unimportant.':'Unimportant mail older than 14 days will go to Trash'+(mx.any?' (except inboxes your Mac sorts).':'.'));
 }
 /* ---- one-tap actions (optimistic; put things back if the server says no) ---- */
 function mailToast(msg, undo){ var t=document.createElement('div'); t.className='ml-toast'; t.setAttribute('role','status');
@@ -6664,13 +6673,17 @@ async function mailTeachDo(id, cat, scope, undo){
   grp.forEach(function(y,i){ was[y.Id]=before[i]; var u=undo&&undo[y.Id]; if(u){ y.Category=u.c; y.Why=u.w; y.Status=u.s; return; }
     y.Category=cat; y.Why='You taught it: '+label; if(cat==='reply' && y.Status==='done') y.Status='open'; });
   render('mail');
-  var r=await mailMut('mailact',{ids:id, act:'teach', cat:cat, scope:scope});
+  var r=await mailMut('mailact',{ids:id, act:'teach', cat:cat, scope:scope, cv:2});   // cv 2: 'junk' = Spam / Junk (an older page meant archive-only)
   if(!(r&&r.ok)){ grp.forEach(function(y,i){ y.Category=before[i].c; y.Why=before[i].w; y.Status=before[i].s; }); render('mail'); toast('Couldn’t '+(undo?'undo':'save')+' that — '+mailErr(r)); return; }
   if(undo) return toast('Undone.');
   var R=MAIL.data&&MAIL.data.rules; if(R && typeof R==='object' && r.rules){ R.total=(R.total||0)+r.rules; R.taught=(R.taught||0)+r.rules; }
-  var who=x.FromEmail||mailAddr(x.From)||'this sender';
+  var who=x.FromEmail||mailAddr(x.From)||'this sender', kept=cat==='junk' && has(r.keptOut)?String(r.keptOut):'';
+  // Spam / Junk for someone Brad knows, a thread he wrote in or a starred one: the server files it as Unimportant instead
+  if(kept){ grp.forEach(function(y){ y.Category='unimportant'; y.Why=('Kept out of Spam: '+kept).slice(0,80); }); render('mail'); }
   // Undo = teach the old category back with the same scope (overwrites the sender rule a mis-tap just wrote, and moves the thread back in Gmail)
-  mailToast(scope==='sender'?'Got it — mail from '+who+' is '+label+' from now on.':'Moved to '+label+'.',
+  mailToast(kept && r.keptBy==='known'?'Kept out of Spam ('+kept+'), so this one is filed under Unimportant — mail from '+who+' never goes to Spam.'
+    :kept?(scope==='sender'?'Got it — future mail from '+who+' goes to Spam / Junk. ':'')+'This one stays out of Spam ('+kept+'), so it’s filed under Unimportant.'
+    :scope==='sender'?'Got it — mail from '+who+' is '+label+' from now on.':'Moved to '+label+'.',
     (prev && prev!==cat && MAIL_CATS.some(function(k){ return k[0]===prev; }))?function(){ mailTeachDo(id, prev, scope, was); }:null);
 }
 /* Teach ▾ — a small menu pinned to the button (on <body>, so cards never clip it) */
@@ -6777,7 +6790,7 @@ function mailGuess(to){
   var ok={}; mailAccounts().forEach(function(a){ if(a.on && !a.fwd) ok[a.a]=1; });
   var dom=e.split('@')[1], best=null, bestD=null;
   ((MAIL.data&&MAIL.data.items)||[]).forEach(function(x){ var acc=String(x.Account||'').toLowerCase(), f=String(x.FromEmail||mailAddr(x.From)).toLowerCase();
-    if(x.Via || !ok[acc] || (x.Category!=='reply' && x.Category!=='important')) return;   // real correspondence only — never marketing / junk / spam
+    if(x.Via || !ok[acc] || (x.Category!=='reply' && x.Category!=='important')) return;   // real correspondence only — never marketing / unimportant / spam
     if(f===e){ if(!best || mailT(x.Date)>mailT(best.Date)) best=x; }
     else if(!MAIL_PUBLIC[dom] && f.split('@')[1]===dom){ if(!bestD || mailT(x.Date)>mailT(bestD.Date)) bestD=x; } });
   if(best) return {a:String(best.Account).toLowerCase(), why:'they’ve emailed you there'};

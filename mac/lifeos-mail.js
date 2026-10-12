@@ -9,18 +9,20 @@
    can turn it away before anything is sent. Per account, per run: new mail in its own inbox (since the last sync − 30 min;
    first run 3 days; newest 40) + Brad's sent mail + corrections → ONE mailsync POST → apply the sorting → run the commands
    exactly once → POST the results back in the same run.
-   In Mail: Needs reply = red flag, Important = orange flag (both stay in the inbox); FYI → mailbox "Life OS/FYI", Junk →
-   "Life OS/Junk" (on Gmail those ARE the Life OS labels), Spam → the account's Junk mailbox. Mail Brad flagged himself never
-   leaves the inbox and keeps his flag. Nothing is ever deleted. Replies go out from the account that received the message.
+   In Mail: Needs reply = red flag, Important = orange flag (both stay in the inbox); FYI → mailbox "Life OS/FYI", Unimportant →
+   "Life OS/Unimportant" (on Gmail those ARE the Life OS labels), Spam / Junk → the account's Junk mailbox (no Junk mailbox:
+   "Life OS/Junk"). Life OS's older answers still work: cat 'spam' = Spam / Junk, and junk with spam:false = "Life OS/Junk".
+   Mail Brad flagged himself, or a reply to his own mail, never leaves the inbox and keeps his flag. Nothing is ever deleted or
+   trashed. Replies go out from the account that received the message.
    Files beside it (~/Library/Application Support/LifeOSMail; LIFEOS_MAIL_DIR overrides): config.json {key, brain} written by
    install.sh (chmod 600), state.json (what's been handled), run.lock. Public file: no keys, no mail, no addresses in here. */
 ObjC.import('Foundation');
 
-var VERSION='1', LABEL='com.lifeos.mail';
+var VERSION='2', LABEL='com.lifeos.mail';                              // 2 = knows Unimportant (Life OS keeps v1 on the old buckets)
 var BRAIN_URL='https://script.google.com/macros/s/AKfycbwdO_d4gj2Rj_cLM7JFvehuRUHuwFFocaxJz0MwJxKYhECksIHVe3p3VdhbgjKioWd-/exec';
-var BOX={fyi:'Life OS/FYI', junk:'Life OS/Junk'}, FLAG={reply:0, important:1};          // Mail flag colours: 0 red, 1 orange
-var LBLCAT={'Life OS/Needs reply':'reply', 'Life OS/Important':'important', 'Life OS/FYI':'fyi', 'Life OS/Junk':'junk'};
-var CATS={reply:1, important:1, fyi:1, junk:1, spam:1};
+var BOX={fyi:'Life OS/FYI', unimportant:'Life OS/Unimportant', junk:'Life OS/Junk'}, FLAG={reply:0, important:1};   // Mail flag colours: 0 red, 1 orange
+var LBLCAT={'Life OS/Needs reply':'reply', 'Life OS/Important':'important', 'Life OS/FYI':'fyi', 'Life OS/Unimportant':'unimportant', 'Life OS/Junk':'junk'};
+var CATS={reply:1, important:1, fyi:1, unimportant:1, junk:1};
 var JUNK_NAMES=['Junk','Spam','[Gmail]/Spam','[Google Mail]/Spam','Bulk Mail','Bulk','Bulk Folder','Junk E-mail','Junk Email'];
 var ARCH_NAMES=['Archive','[Gmail]/All Mail','[Google Mail]/All Mail','All Mail','Archives'], INBOX_NAMES=['INBOX','Inbox'];
 var MAX_ITEMS=40, MAX_SENT=30, RING=2000, SENT_RING=600, DONE_RING=500, LOG_N=60;
@@ -280,7 +282,7 @@ function sent_(A, S){
       o.ids.push(r.id); }catch(e){} });
   return out;
 }
-// Corrections from what Brad did in Mail: rescued = something we moved out (FYI/Junk/Spam/Archive) is back in the inbox;
+// Corrections from what Brad did in Mail: rescued = something we moved out (FYI/Unimportant/Junk/Archive) is back in the inbox;
 // replied = a Needs-reply email now shows "replied". Each is reported once. snap_ reads, per account and only when something is
 // waiting to be noticed, the Message-IDs in its own inbox (last 30 days) and the replied ones (their own whose(), so two lists
 // never have to line up).
@@ -311,17 +313,18 @@ function apply_(a, decs, o, S){
   (decs||[]).forEach(function(d){
     var id=String(d && d.id || ''), it=o.byId[id], m=o.spec[id]; if(!it || !m) return;
     if(late_(HARD-20000)) return;                                     // unmarked → sent again next run; Life OS reuses its decision
-    var cat=CATS[d.cat]?String(d.cat):'important';
+    var cat=d.cat==='spam'?'junk':CATS[d.cat]?String(d.cat):'important';   // 'spam' = an older Life OS's Spam / Junk
     var e={i:id, a:a.key, c:cat, t:Date.parse(it.date)||Date.now(), fr:emails_(it.from)[0]||'', m:'', f:-1, s:it.starred?1:0};
     try{
       var star=it.starred; try{ star=!!m.flaggedStatus(); }catch(_){}    // flagged by Brad (maybe just now): his flag stays, it stays in the inbox
+      if(cat==='junk' && (star || it.bradInThread)) e.c=cat='unimportant';  // never Spam: it just stays where it is
       if(cat==='reply' || cat==='important'){
         var fi=FLAG[cat];
         if(cat==='reply' && safe_(function(){ return m.wasRepliedTo(); }, false)){   // he answered before we got here
           fi=FLAG.important; e.r=1; (S.pc[a.key]=S.pc[a.key]||[]).push({id:id, threadId:id, from:it.from, kind:'replied'}); }
         if(!star){ flag_(m, fi); e.f=fi; }
       } else if(!star && !it.bradInThread){
-        var tgt=d.spam && (cat==='spam' || cat==='junk')?'spam':d.archive?(cat==='fyi'?'fyi':'junk'):'';
+        var tgt=d.spam && cat==='junk'?'spam':d.archive?(BOX[cat]?cat:'junk'):'';   // junk without spam = an older Life OS's archive-only junk
         if(tgt) e.m=moveTo_(a, m, tgt, S);
       }
       n++;
@@ -427,8 +430,8 @@ function pushRcpt_(col, cls, x){
   try{ col.push(Mail[cls]({address:x})); return; }catch(e){ if(cls!=='ToRecipient') throw e; }
   col.push(Mail.Recipient({address:x}));
 }
-// move: to inbox (+ flag for Needs reply / Important), archive (Life OS/FYI or Life OS/Junk by label, else Archive), spam
-// (account Junk). 'trash' is treated as Life OS/Junk: the Mac agent never deletes or trashes anything.
+// move: to inbox (+ flag for Needs reply / Important), archive (Life OS/FYI, /Unimportant or /Junk by label, else Archive), spam
+// (account Junk). 'trash' is treated like archive (Life OS/Junk without a label): the Mac agent never deletes or trashes anything.
 function cmdMove_(a, c, S){
   var id=mid_(c.threadId||c.msgId), e=seenGet_(S, a.key, id), h=find_(a, id, false, e);
   if(!h) throw new Error('that email isn’t in Apple Mail ('+a.name+': inbox, Life OS or Junk) any more');
@@ -443,19 +446,19 @@ function cmdMove_(a, c, S){
     if(m && !star){ if(FLAG[cat]!=null){ flag_(m, FLAG[cat]); e.f=FLAG[cat]; } else if(ours){ unflag_(m); e.f=-1; } }
     if(to) e.m='';
     if(cat) e.c=cat; e.q=0; seenPut_(S, e); return; }
-  var tgt=to==='spam'?'spam':to==='archive' || to==='trash'?(cat==='fyi'?'fyi':cat==='junk' || to==='trash'?'junk':'archive'):'';
+  var tgt=to==='spam'?'spam':to==='archive' || to==='trash'?(BOX[cat]?cat:to==='trash'?'junk':'archive'):'';
   if(!tgt) throw new Error('unknown place to move to: '+to);
-  if(star && h.where==='inbox'){ if(cat) e.c=cat; seenPut_(S, e); return; }   // rail: mail Brad flagged never leaves the inbox
+  if(star && (h.where==='inbox' || tgt==='spam')){ e.c=tgt==='spam'?'unimportant':cat||e.c; seenPut_(S, e); return; }   // rail: flagged mail never leaves the inbox or goes to Junk
   if(ours){ unflag_(m); e.f=-1; }
-  e.m=moveTo_(a, m, tgt, S); e.c=cat||(tgt==='spam'?'spam':tgt==='fyi'?'fyi':'junk'); e.q=0; seenPut_(S, e);
+  e.m=moveTo_(a, m, tgt, S); e.c=cat||(BOX[tgt]?tgt:'junk'); e.q=0; seenPut_(S, e);
 }
 
 /* ---------------- mailboxes, moving, flags ---------------- */
-// Move out of the inbox → where it went: 'fyi' | 'junk' | 'spam' | 'archive'.
+// Move out of the inbox → where it went: 'fyi' | 'unimportant' | 'junk' | 'spam' | 'archive'.
 function moveTo_(a, m, tgt, S){
   var box=null, where=tgt;
   if(tgt==='spam'){ box=junkBox_(a); if(!box) where='junk'; }          // no Junk mailbox: Life OS/Junk
-  if(!box && (where==='fyi' || where==='junk')){ box=ensure_(a, BOX[where], S); if(!box) where='archive'; }   // ensure_ reports why
+  if(!box && BOX[where]){ box=ensure_(a, BOX[where], S); if(!box) where='archive'; }   // ensure_ reports why
   if(!box) box=archBox_(a);
   if(!box) throw new Error('nowhere to move it in '+a.name+' (no Life OS, Junk or Archive mailbox)');
   move_(m, box); return where;
@@ -475,7 +478,7 @@ function findBox_(a, path){
   if(!b) try{ var ns=acc.mailboxes.name()||[]; for(var j=0;j<ns.length;j++) if(String(ns[j]).toLowerCase()===k){ b=acc.mailboxes.byName(ns[j]); break; } }catch(_){}
   return a.bx[k]=b;
 }
-// "Life OS/FYI" / "Life OS/Junk": found, or made — three ways Mail accepts, each checked: it has to land IN this account (Mail can
+// "Life OS/FYI" / "Life OS/Unimportant" / "Life OS/Junk": found, or made — three ways Mail accepts, each checked: it has to land IN this account (Mail can
 // quietly put it under On My Mac instead; then we stop and say so). A failed attempt is retried once a day, not every run. Never in --dry.
 function ensure_(a, path, S){
   var b=findBox_(a, path); if(b || DRY) return b;
@@ -517,7 +520,7 @@ function inboxBox_(a){
   return a.inboxBox=b;
 }
 // This account's copy of an email by Message-ID (Mail keeps it without <>): its inbox, then the mailbox we moved it to, then
-// Life OS/Junk, Life OS/FYI and Junk. Never [Gmail]/All Mail: it holds everything (one search could outlast Apple's 2-minute
+// Life OS/Unimportant, Life OS/Junk, Life OS/FYI and Junk. Never [Gmail]/All Mail: it holds everything (one search could outlast Apple's 2-minute
 // limit), and moving mail out of it would put it in Gmail's Trash. e = what state.json remembers about it.
 function find_(a, id, inboxOnly, e){
   id=mid_(id); if(!id) return null;
@@ -525,8 +528,8 @@ function find_(a, id, inboxOnly, e){
     try{ var r=box.messages.whose({messageId:id})()||[]; return r[0]||null; }catch(x){ if(permMsg_(x)) throw x; return null; } };
   var m=look(inboxBox_(a)); if(m) return {m:m, where:'inbox'};
   if(inboxOnly) return null;
-  var w=e && e.m||'', at={fyi:findBox_(a, BOX.fyi), junk:findBox_(a, BOX.junk), spam:junkBox_(a), archive:w==='archive'?archBox_(a, true):null};
-  var boxes=[at[w]||null, at.junk, at.fyi, at.spam, at.archive];
+  var w=e && e.m||'', at={fyi:findBox_(a, BOX.fyi), unimportant:findBox_(a, BOX.unimportant), junk:findBox_(a, BOX.junk), spam:junkBox_(a), archive:w==='archive'?archBox_(a, true):null};
+  var boxes=[at[w]||null, at.unimportant, at.junk, at.fyi, at.spam, at.archive];
   for(var i=0;i<boxes.length;i++){ if(!boxes[i] || boxes.indexOf(boxes[i])<i) continue; m=look(boxes[i]); if(m) return {m:m, where:'other'}; }
   return null;
 }
