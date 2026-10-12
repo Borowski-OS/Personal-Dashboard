@@ -6285,23 +6285,29 @@ function mailNick(a){ var p=String(a||'').toLowerCase().split('@'), d=(p[1]||'')
 function mailAccounts(){
   var d=MAIL.data||{}, rows=d.accounts||[];
   var exp=(d.expected||[]).map(function(x){ return {a:String(x.account||'').toLowerCase(), n:x.name||'', fwd:x.kind==='forwarded', mac:x.kind==='mac'}; }).filter(function(x){ return x.a; });
-  var find=function(a){ return rows.filter(function(r){ return String(r.Account||'').toLowerCase()===a; })[0]||null; };
+  var find=function(a){ return rows.filter(function(r){ return String(r.Account||'').toLowerCase()===a && r.Kind!=='skipped'; })[0]||null; };
   var out=exp.map(function(x){ var r=find(x.a); return {a:x.a, n:x.n||mailNick(x.a), fwd:x.fwd, mac:x.mac, row:r, on:!!(r&&(r.LastSync||r.Installed))}; });
-  rows.forEach(function(r){ var a=String(r.Account||'').toLowerCase(); if(a && !out.some(function(x){ return x.a===a; })) out.push({a:a, n:mailNick(a), fwd:r.Kind==='forwarded', mac:false, row:r, on:!!(r.LastSync||r.Installed)}); });
+  rows.forEach(function(r){ var a=String(r.Account||'').toLowerCase(); if(a && r.Kind!=='skipped' && !out.some(function(x){ return x.a===a; })) out.push({a:a, n:mailNick(a), fwd:r.Kind==='forwarded', mac:false, row:r, on:!!(r.LastSync||r.Installed)}); });
   return out;
 }
-/* how an inbox reaches Life OS: routes that checked it in the last 3 days (MailAccounts MacSync / GoogleSync), else its Kind */
-function mailRoutes(r){ if(!r) return []; var out=[], fresh=function(v){ var t=mailT(v); return !!t && Date.now()-t<3*864e5; };
+/* how an inbox reaches Life OS: routes that checked it in the last 3 days (MailAccounts MacSync / GoogleSync), else its Kind;
+   minus a route Brad switched off (server-computed Stop: all | google | mac, from Config mail_stop_<account>) */
+function mailRoutes(r){ if(!r) return []; var out=[], st=String(r.Stop||''), fresh=function(v){ var t=mailT(v); return !!t && Date.now()-t<3*864e5; };
   if(fresh(r.MacSync)) out.push('mac'); if(fresh(r.GoogleSync)) out.push('google');
   if(!out.length && (r.LastSync||r.Installed)) out.push(r.Kind==='mac'?'mac':r.Kind==='forwarded'?'fwd':'google');
-  return out; }
-function mailRouteTxt(rt){ return rt.map(function(k){ return k==='mac'?'via your Mac':k==='fwd'?'forwarded':'via Google'; }).join(' + '); }
-function mailMacAcct(a){ a=String(a||'').toLowerCase(); var x=mailAccounts().filter(function(y){ return y.a===a; })[0]; return !!(x && x.row && x.row.Kind==='mac'); }   // its latest check came from the Mac
+  return out.filter(function(k){ return st!=='all' && st!==k; }); }
+function mailRouteTxt(rt){ return rt.length?'via '+rt.map(function(k){ return k==='mac'?'your Mac':k==='fwd'?'forwarding':'Google'; }).join(' + '):''; }
+function mailAcctRow(a){ a=String(a||'').toLowerCase(); var x=mailAccounts().filter(function(y){ return y.a===a; })[0]; return x?x.row:null; }
+/* where a saved (unsent) NEW email lands: 'mac' = opens as a draft in Apple Mail, 'google' = Gmail Drafts, 'both' = whichever agent checks first */
+function mailWhere(a){ var rt=mailRoutes(mailAcctRow(a)); return rt.indexOf('mac')<0?'google':rt.indexOf('google')<0?'mac':'both'; }
+function mailMacMix(){ var rts=mailAccounts().filter(function(a){ return a.on; }).map(function(a){ return mailRoutes(a.row); }).filter(function(rt){ return rt.length; });
+  return {any:rts.some(function(rt){ return rt.indexOf('mac')>=0; }), all:!!rts.length && rts.every(function(rt){ return rt.length===1 && rt[0]==='mac'; })}; }
 function mailShort(a){ a=String(a||'').toLowerCase(); var x=mailAccounts().filter(function(y){ return y.a===a; })[0]; return x?x.n:mailNick(a); }
-function mailEta(a){ return mailMacAcct(a) || /@gmail\.com$/i.test(String(a||''))?10:5; }   // the Mac and consumer Gmail agents check every 10 min, Workspace every 5
+function mailGEta(a){ return /@gmail\.com$/i.test(String(a||''))?10:5; }   // the Google agent: consumer Gmail every 10 min, Workspace every 5
+function mailEta(a){ return mailRoutes(mailAcctRow(a)).indexOf('mac')>=0?10:mailGEta(a); }   // the Mac checks every 10 min
 function mailChip(x){ return '<span class="ml-acct" title="'+esc(String(x.Account||'')+(x.Via?' (through '+x.Via+')':''))+'">'+esc(mailShort(x.Account))+'</span>'; }
 function mailLink(x){ var u=String(x.Link||''); if(/^https:\/\/mail\.google\.com\//.test(u) || /^message:\/\/%3C[^\s"'<>]+%3E$/i.test(u)) return u;   // message:// = opens in Apple Mail (Mac items from non-Gmail inboxes)
-  return /^[0-9a-f]{6,}$/i.test(String(x.ThreadId||''))?'https://mail.google.com/mail/u/?authuser='+encodeURIComponent(x.Via||x.Account||'')+'#all/'+x.ThreadId:''; }
+  return x.Source!=='mac' && /^[0-9a-f]{6,}$/i.test(String(x.ThreadId||''))?'https://mail.google.com/mail/u/?authuser='+encodeURIComponent(x.Via||x.Account||'')+'#all/'+x.ThreadId:''; }
 function mailById(id){ return ((MAIL.data&&MAIL.data.items)||[]).filter(function(x){ return x.Id===id; })[0]; }
 function mailItem(el){ var r=el&&el.closest&&el.closest('[data-id]'); return r?mailById(r.getAttribute('data-id')):null; }
 function mailThread(x){ var route=x.Via||x.Account; return MAIL.data.items.filter(function(y){ return y===x || (x.ThreadId && y.ThreadId===x.ThreadId && (y.Via||y.Account)===route); }); }
@@ -6348,7 +6354,7 @@ function renderMail(){
     return '<div class="grid cols-4 ml-tiles">'+['Needs reply','Important','Weeded out','Inboxes connected'].map(function(l){ return '<div class="stat"><div class="label">'+l+'</div><div class="value">—</div></div>'; }).join('')+'</div>'
       +'<div class="ml-stack">'+card('Needs a reply','Checking every inbox…','<div class="empty is-loading" aria-busy="true">Checking your inboxes…</div>')+'</div>';
   }
-  var items=d.items||[], accts=mailAccounts(), on=accts.filter(function(a){ return a.on; });
+  var items=d.items||[], accts=mailAccounts(), on=accts.filter(function(a){ return a.on; }), mx=mailMacMix();
   var reply=items.filter(function(x){ return x.Category==='reply' && (mailOpen(x) || (x.Status==='sent' && Date.now()-mailT(x.Updated)<12*36e5)); }).sort(mailSort);
   var imp=items.filter(function(x){ return x.Category==='important' && mailOpen(x); }).sort(mailSort);
   var fyi=items.filter(function(x){ return x.Category==='fyi' && x.Status!=='done' && mailRecent(x,7); });
@@ -6363,13 +6369,13 @@ function renderMail(){
     +mailTile('Inboxes connected', on.length+' of '+accts.length, on.length?(isFinite(oldest)?'oldest check '+mailAgo(oldest):'connected'):'none yet — see Connect', 'mlConnect')+'</div>';
   var meta='<div class="ml-meta">'+(MAIL.at?'Checked '+esc(new Date(MAIL.at).toLocaleTimeString('en-US',{hour:'numeric', minute:'2-digit'})):'')
     +(MAIL.loading?' · checking again…':'')+(MAIL.err?' · <span class="warn">couldn’t refresh ('+esc(MAIL.err)+')</span>':'')
-    +' · '+(d.mode==='auto'?'junk goes to Trash after 14 days':'learning mode: junk is only archived')+'</div>';
+    +' · '+(d.mode!=='auto'?'learning mode: junk is only archived':mx.all?'junk stays in Life OS/Junk (your Mac never trashes mail)':'junk goes to Trash after 14 days'+(mx.any?' (except inboxes your Mac sorts)':''))+'</div>';
   var none=!on.length;
   var replyCard=mailCard('mlReply','Needs a reply','People waiting on you, most urgent first. Draft reply writes it in your voice; nothing sends until you say so.',
     reply.length?mailList(reply,'reply'):'<div class="empty">'+(none?'Connect an inbox below and new mail shows up here within about 10 minutes.':'No one is waiting on a reply.')+'</div>');
   var impCard=mailCard('mlImp','Worth knowing','Bills, appointments, flight school, family, church leadership, legal and money notices — no reply needed.',
     imp.length?mailList(imp,'imp',12,'imp','emails'):'<div class="empty">Nothing important waiting.</div>');
-  var fyiCard=mailCard('mlFyi','FYI','Receipts, routine notices and newsletters you read — archived in Gmail under Life OS/FYI. Last 7 days.',
+  var fyiCard=mailCard('mlFyi','FYI','Receipts, routine notices and newsletters you read — archived under Life OS/FYI. Last 7 days.',
     fyi.length?'<details class="ml-fold"'+(MAIL.ui.fyi?' open':'')+' ontoggle="MAIL.ui.fyi=this.open"><summary>'+fyi.length+' email'+(fyi.length===1?'':'s')+' this week</summary>'+mailList(fyi,'fyi',40,'fyiAll','emails')+'</details>'
       :'<div class="empty">No FYI mail this week.</div>');
   var weedCard=mailCard('mlWeed','Weeded out','Junk and spam from the last 7 days — archived, never deleted. Tap Not junk and Life OS remembers that sender.',
@@ -6393,44 +6399,51 @@ function mailOutbox(d){
     return mailT(q.Created)>=newest[mailQKey(q, p)]; });                                     // a newer try of the same email is in the list
   if(!sends.length && !moves) return '';
   var rows=sends.map(function(q){ var p=mailQP(q);
-    var it=p.itemId?mailById(p.itemId):null, acct=q.Account||(it&&it.Account)||'', er=q.Status==='error'?mailQErr(q):'', mac=it?it.Source==='mac':mailMacAcct(q.Via||acct);
+    var it=p.itemId?mailById(p.itemId):null, acct=q.Account||(it&&it.Account)||'', er=q.Status==='error'?mailQErr(q):'';
+    var where=it?(it.Source==='mac'?'mac':'google'):mailWhere(q.Via||acct), eta=it?(it.Source==='mac'?10:mailGEta(q.Via||acct)):mailEta(q.Via||acct);   // a reply goes to the agent that read the email
     var what=q.Type==='reply'?'Reply to '+(it?mailName(it.From):'a thread')+(it&&has(it.Subject)?' — '+it.Subject:''):'To '+(p.to||'?')+(has(p.subject)?' — '+p.subject:'');
-    var st=q.Status==='error'?'didn’t go out'+(er?': '+er:''):q.Status==='taken'?'going out now':(p.send?'sends':mac?'opens as a draft in Mail':'saves to Gmail Drafts')+' within ~'+(mac?10:mailEta(q.Via||acct))+' min';
+    var st=q.Status==='error'?'didn’t go out'+(er?': '+er:''):q.Status==='taken'?'going out now':(p.send?'sends':where==='mac'?'opens as a draft in Mail':where==='both'?'saves as a draft (Gmail or Mail on your Mac)':'saves to Gmail Drafts')+' within ~'+eta+' min';
     return '<div class="ml-ob"><span class="k">'+esc(what)+' <span class="ml-acct">'+esc(mailShort(acct))+'</span></span><span class="v'+(q.Status==='error'?' bad':'')+'">'+esc(st)+'</span></div>'; }).join('');
-  return '<div class="ml-stack">'+card('Outbox','Waiting for each inbox’s next check.', rows+(moves?'<div class="foot" style="margin-top:8px;color:var(--text-dim)">'+moves+' Gmail label change'+(moves===1?'':'s')+' from your teaching '+(moves===1?'is':'are')+' queued too.</div>':''))+'</div>';
+  return '<div class="ml-stack">'+card('Outbox','Waiting for each inbox’s next check.', rows+(moves?'<div class="foot" style="margin-top:8px;color:var(--text-dim)">'+moves+' inbox change'+(moves===1?'':'s')+' from your teaching (labels / folders) '+(moves===1?'is':'are')+' queued too.</div>':''))+'</div>';
 }
 function mailTeachCard(d){
   var prof=MAIL.ui.profile!=null?MAIL.ui.profile:(d.profile||''), sign=MAIL.ui.sign!=null?MAIL.ui.sign:(d.signoff||'Brad'), mode=d.mode==='auto'?'auto':'learn';
-  var R=d.rules, nR=typeof R==='number'?R:(R&&R.total), nT=R&&R.taught;
+  var R=d.rules, nR=typeof R==='number'?R:(R&&R.total), nT=R&&R.taught, mx=mailMacMix();
   var learned=nR!=null?'Learned '+nR+' rule'+(nR===1?'':'s')+' so far'+(nT!=null?' ('+nT+' you taught; the rest from people you email)':'')+'.':'It learns from every Teach ▾ tap and from the people you email.';
   return mailCard('mlTeach','Teach it what matters','Plain words. The sorter reads this every time, along with what you’ve taught it.',
     '<div class="efield"><label for="mlProf">What matters to you</label><textarea id="mlProf" class="ml-prof" oninput="MAIL.ui.profile=this.value">'+esc(prof)+'</textarea></div>'
     +'<div class="efield"><label for="mlSign">Sign replies as</label><input id="mlSign" type="text" value="'+esc(sign)+'" oninput="MAIL.ui.sign=this.value"></div>'
     +'<div class="ml-mode" role="group" aria-label="Junk handling"><span class="ml-mode-l">Junk</span><button type="button" class="ml-seg'+(mode==='learn'?' on':'')+'" aria-pressed="'+(mode==='learn')+'" onclick="mailMode(\'learn\')">Archive only</button>'
     +'<button type="button" class="ml-seg'+(mode==='auto'?' on':'')+'" aria-pressed="'+(mode==='auto')+'" onclick="mailMode(\'auto\')">Archive, then Trash after 14 days</button></div>'
+    +(mx.any?'<div class="ml-note">'+(mx.all?'Your Mac never trashes anything — junk it sorts stays in Life OS/Junk, so this only matters for inboxes connected through Google.':'Inboxes your Mac sorts keep junk in Life OS/Junk — the Mac never trashes anything.')+'</div>':'')
     +'<div class="eactions ml-eact"><span class="esaved" id="mlProfMsg" role="status"></span><span class="foot" style="color:var(--text-dim);flex:1 1 200px">'+esc(learned)+'</span><button class="ebtn pri" onclick="mailSaveProfile()">Save</button></div>');
 }
 /* Connect card. Primary: the Mac — one Terminal command (`macSetup`, carries the agent key) connects every account in Apple Mail.
    Alternative: the Google agent, one connect link per Gmail (works when the Mac is asleep). Both are copy-only buttons. */
 function mailConnectCard(d, accts){
   var url=/^https:\/\/script\.google\.com\//.test(String(d.installUrl||''))?d.installUrl:'', share=/^https:\/\//.test(String(d.scriptShareUrl||''))?d.scriptShareUrl:'';
-  var mac=/^curl -fsSL https:\/\/[^\s"'`$;&|<>]+\/mac\/install\.sh \| bash -s -- [0-9a-f]{32,}$/.test(String(d.macSetup||''))?d.macSetup:'';
+  // the installer's key shape; LIFEOS_BASE= only when the server publishes the agent somewhere other than the default site
+  var mac=/^curl -fsSL https:\/\/[^\s"'`$;&|<>]+\/mac\/install\.sh \| (LIFEOS_BASE=https:\/\/[^\s"'`$;&|<>]+ )?bash -s -- [A-Za-z0-9_-]{16,200}$/.test(String(d.macSetup||''))?d.macSetup:'';
   var rows=accts.map(function(a){ var r=a.row||{}, s;
     if(a.on){ var last=mailT(r.LastSync), late=last && Date.now()-last>90*6e4, rt=mailRoutes(r), viaMac=rt.indexOf('mac')>=0;
       s='<span class="ml-st '+(late?'dim':'ok')+'">✓ '+(last?'checked '+esc(mailAgo(r.LastSync)):'connected')+'</span>'+(rt.length?'<span class="ml-st dim">'+esc(mailRouteTxt(rt))+'</span>':'')
         +(has(r.Items)?'<span class="ml-st dim">'+esc(Number(r.Items)||0)+' sorted</span>':'')
         +(late?'<span class="ml-st warn">'+(viaMac?'Your Mac hasn’t checked in a while — it checks only while the Mac is awake. If it stays quiet, paste the Mac command again.'
-          :'Hasn’t checked in a while — open the connect link again from this account.')+'</span>':''); }
+          :'Hasn’t checked in a while — open the connect link again from this account.')+'</span>':'')
+        +(rt.length===2?'<span class="ml-st warn">Connected both ways (Mac + Google), so an email can show up twice. <button type="button" class="ml-link" data-acct="'+esc(a.a)+'" onclick="mailStopGoogle(this)">Use only the Mac</button></span>':'')
+        +(r.Stop==='google'||r.Stop==='mac'?'<span class="ml-st dim">'+(r.Stop==='google'?'Google':'Mac')+' connection switched off</span>':''); }
     else s='<span class="ml-st dim">Not connected'+(a.mac||a.fwd?' — connects from your Mac':'')+'</span>';
     if(has(r.LastError)) s+='<span class="ml-st warn">'+esc(String(r.LastError).slice(0,200))+'</span>';
     return '<div class="ml-acc"><div class="ml-acc-n"><b>'+esc(a.n)+'</b><span>'+esc(a.a)+'</span></div><div class="ml-acc-s">'+s+'</div></div>'; }).join('');
+  var skip=(d.accounts||[]).filter(function(r){ return r.Kind==='skipped' && has(r.Account); }).map(function(r){ return String(r.Account); });   // in Apple Mail, but not Brad's inboxes
+  rows+=skip.length?'<div class="ml-note">Also in Apple Mail, left alone: <b>'+esc(skip.join(', '))+'</b>. Life OS sorts only your inboxes — to sort '+(skip.length===1?'it':'one of these')+' too, ask Claude to add it to <b>mail_accounts</b>.</div>':'';
   var allOn=accts.length && accts.every(function(a){ return a.on; }), n=accts.length, macOnly=accts.filter(function(a){ return a.mac||a.fwd; }).map(function(a){ return a.n; });
   var macPart='<div class="ml-sec-h">Easiest: connect '+(n>1?'all '+(n===4?'four':n)+' at once':'it')+' from your Mac</div>'
     +'<ol class="al-steps ml-steps">'
     +'<li>On your Mac, open <b>Terminal</b> — or ask Claude on your Mac to do it for you.</li>'
     +'<li>Paste this command and press Return:'+(mac
-      ?'<div class="ml-cmd"><code>'+esc(mac.replace(/[0-9a-f]{32,}$/,'••••••'))+'</code><button class="ebtn pri" id="mlCopyMac" onclick="mailCopyMac()">Copy command</button></div>'
-      :'<div class="empty">The Mac command isn’t ready yet — it appears here once the Life OS Mail update is on the server.</div>')+'</li>'
+      ?'<div class="ml-cmd"><code>'+esc(mac.replace(/[A-Za-z0-9_-]{16,200}$/,'••••••'))+'</code><button class="ebtn pri" id="mlCopyMac" onclick="mailCopyMac()">Copy command</button></div>'
+      :'<div class="empty">'+(has(d.macSetupError)?esc(d.macSetupError)+'.':'The Mac command isn’t ready yet — it appears here once the Life OS Mail update is on the server.')+'</div>')+'</li>'
     +'<li>When your Mac asks to let it control <b>Mail</b>, click <b>OK</b>.</li>'
     +'<li>Done — every inbox in Apple Mail is sorted every 10 minutes while the Mac is awake.</li></ol>'
     +'<div class="ml-note">It uses the accounts already signed in to Apple Mail, so there’s nothing to sign in to. Replies still go out from the inbox each email came to.</div>';
@@ -6451,6 +6464,13 @@ function mailConnectCard(d, accts){
 async function mailCopyText(u, ok, ask){ if(!u) return; try{ await navigator.clipboard.writeText(u); toast(ok); }catch(e){ window.prompt(ask, u); } }
 function mailCopyLink(){ return mailCopyText(MAIL.data&&MAIL.data.installUrl, 'Copied — paste it into a private window', 'Copy this link, then open it in a private window:'); }
 function mailCopyMac(){ return mailCopyText(MAIL.data&&MAIL.data.macSetup, 'Copied — paste it into Terminal on your Mac', 'Copy this, then paste it into Terminal on your Mac:'); }
+/* an inbox connected both ways: switch its Google route off (Config mail_stop_<account> = google; the Google agent removes itself) */
+async function mailStopGoogle(el){ var a=el&&el.getAttribute('data-acct'); if(!a || !MAIL.data) return;
+  if(!window.confirm('Stop sorting '+a+' through Google? Your Mac keeps sorting it, so each email shows up once. (To use Google for it again later, ask Claude to clear mail_stop for this inbox.)')) return;
+  var row={}; row['mail_stop_'+a]='google'; el.disabled=true;
+  var r=await mailMut('setkv',{tab:'Config', row:JSON.stringify(row)});
+  if(r&&r.ok){ (MAIL.data.accounts||[]).forEach(function(x){ if(String(x.Account||'').toLowerCase()===a) x.Stop='google'; }); if(CURRENT==='mail') render('mail'); toast('Google connection for '+mailShort(a)+' switched off — your Mac keeps sorting it.'); }
+  else { if(el.isConnected) el.disabled=false; toast('Couldn’t change that — '+mailErr(r)); } }
 async function mailSaveProfile(){
   var m=$('mlProf'), s=$('mlSign'), msg=$('mlProfMsg'); if(!m) return;
   var row={mail_profile:m.value.trim(), mail_signoff:(s&&s.value.trim())||'Brad'};
@@ -6465,11 +6485,12 @@ async function mailSaveProfile(){
 }
 async function mailMode(m){
   var d=MAIL.data; if(!d || (d.mode==='auto')===(m==='auto')) return;
-  if(m==='auto' && !window.confirm('Move junk to Gmail Trash after 14 days? Gmail keeps Trash for 30 more days, so you can still rescue anything.')) return;
+  var mx=mailMacMix();
+  if(m==='auto' && !window.confirm('Move junk to Gmail Trash after 14 days? Gmail keeps Trash for 30 more days, so you can still rescue anything.'+(mx.any?'\n\nInboxes your Mac sorts keep junk in Life OS/Junk — the Mac never trashes anything.':''))) return;
   var was=d.mode; d.mode=m; render('mail');
   var r=await mailMut('setkv',{tab:'Config', row:JSON.stringify({mail_mode:m})});
   if(!(r&&r.ok)){ d.mode=was; render('mail'); toast('Couldn’t change that — '+mailErr(r)); }
-  else toast(m==='auto'?'Junk older than 14 days will go to Trash.':'Junk will only be archived.');
+  else toast(m!=='auto'?'Junk will only be archived.':mx.all?'Saved — your Mac still keeps junk in Life OS/Junk.':'Junk older than 14 days will go to Trash'+(mx.any?' (except inboxes your Mac sorts).':'.'));
 }
 /* ---- one-tap actions (optimistic; put things back if the server says no) ---- */
 function mailToast(msg, undo){ var t=document.createElement('div'); t.className='ml-toast'; t.setAttribute('role','status');
@@ -6585,7 +6606,7 @@ async function mailSendReply(send){
   var r=await mailMut('mailsend',{id:id, body:body, send:send?'1':'0', replyAll:($('mlAll')&&$('mlAll').checked)?'1':'0'});
   s.busy=false; var live=mailLive(s); if(live) mailBusy(false, ids);
   if(!(r&&r.ok)){ if(live) mailMsg('mlMsg','Didn’t go through ('+mailErr(r)+'). Try again.','bad'); else toast('Your reply didn’t go through ('+mailErr(r)+') — open it and try again.'); return; }
-  var acct=r.account||(x&&x.Account)||'', mac=!!(x&&x.Source==='mac'), eta=mac?10:mailEta(r.via||(x&&x.Via)||acct);
+  var acct=r.account||(x&&x.Account)||'', mac=!!(x&&x.Source==='mac'), eta=mac?10:mailGEta(r.via||(x&&x.Via)||acct);
   if(x){ x.Status=r.status||(send?'sending':'drafted'); x.Draft=body; }
   delete MAIL.drafts[id];
   if(MAIL.data && r.qid){ MAIL.data.pending=(MAIL.data.pending||[]).filter(function(q){ return q.Qid!==r.qid; })
@@ -6669,10 +6690,11 @@ async function mailComposeSend(send){
   var r=null; try{ r=await mailAcctCall('mailcompose', {to:to, cc:cc, subject:subject, body:body, send:send?'1':'0'}, c); }catch(e){}
   c.busy=false; var live=mailLive(c); if(live) mailBusy(false, ids);
   if(!(r&&r.ok)){ if(live) mailMsg('mcMsg','Didn’t go through ('+mailErr(r)+'). Try again.','bad'); else toast('Your email to '+mailAddr(to)+' didn’t go through ('+mailErr(r)+').'); return; }
-  var who=String(r.account||''), eta=mailEta(r.via||who), name=who?mailShort(who):'the right', mac=mailMacAcct(r.via||who);
+  var who=String(r.account||''), eta=mailEta(r.via||who), name=who?mailShort(who):'the right', where=mailWhere(r.via||who);
   if(MAIL.data && r.qid){ MAIL.data.pending=(MAIL.data.pending||[]).filter(function(q){ return q.Qid!==r.qid; })
     .concat([{Qid:r.qid, Account:who, Via:r.via||'', Type:'compose', Payload:JSON.stringify({to:to, subject:subject, send:!!send}), Status:'queued', Created:new Date().toISOString()}]); }
-  var done=(send?'Queued — goes out within ~'+eta+' minutes from your '+name+' inbox':mac?'Saved — it’ll open as a draft in Mail on your Mac within ~'+eta+' minutes, from your '+name+' inbox':'Saved — it’ll be in your '+name+' Gmail Drafts within ~'+eta+' minutes')
+  var done=(send?'Queued — goes out within ~'+eta+' minutes from your '+name+' inbox':where==='mac'?'Saved — it’ll open as a draft in Mail on your Mac within ~'+eta+' minutes, from your '+name+' inbox'
+    :where==='both'?'Saved — it’ll be a draft from your '+name+' inbox within ~'+eta+' minutes (in Gmail Drafts, or open in Mail on your Mac)':'Saved — it’ll be in your '+name+' Gmail Drafts within ~'+eta+' minutes')
     +(has(r.accountWhy)?' ('+r.accountWhy+')':'')+'.'+(r.connected===false?' That inbox isn’t connected yet, so it waits until it is.':'');
   if(MAIL.cmp===c) MAIL.cmp=null;
   if(live){ $('mcActs').innerHTML='<span class="esaved ok" role="status">'+esc(done)+'</span><span class="spacer"></span><button class="ebtn pri" onclick="closeModal()">Done</button>';
