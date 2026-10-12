@@ -187,3 +187,7 @@
   capital plan, codes/utilities/insurance look-ups, hunt point tables, points table, Mail's Teach/Connect). Opening one stores 0
   in lifeos_folds so it stays open on that device. Chelsea's view never default-folds.
 - The voice assistant formerly called Pam is now named **Atlas** (Oct 12 2026). Code identifiers (pamFrame, PAM_URL, ~/Pam on the Mac) keep the old name on purpose.
+  Cloud first (Oct 12 2026): the panel reads Config kv `atlas_url` (the always-on cloud Atlas; several allowed, best first, bare host names get
+  https://), probes every host's /api/health at once (CORS, then no-cors so a cloud host without CORS headers still counts; 6 s) and loads the
+  first one in order that answers; the Mac (PAM_URL) is always last. Subtitle says "in the cloud" / "from your Mac"; when nothing answers the
+  card offers Try again / Open Atlas directly / Use the Claude app (claude.ai/code). Set `atlas_url` with setkv — no page change needed.

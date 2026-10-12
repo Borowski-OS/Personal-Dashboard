@@ -1512,7 +1512,7 @@
 <div id="aiPanel" class="hidden" role="dialog" aria-label="Atlas">
   <div class="aiHead">
     <span class="ai-orb sm"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5l1.9 5.6 5.6 1.9-5.6 1.9L12 17.5l-1.9-5.6L4.5 10l5.6-1.9z"/></svg></span>
-    <div class="aiTitle"><strong>Atlas</strong><span>Talks, codes and runs your projects · from the Mac over Tailscale</span></div>
+    <div class="aiTitle"><strong>Atlas</strong><span id="pamSub">Talks, codes and runs your projects</span></div>
     <button class="ai-ic" onclick="pamOpenTab()" title="Open Atlas full screen"><svg viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-8 8M10 6H5v13h13v-5"/></svg></button>
     <button class="ai-ic ai-exp" onclick="aiExpand()" title="Expand"><svg viewBox="0 0 24 24"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg></button>
     <button class="ai-ic" onclick="closeAI()" title="Close (Esc)"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
@@ -1521,8 +1521,8 @@
     <div id="pamOffline" class="ai-hello hidden">
       <canvas class="ai-sphere ai-hello-orb"></canvas>
       <h3>Atlas is out of reach</h3>
-      <p>She runs on your Mac and is reachable only through Tailscale. Make sure the Mac is awake and this device is signed into Tailscale, then try again.</p>
-      <div class="ai-sugg"><button onclick="openAI()">Try again</button><button onclick="pamOpenTab()">Open Atlas directly</button></div>
+      <p id="pamOffMsg">She runs on your Mac and is reachable only through Tailscale. Make sure the Mac is awake and this device is signed into Tailscale, then try again.</p>
+      <div class="ai-sugg"><button onclick="openAI()">Try again</button><button onclick="pamOpenTab()">Open Atlas directly</button><button onclick="window.open('https://claude.ai/code','_blank','noopener')">Use the Claude app</button></div>
     </div>
     <iframe id="pamFrame" title="Atlas" allow="microphone; autoplay; clipboard-write" referrerpolicy="no-referrer" scrolling="no"></iframe>
   </div>
@@ -5863,22 +5863,53 @@ function closePalette(){ $('palette').classList.add('hidden'); }
   document.addEventListener('visibilitychange', function(){ if(!document.hidden) wake(); });
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', wake); else wake();
 })();
-/* ---------- Pam: the voice coding assistant, embedded from the Mac over Tailscale ---------- */
-var PAM_URL='https://bradleys-macbook-pro.taila89b12.ts.net';
-var PAM_LOADED=false;
+/* ---------- Atlas (formerly Pam): the voice assistant. Cloud first, then the Mac over Tailscale ----------
+   Config kv `atlas_url` = the cloud Atlas address (several may be listed, best first); the Mac (PAM_URL) is always the last resort.
+   Every open probes all of them at once and loads the first one, in that order, that answers. */
+var PAM_URL='https://bradleys-macbook-pro.taila89b12.ts.net';   // the Mac
+var PAM_LOADED='', PAM_ACTIVE='';                                // host in the frame / host that last answered
+function pamHosts(){
+  var out=[];
+  String(kv('Config').atlas_url||'').split(/[\s,]+/).concat([PAM_URL]).forEach(function(u){
+    u=String(u||'').trim().replace(/\/+$/,''); if(/^[a-z0-9-]+(\.[a-z0-9-]+)+(:\d+)?(\/\S*)?$/i.test(u)) u='https://'+u;   // a bare host name gets https://
+    if(/^https:\/\/[^\s"'<>()]+$/.test(u) && out.indexOf(u)<0) out.push(u); });
+  return out;
+}
+// Reachable = /api/health answers within 6 s. CORS first (how the Mac answers); then no-cors, so a cloud host that
+// sends no CORS headers still counts. Network errors (Mac asleep, Tailscale off) fail both.
+function pamProbe(u){ return new Promise(function(res){
+  var ctl=('AbortController' in window)?new AbortController():null, done=false, t=setTimeout(function(){ if(ctl) ctl.abort(); fin(false); },6000);
+  function fin(ok){ if(done) return; done=true; clearTimeout(t); res(ok); }
+  var opt=function(m){ return {mode:m, cache:'no-store', signal:ctl?ctl.signal:undefined}; };
+  fetch(u+'/api/health',opt('cors')).then(function(){ fin(true); },function(){
+    if(done) return; fetch(u+'/api/health',opt('no-cors')).then(function(){ fin(true); },function(){ fin(false); }); });
+}); }
+function pamPick(hosts){ return new Promise(function(res){
+  var st=hosts.map(function(){ return null; }), over=false;
+  function check(){ if(over) return;
+    for(var i=0;i<hosts.length;i++){ if(st[i]===null) return; if(st[i]){ over=true; return res(hosts[i]); } }
+    over=true; res(''); }
+  if(!hosts.length) return res('');
+  hosts.forEach(function(u,i){ pamProbe(u).then(function(ok){ st[i]=ok; check(); }); });
+}); }
+function pamSub(u){ $('pamSub').textContent='Talks, codes and runs your projects'+(u?(u===PAM_URL?' · from your Mac':' · in the cloud'):''); }
 function openAI(){
   $('aiPanel').classList.remove('hidden'); $('aiFab').classList.add('hidden'); document.body.classList.add('ai-open');
-  var off=$('pamOffline'), fr=$('pamFrame');
+  var off=$('pamOffline'), fr=$('pamFrame'), hosts=pamHosts();
   off.classList.add('hidden'); fr.classList.remove('hidden');
-  // Reachability probe (Tailscale-only host): show a friendly notice instead of a blank frame.
-  var ctl=('AbortController' in window)?new AbortController():null, timer=ctl&&setTimeout(function(){ctl.abort();},6000);
-  fetch(PAM_URL+'/api/health',{mode:'cors',signal:ctl?ctl.signal:undefined}).then(function(r){ if(!r.ok) throw 0; return r.json(); })
-    .then(function(){ clearTimeout(timer); if(!PAM_LOADED){ fr.src=PAM_URL+'/'; PAM_LOADED=true; } })
-    .catch(function(){ clearTimeout(timer); fr.classList.add('hidden'); off.classList.remove('hidden'); if(window.aiHiveWake) aiHiveWake(); });
+  pamPick(hosts).then(function(u){
+    PAM_ACTIVE=u; pamSub(u);
+    if(u){ if(PAM_LOADED!==u){ fr.src=u+'/'; PAM_LOADED=u; } off.classList.add('hidden'); fr.classList.remove('hidden'); return; }
+    PAM_LOADED='';                                               // reload whichever answers next time
+    $('pamOffMsg').textContent=hosts.length>1
+      ?'Neither the cloud Atlas nor your Mac answered. If Atlas lives on your private network, make sure Tailscale is switched on here, then try again — or use the Claude app meanwhile.'
+      :'She runs on your Mac and is reachable only through Tailscale. Make sure the Mac is awake and this device is signed into Tailscale, then try again — or use the Claude app meanwhile.';
+    fr.classList.add('hidden'); off.classList.remove('hidden'); if(window.aiHiveWake) aiHiveWake();
+  });
 }
 function closeAI(){ $('aiPanel').classList.add('hidden'); $('aiFab').classList.remove('hidden'); document.body.classList.remove('ai-open'); if(window.aiHiveWake) aiHiveWake(); }
 function aiExpand(){ $('aiPanel').classList.toggle('big'); }
-function pamOpenTab(){ window.open(PAM_URL+'/','_blank','noopener'); }
+function pamOpenTab(){ window.open((PAM_ACTIVE||pamHosts()[0]||PAM_URL)+'/','_blank','noopener'); }
 document.addEventListener('keydown',function(e){ if((e.metaKey||e.ctrlKey)&&(e.key==='j'||e.key==='J')){ if(ROLE==='chelsea'||!DATA) return; e.preventDefault(); $('aiPanel').classList.contains('hidden')?openAI():closeAI(); } if(e.key==='Escape'&&!$('aiPanel').classList.contains('hidden')) closeAI(); });
 function palRender(){
   var q=($('palInput').value||'').trim().toLowerCase();
