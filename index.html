@@ -5490,12 +5490,15 @@ function renderHobbies(){
   }).join('')+'</div>'
   : card('Hobbies','', emptyAct('No hobbies yet — hunting, fishing, camping, aviation… who does it, cadence, gear, a goal.','Hobbies','hobby'),'--violet');
 
+  // Sheet dates arrive as ISO timestamps ("2026-10-08T07:00:00.000Z"); show "Oct 8" (with the year if it isn't this year).
+  var msDate=function(v){ var t=new Date(v); if(isNaN(t)) return String(v); var o={month:'short', day:'numeric', timeZone:'America/Los_Angeles'};
+    if(t.getFullYear()!==new Date().getFullYear()) o.year='numeric'; return t.toLocaleDateString('en-US', o); };
   var ms=arr('Milestones').filter(function(m){return has(m.Milestone);});
   var msHtml='';
   if(ms.length){
     var stTag=function(s){s=String(s||'').toLowerCase(); var c=s.indexOf('done')>=0||s.indexOf('complete')>=0?'active':(s.indexOf('progress')>=0?'planning':'done'); return '<span class="tag '+c+'">'+esc(s||'planned')+'</span>';};
     msHtml='<div style="height:22px"></div>'+card('Goals & milestones','The bigger things you\'re working toward.',
-      ms.map(function(m){return '<div class="kv-row"><span class="k">'+(EDIT?'<button class="ebtn" style="padding:1px 7px;margin-right:6px" onclick="openEditor(\'Milestones\','+m.__row+')">✎</button>':'')+esc(m.Milestone)+' <span style="color:var(--text-dim)">· '+esc(m.Area||'')+(has(m.Who)?' · '+esc(m.Who):'')+'</span></span><span class="v">'+stTag(m.Status)+(has(m.Date)?' <span class="foot" style="display:inline">'+esc(m.Date)+'</span>':'')+'</span></div>';}).join('')+addBtn('Milestones','milestone'),'--violet');
+      ms.map(function(m){return '<div class="kv-row"><span class="k">'+(EDIT?'<button class="ebtn" style="padding:1px 7px;margin-right:6px" onclick="openEditor(\'Milestones\','+m.__row+')">✎</button>':'')+esc(m.Milestone)+' <span style="color:var(--text-dim)">· '+esc(m.Area||'')+(has(m.Who)?' · '+esc(m.Who):'')+'</span></span><span class="v">'+stTag(m.Status)+(has(m.Date)?' <span class="foot" style="display:inline">'+esc(msDate(m.Date))+'</span>':'')+'</span></div>';}).join('')+addBtn('Milestones','milestone'),'--violet');
   } else if(EDIT){ msHtml='<div style="height:22px"></div>'+card('Goals & milestones','', addBtn('Milestones','milestone'),'--violet'); }
 
   // Hunt planner — DIY / no-guide opportunities, cost-focused
