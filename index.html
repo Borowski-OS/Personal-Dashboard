@@ -1341,6 +1341,8 @@
   @media (max-width:640px){ .mit-sm { flex-wrap:wrap; } .mit-sm .mit-go { flex:1 1 60%; } .mit-sm .mit-r { padding-left:38px; } }
   /* Round 8: a footnote that ends a card reads as the card's footer — same gap + hairline everywhere (inline gaps were 8/10/12px) */
   .card > .foot:last-child:nth-child(n+4) { margin-top:14px !important; padding-top:10px; border-top:1px solid var(--card-border); }
+  /* Round 8: touch screens — action buttons were 20–22px tall; give them a 36px tap height (desktop unchanged) */
+  @media (pointer:coarse){ button.ebtn { min-height:36px; } }
 </style>
 </head>
 <body>
