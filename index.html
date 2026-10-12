@@ -907,18 +907,13 @@
   body.role-chelsea #navTabs .nav-tab:not([data-tab="overview"]):not([data-tab="life"]), body.role-chelsea .b-only, body.role-chelsea #aiFab, body.role-chelsea .hero-actions { display:none !important; }
 
   .flog.clip .tbl tbody tr:nth-child(n+13) { display:none; }
-  /* phones: one flight = one compact line ("Oct 8 · N3207A · KMEV–KCXP · 1.2 h · Dual") + notes clamped to two lines */
-  @media (max-width:640px){
-    .flog table.tbl tr { display:flex; flex-wrap:wrap; align-items:baseline; gap:3px 0; padding:10px 14px; }
-    .flog table.tbl td, .flog table.tbl td + td, .flog table.tbl tbody tr td:first-child { display:inline; width:auto; padding:0; border:0; background:none; font-size:13.5px; text-align:left; }
-    .flog table.tbl tbody tr td:first-child { font-weight:600; font-size:14px; color:#e6e9ee; }
-    .flog table.tbl td::before { content:none; }
-    .flog table.tbl td:not(:first-child):not(.wide)::before { content:'·'; color:var(--text-dim); margin:0 7px; font-size:13px; text-transform:none; letter-spacing:0; }
-    .flog table.tbl td[data-label="Hrs"]::after { content:' h'; }
-    .flog table.tbl td.wide { flex-basis:100%; margin-top:3px; color:var(--text-muted); font-size:12.5px; line-height:1.45; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
-    .flog table.tbl td.wide::before { content:none; }
-    .flog table.tbl td[data-empty] { display:none; }
-  }
+  /* phones: one flight = one compact line + notes (flogList); the full table stays for wider screens */
+  .flog-list { display:none; } .flog.clip .flog-list .fl:nth-child(n+13) { display:none; }
+  @media (max-width:640px){ .flog .tbl-host { display:none; } .flog-list { display:block; } .flog.edit .tbl-host { display:block; } .flog.edit .flog-list { display:none; } }
+  .fl { padding:10px 0; border-bottom:1px solid var(--card-border); } .fl:last-child { border-bottom:none; }
+  .fl-top { display:flex; flex-wrap:wrap; align-items:baseline; gap:2px 8px; font-size:13.5px; color:var(--text-muted); }
+  .fl-top b { color:#e6e9ee; font-weight:600; font-size:14px; } .fl-top .hrs { margin-left:auto; color:var(--text); font-weight:600; }
+  .fl-n { margin-top:3px; font-size:12.5px; line-height:1.45; color:var(--text-dim); display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
   .mail-bar { border-left-color:var(--amber); } #mailBar:empty { display:none; }
   .call-bar { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:8px 12px; margin:-8px 0 22px; padding:12px 16px; border-radius:12px; background:var(--card-bg); border:1px solid var(--card-border); border-left:3px solid var(--accent); }
   .call-main { font-size:15px; } .call-btns { display:flex; gap:8px; } .call-btns .ebtn { text-decoration:none; }
@@ -4149,7 +4144,12 @@ function renderFlying(){
 function flightLogCard(cols, log){
   var rows=log.slice().sort(function(a,b){ return String(b.Date).localeCompare(String(a.Date)); }), N=12;
   return card('Flight log', rows.length>N?'Your '+N+' most recent of '+rows.length+' flights.':'Most recent flights.',
-    '<div class="flog'+(rows.length>N?' clip':'')+'">'+tableEl(cols, rows, {empty:'Log flights in the FlightLog tab.',editTab:'FlightLog'})+'</div>'
+    '<div class="flog'+(rows.length>N?' clip':'')+(EDIT?' edit':'')+'"><div class="tbl-host">'+tableEl(cols, rows, {empty:'Log flights in the FlightLog tab.',editTab:'FlightLog'})+'</div>'
+      +(rows.length?'<div class="flog-list">'+rows.map(function(r){ var d=new Date(String(r.Date).slice(0,10)+'T12:00:00');
+        return '<div class="fl"><div class="fl-top"><b>'+esc(isNaN(d)?String(r.Date||''):d.toLocaleDateString('en-US',{month:'short',day:'numeric'}))+'</b>'
+          +[r.Aircraft, r.Route, r.Type].filter(has).map(function(v){ return '<span>'+esc(v)+'</span>'; }).join('<span aria-hidden="true">·</span>')
+          +(has(r.Hours)?'<span class="hrs">'+esc(r.Hours)+' h</span>':'')+'</div>'+(has(r.Notes)?'<div class="fl-n">'+esc(r.Notes)+'</div>':'')+'</div>'; }).join('')+'</div>':'')
+      +'</div>'
     +(rows.length>N?'<button class="ebtn" style="margin-top:10px" onclick="var f=this.previousElementSibling,c=f.classList.toggle(\'clip\');this.textContent=c?\'Show all '+rows.length+' flights\':\'Show recent only\'">Show all '+rows.length+' flights</button>':''), '--sky');
 }
 function airportsHtml(){
