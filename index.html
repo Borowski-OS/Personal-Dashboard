@@ -2489,6 +2489,11 @@ function vfrWindowCard(){
   var LAT=38.9964, LNG=-119.7514, now=new Date();
   var sr=solarEvent(now,LAT,LNG,90.833,true), ss=solarEvent(now,LAT,LNG,90.833,false);
   var dawn=solarEvent(now,LAT,LNG,96,true), dusk=solarEvent(now,LAT,LNG,96,false);
+  // solarEvent works on the UTC date, so after ~5 PM Pacific it mixes tomorrow's sunrise with today's sunset
+  // (that showed "-13h -40m of daylight"). Pin every event to today's Pacific date; a day's shift is only a minute or two.
+  var pday=function(d){ return d.toLocaleDateString('en-CA',{timeZone:'America/Los_Angeles'}); }, today=pday(now);
+  var pin=function(d){ if(!d) return d; d=new Date(d.getTime()); for(var i=0;i<2 && pday(d)>today;i++) d=new Date(d.getTime()-864e5); for(var j=0;j<2 && pday(d)<today;j++) d=new Date(d.getTime()+864e5); return d; };
+  sr=pin(sr); ss=pin(ss); dawn=pin(dawn); dusk=pin(dusk);
   var rows='<div class="kv-row"><span class="k">Morning civil twilight</span><span class="v mono">'+fmtT(dawn)+'</span></div>'
     +'<div class="kv-row"><span class="k">Sunrise</span><span class="v mono">'+fmtT(sr)+'</span></div>'
     +'<div class="kv-row"><span class="k">Sunset</span><span class="v mono">'+fmtT(ss)+'</span></div>'
