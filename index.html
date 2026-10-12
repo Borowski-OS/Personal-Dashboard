@@ -963,7 +963,7 @@
   .ai-send svg { width:17px; height:17px; fill:none; stroke:currentColor; stroke-width:2.2; stroke-linecap:round; stroke-linejoin:round; } .ai-send:disabled { opacity:.45; cursor:default; }
   @media (max-width:640px){
     #aiFab { right:14px; bottom:calc(74px + env(safe-area-inset-bottom)) !important; padding:5px; width:auto !important; height:auto !important; } .ai-fab-lbl { display:none; } #aiFab .ai-orb { width:46px; height:46px; }
-    #aiPanel, #aiPanel.big { inset:0; right:0; bottom:0; width:100%; max-width:100%; height:100%; border-radius:0; border:none; padding-top:env(safe-area-inset-top); padding-bottom:env(safe-area-inset-bottom); }
+    #aiPanel, #aiPanel.big { inset:0; right:0; bottom:0; width:100%; max-width:100%; height:100%; height:100dvh; border-radius:0; border:none; padding-top:env(safe-area-inset-top); padding-bottom:env(safe-area-inset-bottom); }
     .ai-exp { display:none; } body.ai-open { overflow:hidden; }
   }
 
@@ -973,6 +973,12 @@
     box-shadow:0 10px 30px rgba(0,0,0,.5), 0 0 26px rgba(122,162,247,.28), inset 0 0 18px rgba(179,146,240,.18); transition:transform .18s, box-shadow .18s; overflow:hidden; }
   #aiFab:hover { transform:scale(1.07); box-shadow:0 12px 34px rgba(0,0,0,.55), 0 0 34px rgba(179,146,240,.45), inset 0 0 22px rgba(95,208,197,.22); }
   #aiFab.hidden { display:none; } #aiHive { width:100%; height:100%; display:block; }
+  /* Pam embed */
+  .aiBody.pam-body { padding:0; display:flex; flex-direction:column; background:#050b16; }
+  #pamFrame { flex:1; width:100%; height:100%; max-width:100%; border:0; background:#090c12; min-height:0; display:block; }
+  .aiBody.pam-body { overflow:hidden; position:relative; }
+  #pamFrame.hidden { display:none; }
+  #pamOffline { padding:30px 20px; } #pamOffline .ai-sugg { flex-direction:row; justify-content:center; }
   @media (max-width:640px){ #aiFab { right:14px; bottom:calc(74px + env(safe-area-inset-bottom)) !important; width:58px !important; height:58px !important; padding:0; } }
 
   /* Taxes page */
@@ -1389,6 +1395,33 @@
     .ml-rw { flex-wrap:wrap; } .ml-rw .ebtn { flex:1 1 100%; min-height:38px; }
     #modal .ml-eact .ebtn { flex:1 1 auto; min-height:40px; } #modal .ml-eact .spacer { display:none; }
   }
+
+  /* Round 7: stretched-button rows (Today top 3, Who's flying) + oral prep polish */
+  .mit, .mit-sm { position:relative; }
+  .mit-go { appearance:none; background:none; border:0; padding:0; margin:0; color:inherit; font-family:inherit; text-align:left; display:block; flex:1; min-width:0; cursor:pointer; }
+  .mit-go::after { content:''; position:absolute; inset:0; border-radius:inherit; }
+  .mit .chk, .mit-sm .chk { position:relative; z-index:1; }
+  .mit-go:focus-visible { outline:none; }
+  .mit:has(.mit-go:focus-visible), .mit-sm:has(.mit-go:focus-visible) { outline:2px solid rgba(var(--accent-rgb),.65); outline-offset:2px; }
+  .at-row { position:relative; }
+  .at-sel { all:unset; cursor:pointer; }
+  .at-sel::after { content:''; position:absolute; inset:0; border-radius:inherit; }
+  .at-sel:focus-visible { outline:none; }
+  .at-row:has(.at-sel:focus-visible) { outline:2px solid var(--sky); outline-offset:2px; }
+  .at-row a { position:relative; z-index:1; }
+  .op-gap { min-height:44px; box-sizing:border-box; border-radius:8px; }
+  .op-gap:hover { background:rgba(255,255,255,.025); }
+  .op-gap:has(input:focus-visible) { outline:2px solid rgba(var(--accent-rgb),.65); outline-offset:2px; }
+  .op-gap input:focus-visible { outline:none; }
+  details.op-arch summary { min-height:44px; display:flex; align-items:center; gap:6px; border-radius:8px; }
+  details.op-arch summary:hover { color:var(--text-muted); }
+
+  /* Round 8: phone — "more on your list" rows wrap like the top 3 (title was squeezed to 0px wide) */
+  @media (max-width:640px){ .mit-sm { flex-wrap:wrap; } .mit-sm .mit-go { flex:1 1 60%; } .mit-sm .mit-r { padding-left:38px; } }
+  /* Round 8: a footnote that ends a card reads as the card's footer — same gap + hairline everywhere (inline gaps were 8/10/12px) */
+  .card > .foot:last-child:nth-child(n+4) { margin-top:14px !important; padding-top:10px; border-top:1px solid var(--card-border); }
+  /* Round 8: touch screens — action buttons were 20–22px tall; give them a 36px tap height (desktop unchanged) */
+  @media (pointer:coarse){ button.ebtn { min-height:36px; } }
 </style>
 </head>
 <body>
@@ -1427,19 +1460,22 @@
 
 <!-- Floating AI assistant -->
 <button id="aiFab" class="hidden" onclick="openAI()" title="Ask Life OS (⌘J)" aria-label="Ask Life OS AI"><canvas id="aiHive" class="ai-sphere"></canvas></button>
-<div id="aiPanel" class="hidden" role="dialog" aria-label="Life OS AI">
+<div id="aiPanel" class="hidden" role="dialog" aria-label="Pam">
   <div class="aiHead">
     <span class="ai-orb sm"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5l1.9 5.6 5.6 1.9-5.6 1.9L12 17.5l-1.9-5.6L4.5 10l5.6-1.9z"/></svg></span>
-    <div class="aiTitle"><strong>Life OS AI</strong><span>Knows your dashboard · searches the web · can add tasks</span></div>
-    <button class="ai-ic" onclick="aiNew()" title="New chat"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+    <div class="aiTitle"><strong>Pam</strong><span>Talks, codes and runs your projects · from the Mac over Tailscale</span></div>
+    <button class="ai-ic" onclick="pamOpenTab()" title="Open Pam full screen"><svg viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-8 8M10 6H5v13h13v-5"/></svg></button>
     <button class="ai-ic ai-exp" onclick="aiExpand()" title="Expand"><svg viewBox="0 0 24 24"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg></button>
     <button class="ai-ic" onclick="closeAI()" title="Close (Esc)"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
   </div>
-  <div id="aiBody" class="aiBody"></div>
-  <div class="aiInputWrap">
-    <textarea id="aiInput" rows="1" placeholder="Ask anything, or say “add a task to…”" autocomplete="off" oninput="aiGrow(this)" onkeydown="aiKey(event)"></textarea>
-    <button class="ai-ic ai-mic hidden" id="aiMic" onclick="aiVoice()" title="Speak"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
-    <button class="ai-send" onclick="askAI()" id="aiSend" title="Send"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+  <div id="aiBody" class="aiBody pam-body">
+    <div id="pamOffline" class="ai-hello hidden">
+      <canvas class="ai-sphere ai-hello-orb"></canvas>
+      <h3>Pam is out of reach</h3>
+      <p>She runs on your Mac and is reachable only through Tailscale. Make sure the Mac is awake and this device is signed into Tailscale, then try again.</p>
+      <div class="ai-sugg"><button onclick="openAI()">Try again</button><button onclick="pamOpenTab()">Open Pam directly</button></div>
+    </div>
+    <iframe id="pamFrame" title="Pam" allow="microphone; autoplay; clipboard-write" referrerpolicy="no-referrer" scrolling="no"></iframe>
   </div>
 </div>
 
@@ -2044,7 +2080,7 @@ function toggleEdit(){ EDIT=!EDIT; var b=$('editToggle'); if(b){ b.innerHTML=EDI
 function editBtn(tab,rownum){ return EDIT?'<button class="ebtn" onclick="event.stopPropagation();openEditor(\''+tab+'\','+rownum+')">✎</button>':''; }
 function addBtn(tab,label){ return EDIT?'<div class="editbar"><button class="ebtn pri" onclick="openEditor(\''+tab+'\')">＋ Add '+esc(label||'')+'</button></div>':''; }
 // empty state with a one-tap primary action (Round 4): button opens the add form directly (Brad only; not edit-mode gated)
-function emptyAct(msg,tab,label){ var btn=(ROLE!=='chelsea'&&ESCHEMA[tab])?'<button class="ebtn pri" onclick="openEditor(\''+tab+'\')">＋ Add '+esc(label||'')+'</button>':''; return '<div class="empty'+(btn?' has-act':'')+'"><span>'+msg+'</span>'+btn+'</div>'; }
+function emptyAct(msg,tab,label){ var btn=(ROLE!=='chelsea'&&ESCHEMA[tab])?'<button class="ebtn pri" onclick="openEditor(\''+tab+'\')">'+(ESCHEMA[tab].kv?'✎ Set up':'＋ Add '+esc(label||''))+'</button>':''; return '<div class="empty'+(btn?' has-act':'')+'"><span>'+msg+'</span>'+btn+'</div>'; }
 function kvEditBtn(tab){ return EDIT?'<button class="ebtn" onclick="openKvEditor(\''+tab+'\')">✎ Edit</button>':''; }
 
 function apiWrite(params){
@@ -2630,8 +2666,8 @@ function big3Card(){
   if(!steps.length) return card('Today’s top 3','','<div class="empty">All clear. Add a to-do with ＋ Quick add.</div>','--gold');
   function item(s,i,big){
     var box = s.row ? '<button class="chk" title="Mark done" onclick="event.stopPropagation();this.disabled=true;this.textContent=\'✓\';markActionDone('+s.row+')"></button>' : '<span class="chk chk-auto" title="Auto-built from your data">•</span>';
-    return '<div class="'+(big?'mit':'mit-sm')+'" onclick="'+(s.act?s.act:'navGo(\''+s.tab+'\')')+'">'+box+(big?'<span class="mit-n">'+(i+1)+'</span>':'')
-      +'<span class="mit-t">'+esc(s.t)+'</span><span class="mit-r">'+domChip(s.tab)+(s.d!=null?' <span class="'+dueClass(s.d)+'">'+fmtDue(s.d)+'</span>':'')+'</span></div>'; }
+    return '<div class="'+(big?'mit':'mit-sm')+'">'+box+(big?'<span class="mit-n">'+(i+1)+'</span>':'')
+      +'<button type="button" class="mit-t mit-go" onclick="'+(s.act?s.act:'navGo(\''+s.tab+'\')')+'">'+esc(s.t)+'</button><span class="mit-r">'+domChip(s.tab)+(s.d!=null?' <span class="'+dueClass(s.d)+'">'+fmtDue(s.d)+'</span>':'')+'</span></div>'; }
   var top=steps.slice(0,3).map(function(s,i){return item(s,i,true);}).join('');
   var rest=steps.slice(3);
   var more=rest.length?'<details class="mit-more"><summary>'+rest.length+' more on your list</summary>'+rest.map(function(s,i){return item(s,i,false);}).join('')+'</details>':'';
@@ -2922,7 +2958,7 @@ function emergencyBinderCard(){
 function renderFamily(){
   var f=kv('Family');
   var keys=Object.keys(f).filter(function(k){return has(f[k]);});
-  if(!keys.length) return (EDIT?'<div class="editbar">'+kvEditBtn('Family')+'</div>':'')+emergencyBinderCard()+'<div style="height:22px"></div>'+card('Family & Household','', '<div class="empty">Add household reference info — door codes, account numbers, insurance claims. Use keys like <span class="mono">Home|Front door codes</span> to group them.</div>','--amber');
+  if(!keys.length) return (EDIT?'<div class="editbar">'+kvEditBtn('Family')+'</div>':'')+emergencyBinderCard()+'<div style="height:22px"></div>'+card('Family & Household','', emptyAct('No household reference info yet — door codes, account numbers, insurance claims. Keys like <span class="mono">Home|Front door codes</span> group them.','Family'),'--amber');
   // group by text before "|"; ungrouped keys go to "General"
   var groups={}, order=[];
   keys.forEach(function(k){ var parts=String(k).split('|'); var g=parts.length>1?parts[0].trim():'General'; var label=parts.length>1?parts.slice(1).join('|').trim():k;
@@ -3630,8 +3666,9 @@ function xcMapHint(){ var h=XC.el&&XC.el.querySelector('.xc-maphint'); if(!h||!X
    which holds the key, caches answers and enforces a monthly spending cap.
    Planes: Flying kv `tracked_aircraft` ("N51207 = Brad & Chelsea; N6058A = Mike"),
    else AT_DEFAULT_TAILS. Relay URL: Config kv `aircraft_relay_url`, else AT_RELAY.
-   Polls every 30 s only while the Flying tab is open and visible (FlightAware is
-   asked at most every 5 min per plane, and every 60 s for planes in the air).
+   Polls every 30 s only while the Flying tab is open and visible. Opening or returning to the
+   tab asks for a fresh answer (≤2 min old); while it sits open the relay re-asks FlightAware
+   every 20+ min for parked planes, 5 min for flying ones, 60 s for positions in the air.
    Last-seen spots are remembered on this device.
    ============================================================ */
 var AT_RELAY='https://lifeos-aircraft.brad-5a1.workers.dev/aircraft';
@@ -3697,12 +3734,12 @@ function atStatus(p){
 }
 
 /* ---- polling ---- */
-function atPoll(){
+function atPoll(fresh){
   if(CURRENT!=='flying'||document.hidden||!AT.el||!AT.el.isConnected){ atStop(); return; }
   var relay=atRelay(), planes=atPlanes();
   if(!relay||!planes.length||AT.busy){ atPaint(); return; }
   AT.busy=true;
-  fetch(relay+(relay.indexOf('?')>=0?'&':'?')+'tails='+planes.map(function(p){ return p.tail; }).join(','),{cache:'no-store'})
+  fetch(relay+(relay.indexOf('?')>=0?'&':'?')+'tails='+planes.map(function(p){ return p.tail; }).join(',')+(fresh===true?'&fresh=1':''),{cache:'no-store'})
     .then(function(r){ return r.json(); })
     .then(function(d){
       if(!d||d.ok===false) throw new Error((d&&d.error)||'relay error');
@@ -3723,7 +3760,7 @@ function atPoll(){
     .catch(function(e){ AT.err=(e&&e.message)||String(e); })
     .then(function(){ AT.busy=false; atPaint(); });
 }
-function atStart(){ if(AT.timer) return; atPoll(); AT.timer=setInterval(atPoll, AT_POLL_MS); }
+function atStart(){ if(AT.timer) return; atPoll(true); AT.timer=setInterval(atPoll, AT_POLL_MS); }
 function atStop(){ if(AT.timer){ clearInterval(AT.timer); AT.timer=null; } }
 document.addEventListener('visibilitychange', function(){ if(!document.hidden&&CURRENT==='flying'&&AT.el&&AT.el.isConnected) atStart(); });
 
@@ -3746,8 +3783,6 @@ function atBuild(){
   el.addEventListener('click', function(e){
     if(e.target.closest('a')) return;
     var row=e.target.closest('.at-row'); if(row) atSelect(row.getAttribute('data-tail')); });
-  el.addEventListener('keydown', function(e){
-    var row=e.target.closest&&e.target.closest('.at-row'); if(row&&(e.key==='Enter'||e.key===' ')){ e.preventDefault(); atSelect(row.getAttribute('data-tail')); } });
   return el;
 }
 function atPaint(){
@@ -3774,8 +3809,8 @@ function atPaint(){
     var foot=st.k==='air' ? (where?'Now '+where:'')
       : (st.k==='gnd'||st.k==='park') ? (fl&&/^[A-Z0-9]{3,4}$/i.test(fl.destination||'')?'At '+atCode(fl.destination):(where?'Near '+where.replace(/^at /,''):'Last spot on the map'))
       : 'No flights on FlightAware in the last two weeks';
-    return '<div class="at-row'+(AT.sel===p.tail?' sel':'')+'" role="button" tabindex="0" data-tail="'+esc(p.tail)+'" aria-pressed="'+(AT.sel===p.tail)+'">'
-      +'<div class="at-r1"><b>'+esc(p.tail)+'</b>'+pill+'</div>'
+    return '<div class="at-row'+(AT.sel===p.tail?' sel':'')+'" data-tail="'+esc(p.tail)+'">'
+      +'<div class="at-r1"><button type="button" class="at-sel" data-tail="'+esc(p.tail)+'" aria-pressed="'+(AT.sel===p.tail)+'" title="Show on the map"><b>'+esc(p.tail)+'</b></button>'+pill+'</div>'
       +(meta?'<div class="at-r2">'+esc(meta)+'</div>':'')+line
       +(route?'<div class="at-r3">'+route+'</div>':'')
       +'<div class="at-r4"><span>'+esc(foot)+'</span><a href="https://www.flightaware.com/live/flight/'+encodeURIComponent(p.tail)+'" target="_blank" rel="noopener">FlightAware ↗</a></div></div>';
@@ -3862,12 +3897,14 @@ function atLayer(k){ atApplyLayer(k); }
 function atUserMoved(){ if(AT.prog) return; AT.follow=false; var b=AT.el&&AT.el.querySelector('#atFollow'); if(b) b.classList.remove('on'); }
 function atFollowOn(){ AT.follow=true; AT.sel=null; AT.el.querySelector('#atFollow').classList.add('on'); AT.fitKey=''; atPaint(); }
 function atSelect(tail){
+  var ae=document.activeElement, refocus=!!(ae&&ae.classList&&ae.classList.contains('at-sel'));
   AT.sel=AT.sel===tail?null:tail;
   var p=atPlanes().filter(function(x){ return x.tail===tail; })[0], st=p?atStatus(p):null;
   if(AT.sel&&st&&st.s&&AT.map){ AT.follow=false; AT.el.querySelector('#atFollow').classList.remove('on'); AT.prog=true;
     if(atMapUsable()) try{ AT.map.flyTo([st.s.lat,st.s.lon], st.k==='air'?9:12, {duration:0.8}); }catch(e){ try{ AT.map.setView([st.s.lat,st.s.lon], st.k==='air'?9:12); }catch(e2){} }
     if(window.innerWidth<900){ var mw=AT.el.querySelector('.at-mapwrap'); if(mw) mw.scrollIntoView({behavior:'smooth', block:'center'}); } }
   atPaint();
+  if(refocus){ var b=AT.el.querySelector('.at-sel[data-tail="'+tail+'"]'); if(b) b.focus({preventScroll:true}); }
 }
 function atMapUsable(){ try{ var c=AT.map&&AT.map.getContainer(); if(!c||!document.body.contains(c)) return false; var r=c.getBoundingClientRect(); if(!(r.width>20&&r.height>20)) return false; AT.map.invalidateSize(false); var z=AT.map.getSize(); return z.x>20&&z.y>20; }catch(e){ return false; } }
 function atDraw(planes){
@@ -4051,7 +4088,7 @@ function renderFlying(){
 }
 function airportsHtml(){
   var aps=arr('Airports').filter(function(a){return has(a.Icao);});
-  if(!aps.length) return '<div class="empty">Add airports (KMEV, KRNO…) with ✎ Edit to see live weather.</div>';
+  if(!aps.length) return emptyAct('No airports yet — add KMEV, KRNO… to see live weather.','Airports','airport');
   var cards=aps.map(function(a){
     var icao=String(a.Icao).trim().toUpperCase();
     var b=bestMetar(icao), m=b.m, cat=m?metarCat(m):null;
@@ -4643,7 +4680,7 @@ function oralPrepCard(){
   var gaps=D.gaps||[], doneN=gaps.filter(function(g){ return truthy(f['oral_gap_'+g[0]]); }).length;
   var gapHtml='<div class="op-sec"><div class="op-h">Gaps to close before the checkride <span>'+doneN+' of '+gaps.length+' confident</span></div>'+gaps.map(function(g){ var on=truthy(f['oral_gap_'+g[0]]);
       return '<label class="op-gap'+(on?' on':'')+'"><input type="checkbox"'+(on?' checked':'')+' onchange="oralGapSave(\''+esc(g[0])+'\',this.checked)"><span><b>'+esc(g[0])+'</b> '+esc(g[1])+'<small>'+esc(g[2])+'</small></span></label>'; }).join('')+'</div>';
-  var arch='<details class="op-arch" ontoggle="oralArchOpen(this)"><summary>Archived: written-test prep (question bank, mock tests, progress)</summary><div id="parHostArch"><div class="empty">Loading the question bank…</div></div></details>';
+  var arch='<details class="op-arch" ontoggle="oralArchOpen(this)"><summary>Archived: written-test prep (question bank, mock tests, progress)</summary><div id="parHostArch"><div class="empty is-loading" aria-busy="true">Loading the question bank…</div></div></details>';
   return '<div style="height:22px"></div>'+card(D.title||'Checkride Oral Prep','What the examiner will likely ask first, from your knowledge test report.', head+gapHtml+codes+qs+notes+arch, '--gold');
 }
 /* ---------- Planes down (Flying kv aircraft_down) + FAA written test prep (Flying kv written_date) ---------- */
@@ -5374,7 +5411,7 @@ function renderVentures(){
     + '<div class="grid cols-2" style="margin-bottom:22px">' + acquisitionReadinessCard() + sideIncomeFunnelCard() + '</div>'
     + '<div class="grid cols-2" style="margin-bottom:22px">' + btcScenarioCard() + btcLadderCard() + '</div>'
     + (box?'<details class="refbox"><summary>Buy boxes &amp; capital plan <span>reference — tap to expand</span></summary><div class="grid cols-2" style="margin-top:16px">'+box+'</div></details>'
-         :card('Ventures','', '<div class="empty">Add your buy-box & capital plan with ✎ Edit.</div>','--indigo'));
+         :card('Ventures','', emptyAct('No buy-box or capital plan yet.','Ventures'),'--indigo'));
 }
 
 /* ============================================================
@@ -5733,83 +5770,23 @@ function closePalette(){ $('palette').classList.add('hidden'); }
   document.addEventListener('visibilitychange', function(){ if(!document.hidden) wake(); });
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', wake); else wake();
 })();
-/* ---------- AI assistant: memory, live data, web search, actions ---------- */
-var AI_LS='lifeos_ai_chat', AI_MSGS=[], AI_BUSY=false;
-try{ AI_MSGS=JSON.parse(localStorage.getItem(AI_LS)||'[]')||[]; }catch(e){ AI_MSGS=[]; }
-function aiSave(){ try{ localStorage.setItem(AI_LS, JSON.stringify(AI_MSGS.slice(-30))); }catch(e){} }
-function openAI(){ $('aiPanel').classList.remove('hidden'); $('aiFab').classList.add('hidden'); document.body.classList.add('ai-open');
-  if(window.SpeechRecognition||window.webkitSpeechRecognition) $('aiMic').classList.remove('hidden');
-  $('aiInput').placeholder = window.innerWidth<=640 ? 'Ask anything…' : 'Ask anything, or say “add a task to…”';
-  aiRender(); setTimeout(function(){ if(window.innerWidth>640) $('aiInput').focus(); },60); }
+/* ---------- Pam: the voice coding assistant, embedded from the Mac over Tailscale ---------- */
+var PAM_URL='https://bradleys-macbook-pro.taila89b12.ts.net';
+var PAM_LOADED=false;
+function openAI(){
+  $('aiPanel').classList.remove('hidden'); $('aiFab').classList.add('hidden'); document.body.classList.add('ai-open');
+  var off=$('pamOffline'), fr=$('pamFrame');
+  off.classList.add('hidden'); fr.classList.remove('hidden');
+  // Reachability probe (Tailscale-only host): show a friendly notice instead of a blank frame.
+  var ctl=('AbortController' in window)?new AbortController():null, timer=ctl&&setTimeout(function(){ctl.abort();},6000);
+  fetch(PAM_URL+'/api/health',{mode:'cors',signal:ctl?ctl.signal:undefined}).then(function(r){ if(!r.ok) throw 0; return r.json(); })
+    .then(function(){ clearTimeout(timer); if(!PAM_LOADED){ fr.src=PAM_URL+'/'; PAM_LOADED=true; } })
+    .catch(function(){ clearTimeout(timer); fr.classList.add('hidden'); off.classList.remove('hidden'); if(window.aiHiveWake) aiHiveWake(); });
+}
 function closeAI(){ $('aiPanel').classList.add('hidden'); $('aiFab').classList.remove('hidden'); document.body.classList.remove('ai-open'); if(window.aiHiveWake) aiHiveWake(); }
 function aiExpand(){ $('aiPanel').classList.toggle('big'); }
-function aiNew(){ if(AI_BUSY) return; AI_MSGS=[]; aiSave(); aiRender(); $('aiInput').focus(); }
-function aiGrow(t){ t.style.height='auto'; t.style.height=Math.min(140,t.scrollHeight)+'px'; }
-function aiKey(e){ if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); askAI(); } if(e.key==='Escape') closeAI(); }
-document.addEventListener('keydown',function(e){ if((e.metaKey||e.ctrlKey)&&(e.key==='j'||e.key==='J')){ if(ROLE==='chelsea'||!DATA) return; e.preventDefault(); $('aiPanel').classList.contains('hidden')?openAI():closeAI(); } });
-function aiSuggestions(){
-  var by={overview:['What should I focus on today?','Anything I’m forgetting this week?','How am I doing overall?'],
-    home:['Where am I overspending?','Should I refinance either mortgage?','How much house equity do I have?'],
-    ventures:['Which deal is closest to working?','How much cash could I raise for a deal?','Explain my best rental option'],
-    flying:['Can I fly this weekend?','How much do I owe Jeremy?','What should I practice next lesson?'],
-    health:['How is my recovery trending?','Plan my workouts this week','How do I get to my goal weight?'],
-    life:['What car maintenance is due?','Who am I calling this week?','What home projects are open?'],
-    faith:['Give me a short prayer for today','How are my rhythms going?','Suggest a Sabbath plan'],
-    mail:['Which emails need me first?','Anything important in my inbox this week?','Who have I not answered yet?']};
-  return (by[CURRENT]||by.overview).concat(['Add a task: '+(CURRENT==='flying'?'book the written test':'call the insurance agent')]); }
-function aiMd(t){
-  var out=[], list=null, flush=function(){ if(list){ out.push('<'+list.t+'>'+list.i.join('')+'</'+list.t+'>'); list=null; } };
-  var inl=function(x){ return esc(x).replace(/\[([^\]]+)\]\((https?:[^)\s]+)\)/g,'<a href="$2" target="_blank" rel="noopener">$1</a>')
-    .replace(/\*\*([^*]+)\*\*/g,'<b>$1</b>').replace(/(^|[^*])\*([^*\n]+)\*/g,'$1<i>$2</i>').replace(/`([^`]+)`/g,'<code>$1</code>'); };
-  String(t||'').split('\n').forEach(function(line){ var m;
-    if((m=line.match(/^\s*[-*•]\s+(.*)/))){ if(!list||list.t!=='ul'){ flush(); list={t:'ul',i:[]}; } list.i.push('<li>'+inl(m[1])+'</li>'); return; }
-    if((m=line.match(/^\s*\d+[.)]\s+(.*)/))){ if(!list||list.t!=='ol'){ flush(); list={t:'ol',i:[]}; } list.i.push('<li>'+inl(m[1])+'</li>'); return; }
-    flush(); if((m=line.match(/^#{1,4}\s+(.*)/))) out.push('<h4>'+inl(m[1])+'</h4>'); else if(line.trim()) out.push('<p>'+inl(line)+'</p>'); });
-  flush(); return out.join(''); }
-function aiRender(){
-  var b=$('aiBody'); if(!b) return;
-  if(!AI_MSGS.length){
-    b.innerHTML='<div class="ai-hello"><canvas class="ai-sphere ai-hello-orb"></canvas>'
-      +'<h3>Hi Brad. What’s on your mind?</h3><p>I can see your money, flying, health, calendar, deals and home, look things up on the web, and add tasks for you.</p>'
-      +'<div class="ai-sugg">'+aiSuggestions().map(function(x){ return '<button onclick="aiAskText(this.textContent)">'+esc(x)+'</button>'; }).join('')+'</div></div>';
-    if(window.aiHiveWake) aiHiveWake(); return; }
-  b.innerHTML=AI_MSGS.map(function(m,i){
-    if(m.role==='user') return '<div class="aiMsg u"><div class="bub">'+esc(m.content).replace(/\n/g,'<br>')+'</div></div>';
-    return '<div class="aiMsg a'+(m.error?' err':'')+'"><span class="ai-orb xs"><svg viewBox="0 0 24 24"><path d="M12 2.5l1.9 5.6 5.6 1.9-5.6 1.9L12 17.5l-1.9-5.6L4.5 10l5.6-1.9z"/></svg></span><div class="bub">'
-      +(m.pending?'<div class="ai-typing"><i></i><i></i><i></i><span id="aiStatus">Reading your dashboard…</span></div>':aiMd(m.content))
-      +((m.actions||[]).length?'<div class="ai-acts">'+m.actions.map(function(a){return '<span>✓ '+esc(a)+'</span>';}).join('')+'</div>':'')
-      +((m.sources||[]).length?'<div class="ai-src">'+m.sources.map(function(s){ var h=''; try{ h=new URL(s.url).hostname.replace(/^www\./,''); }catch(e){}
-          return '<a href="'+esc(s.url)+'" target="_blank" rel="noopener" title="'+esc(s.title||'')+'">'+esc(h||'source')+'</a>'; }).join('')+'</div>':'')
-      +(!m.pending&&!m.error?'<button class="ai-copy" onclick="aiCopy('+i+')" title="Copy">Copy</button>':'')+'</div></div>';
-  }).join('');
-  b.scrollTop=b.scrollHeight; }
-function aiCopy(i){ var m=AI_MSGS[i]; if(!m) return; try{ navigator.clipboard.writeText(m.content); toast('Copied'); }catch(e){} }
-function aiAskText(t){ $('aiInput').value=t.replace(/^Add a task: /,'Add a task to ')+(t.indexOf('Add a task')===0?'':''); askAI(); }
-async function askAI(){
-  var inp=$('aiInput'), q=(inp.value||'').trim(); if(!q||AI_BUSY) return;
-  inp.value=''; aiGrow(inp); AI_BUSY=true; $('aiSend').disabled=true;
-  var hist=AI_MSGS.filter(function(m){return !m.pending&&!m.error;}).slice(-12).map(function(m){return {role:m.role, content:m.content};});
-  AI_MSGS.push({role:'user', content:q}); var pend={role:'assistant', content:'', pending:true}; AI_MSGS.push(pend); aiRender();
-  var t0=Date.now(), steps=['Reading your dashboard…','Checking the numbers…','Thinking it through…','Searching the web…','Almost there…'];
-  var tick=setInterval(function(){ var s=$('aiStatus'); if(!s) return; var k=Math.min(steps.length-1, Math.floor((Date.now()-t0)/8000)); s.textContent=steps[k]+' '+Math.round((Date.now()-t0)/1000)+'s'; },1000);
-  var res=null;
-  try{ res=await fetch(API_URL,{method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
-      body:JSON.stringify({pw:sessionStorage.getItem(SS_PW), action:'ask', q:q, history:hist, tab:(TABS[CURRENT]||{}).title||CURRENT})}).then(function(r){return r.json();}); }
-  catch(e){ try{ res=await jsonp(API_URL+'?pw='+sessionStorage.getItem(SS_PW)+'&action=ask&q='+encodeURIComponent(q), 120000); }catch(e2){ res=null; } }
-  clearInterval(tick); pend.pending=false;
-  if(res&&res.ok){ pend.content=res.answer; pend.actions=res.actions||[]; pend.sources=res.sources||[]; if(pend.actions.length) afterWriteQuiet(); }
-  else { pend.error=true; pend.content=(res&&res.error==='no key')?'AI isn’t connected yet.':'Sorry, that didn’t go through ('+((res&&res.error)||'connection')+'). Try again.'; }
-  AI_BUSY=false; $('aiSend').disabled=false; aiSave(); aiRender();
-}
-var AI_REC=null;
-function aiVoice(){
-  var R=window.SpeechRecognition||window.webkitSpeechRecognition; if(!R) return;
-  if(AI_REC){ AI_REC.stop(); return; }
-  AI_REC=new R(); AI_REC.lang='en-US'; AI_REC.interimResults=true; var mic=$('aiMic'); mic.classList.add('on');
-  AI_REC.onresult=function(e){ var t=''; for(var i=0;i<e.results.length;i++) t+=e.results[i][0].transcript; $('aiInput').value=t; aiGrow($('aiInput'));
-    if(e.results[e.results.length-1].isFinal){ AI_REC.stop(); setTimeout(askAI,250); } };
-  AI_REC.onend=function(){ mic.classList.remove('on'); AI_REC=null; }; AI_REC.onerror=AI_REC.onend; AI_REC.start();
-}
+function pamOpenTab(){ window.open(PAM_URL+'/','_blank','noopener'); }
+document.addEventListener('keydown',function(e){ if((e.metaKey||e.ctrlKey)&&(e.key==='j'||e.key==='J')){ if(ROLE==='chelsea'||!DATA) return; e.preventDefault(); $('aiPanel').classList.contains('hidden')?openAI():closeAI(); } if(e.key==='Escape'&&!$('aiPanel').classList.contains('hidden')) closeAI(); });
 function palRender(){
   var q=($('palInput').value||'').trim().toLowerCase();
   var all=palIndex();
@@ -5957,10 +5934,10 @@ function coverageCard(){
           + line('Emergency room',h.copay_er)+line('Lab / X-ray / imaging',h.copay_lab)+line('Therapy / mental health',h.copay_mental)+line('Chiropractor',h.copay_chiro)
           + line('Surgery / hospital stay',h.copay_surgery)+line('Prescriptions',h.copay_rx)+line('Telehealth',h.copay_telehealth)+line('Physical therapy / rehab',h.copay_pt)+'</div>'
         : todo('Copays (PCP, specialist, urgent care, ER)','not on your card — MyChart → Benefits'));
-  var dental='<div class="section-title" style="margin:14px 0 6px">Dental'+(has(h.ins_dental)?' · '+esc(h.ins_dental):'')+'</div>'
-    + (has(h.dentist)?line('Dentist',h.dentist):'<div class="kv-row"><span class="k">Dentist</span><span class="v" style="color:var(--amber);font-weight:600">none yet — pick an in-network one</span></div>') + line('Member ID',h.dental_member_id,true) + line('Deductible',h.dental_deductible) + line('Annual max',h.dental_annual_max) + line('Cleanings',h.dental_cleanings||'usually 2/yr covered 100%') + line('Basic care',h.dental_basic) + line('Major care',h.dental_major) + line('Orthodontics',h.dental_ortho) + line('Find a dentist',h.dental_find);
-  var vision='<div class="section-title" style="margin:14px 0 6px">Vision'+(has(h.ins_vision)?' · '+esc(h.ins_vision):'')+'</div>'
-    + line('Eye doctor',h.eye_doctor) + line('Member ID',h.vision_member_id,true) + line('Exam',h.vision_exam) + line('Exam copay',h.vision_copay) + line('Glasses / contacts allowance',h.vision_allowance) + line('Find a VSP doctor',h.vision_find);
+  var dental='<div class="section-title" style="margin:14px 0 6px">Dental'+(has(h.ins_dental)?' · '+esc(h.ins_dental):'')+'</div><div class="cov-grid">'
+    + (has(h.dentist)?line('Dentist',h.dentist):'<div class="kv-row"><span class="k">Dentist</span><span class="v" style="color:var(--amber);font-weight:600">none yet — pick an in-network one</span></div>') + line('Member ID',h.dental_member_id,true) + line('Deductible',h.dental_deductible) + line('Annual max',h.dental_annual_max) + line('Cleanings',h.dental_cleanings||'usually 2/yr covered 100%') + line('Basic care',h.dental_basic) + line('Major care',h.dental_major) + line('Orthodontics',h.dental_ortho) + line('Find a dentist',h.dental_find)+'</div>';
+  var vision='<div class="section-title" style="margin:14px 0 6px">Vision'+(has(h.ins_vision)?' · '+esc(h.ins_vision):'')+'</div><div class="cov-grid">'
+    + line('Eye doctor',h.eye_doctor) + line('Member ID',h.vision_member_id,true) + line('Exam',h.vision_exam) + line('Exam copay',h.vision_copay) + line('Glasses / contacts allowance',h.vision_allowance) + line('Find a VSP doctor',h.vision_find)+'</div>';
   var life=has(h.ins_life)?'<div class="section-title" style="margin:14px 0 6px">Life insurance</div>'+line('Basic life + AD&D',h.ins_life):'';
   /* each plan folds; Medical opens by default (remembered per device) */
   var covOpen=(function(){ try{ return JSON.parse(localStorage.getItem('lifeos_cov')||'{"Medical":1}'); }catch(e){ return {Medical:1}; } })();
@@ -6021,7 +5998,7 @@ function renderHealth(){
 
   var rows=[['Resting HR',h.resting_hr],['Recovery',h.recovery_note],['Next appointment',h.next_appointment]]
     .filter(function(r){return has(r[1]);});
-  var infoHtml=(rows.length?rows.map(function(r){return '<div class="kv-row"><span class="k">'+esc(r[0])+'</span><span class="v">'+esc(r[1])+'</span></div>';}).join(''):'<div class="empty">Add your metrics with the ✎ Edit button.</div>');
+  var infoHtml=(rows.length?rows.map(function(r){return '<div class="kv-row"><span class="k">'+esc(r[0])+'</span><span class="v">'+esc(r[1])+'</span></div>';}).join(''):emptyAct('No health metrics yet (resting HR, recovery, next appointment).','Health'));
 
   // Hybrid weekly plan (CompTrain strength/conditioning + Z2 endurance), aligned to Brad's rhythm
   var plan=[

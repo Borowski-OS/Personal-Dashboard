@@ -9,6 +9,6 @@ binding = "STATE"
 id = "e26eb15c70f2439d91a7d440cacb4784"
 
 [vars]
-MONTHLY_CAP_USD = "5"
+MONTHLY_CAP_USD = "15"   # Brad OK'd up to $15/mo (Oct 2026); first $5 is FlightAware's free credit
 
 # FlightAware key: set once with `npx wrangler@4 secret put AEROAPI_KEY` (never committed)

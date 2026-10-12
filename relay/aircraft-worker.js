@@ -4,10 +4,13 @@
 // FlightAware AeroAPI (Personal plan) and hands back where each plane is, where it's
 // headed and when it lands. (The free ADS-B feeds block Cloudflare's servers.)
 //
-//   GET /aircraft?tails=N51207,N6058A  ->  { ok, now, budget, capped, planes: [...] }
+//   GET /aircraft?tails=N51207,N6058A[&fresh=1]  ->  { ok, now, budget, capped, planes: [...] }
 //
-// Cost control:
-//   - flight status per plane at most every 5 min; position for planes in the air at most every 60 s
+// Cost control ("fresh when you look, slow while idle"):
+//   - fresh=1 (the page sends it when someone opens or returns to the Flying tab): status no older than 2 min
+//   - while the tab just sits open: parked planes every 20 min (stretched toward 60 min if the month's
+//     spending runs ahead of pace), planes in the air or about to depart every 5 min
+//   - position for planes in the air at most every 60 s
 //   - a parked plane's last reported spot is looked up once per finished flight (airport location as fallback)
 //   - answers are shared through KV, so several open screens cost the same as one
 //   - a monthly spending cap (MONTHLY_CAP_USD); past it the Worker only serves what it already has
@@ -16,7 +19,10 @@
 
 const AERO = "https://aeroapi.flightaware.com/aeroapi";
 const PRICE = { status: 0.005, position: 0.01, airport: 0.015 };   // USD per call, rounded up from FlightAware's list
-const STATUS_TTL = 300;
+const STATUS_FRESH_TTL = 120;   // someone just looked: never show them anything older than this
+const STATUS_AIR_TTL = 300;     // in the air or departing within the hour: catch landings, ETA changes
+const STATUS_IDLE_TTL = 1200;   // parked, tab sitting open
+const STATUS_IDLE_MAX = 3600;   // ...stretched up to this when spending runs ahead of the monthly pace
 const POSITION_TTL = 60;
 const FOREVER = 365 * 86400;   // a finished flight's last spot and an airport's location never change
 
@@ -115,9 +121,21 @@ export default {
     if (!tails.length) return json({ ok: false, error: "no_tails" }, 400, cors);
     if (!env.AEROAPI_KEY) return json({ ok: false, error: "no_key" }, 503, cors);
 
-    const cap = Number(env.MONTHLY_CAP_USD) || 5;
+    const cap = Number(env.MONTHLY_CAP_USD) || 15;
     const monthKey = "spend:" + new Date().toISOString().slice(0, 7);
     const spentBefore = Number(await env.STATE.get(monthKey)) || 0;
+    const fresh = url.searchParams.get("fresh") === "1";
+
+    // Ahead of an even spend across the month (plus 50¢ of slack)? Stretch idle lookups for parked planes.
+    const d0 = new Date(), m0 = Date.UTC(d0.getUTCFullYear(), d0.getUTCMonth(), 1), m1 = Date.UTC(d0.getUTCFullYear(), d0.getUTCMonth() + 1, 1);
+    const pace = spentBefore / (cap * (Date.now() - m0) / (m1 - m0) + 0.5);
+    const idleTtl = Math.round(Math.min(STATUS_IDLE_MAX, STATUS_IDLE_TTL * Math.max(1, pace)));
+    function statusTtl(hit) {
+      if (fresh) return STATUS_FRESH_TTL;
+      const f = hit && hit.v;
+      const soon = f && !f.departed && f.etd && f.etd - Date.now() / 1000 < 3600 && f.etd - Date.now() / 1000 > -3600;
+      return f && (f.enroute || soon) ? STATUS_AIR_TTL : idleTtl;
+    }
     let spentNow = 0;
     let capped = false;
     const errors = [];
@@ -126,17 +144,27 @@ export default {
       if (spentBefore + spentNow + PRICE[kind] > cap) { capped = true; return undefined; }
       spentNow += PRICE[kind];   // counted before the await so parallel lookups respect the cap
       const r = await fetch(AERO + path, { headers: { "x-apikey": env.AEROAPI_KEY, Accept: "application/json" } });
-      if (!r.ok) throw new Error("FlightAware HTTP " + r.status);
+      if (!r.ok) { const e = new Error("FlightAware HTTP " + r.status + " " + path.split("?")[0]); e.status = r.status; throw e; }
       return r.json();
     }
 
     // Serve from KV while fresh; otherwise ask FlightAware (if the budget allows) and store the trimmed answer.
+    // ttl may be a function of the cached entry (status lookups depend on whether the plane is flying).
     async function cached(key, ttl, path, kind, trim) {
       const hit = await env.STATE.get(key, "json");
       const now = Date.now() / 1000;
+      if (typeof ttl === "function") ttl = ttl(hit);
       if (hit && now - hit.at < ttl) return hit.v;
       let raw;
-      try { raw = await aero(path, kind); } catch (e) { errors.push(e.message); }
+      try { raw = await aero(path, kind); } catch (e) {
+        errors.push(e.message);
+        // Remember the failure so it isn't re-asked (and re-billed) on every poll: a 4xx for this entry's
+        // full ttl (capped at a day), a rate limit or server error for 5 min.
+        const hold = e.status >= 400 && e.status < 500 && e.status !== 429 ? Math.min(ttl, 86400) : 300;
+        ctx.waitUntil(env.STATE.put(key, JSON.stringify({ at: now - ttl + hold, v: hit ? hit.v : null }),
+          { expirationTtl: Math.max(7 * 86400, ttl) }));
+        return hit ? hit.v : null;
+      }
       if (raw === undefined) return hit ? hit.v : null;
       const v = trim(raw);
       ctx.waitUntil(env.STATE.put(key, JSON.stringify({ at: now, v }), { expirationTtl: Math.max(7 * 86400, ttl) }));
@@ -144,7 +172,7 @@ export default {
     }
 
     const planes = await Promise.all(tails.map(async (tail) => {
-      const flight = await cached("status:" + tail, STATUS_TTL, "/flights/" + tail + "?max_pages=1", "status",
+      const flight = await cached("status:" + tail, statusTtl, "/flights/" + tail + "?max_pages=1", "status",
         (d) => trimFlight(pickFlight((d && d.flights) || [])));
       let pos = null;
       let last = null;
@@ -171,7 +199,7 @@ export default {
       source: "FlightAware",
       now: Date.now() / 1000,
       capped,
-      budget: { spent: Math.round((spentBefore + spentNow) * 100) / 100, cap },
+      budget: { spent: Math.round((spentBefore + spentNow) * 100) / 100, cap, idleMin: Math.round(idleTtl / 60) },
       errors: errors.slice(0, 3),
       planes,
     }, 200, cors);

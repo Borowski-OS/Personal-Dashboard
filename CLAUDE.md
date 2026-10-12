@@ -20,7 +20,7 @@
 - Brad doesn't code: work autonomously, explain in plain English, and only ask for things only he can do.
 - Who's flying (Flying tab, below go/no-go): live map of the planes Brad, Chelsea and friends fly. Data from FlightAware
   AeroAPI (Personal plan) via the Cloudflare Worker in `relay/` (Brad's Cloudflare account; key is a Worker secret; KV-cached;
-  $5/month cap). Free ADS-B feeds block Cloudflare, so don't switch back. URL in `AT_RELAY` or Config `aircraft_relay_url`.
+  $15/month cap, Brad-approved; fresh on look, slow while idle). Free ADS-B feeds block Cloudflare, so don't switch back. URL in `AT_RELAY` or Config `aircraft_relay_url`.
   Planes from Flying kv `tracked_aircraft` ("N51207 = Brad & Chelsea; N6058A = …"), else `AT_DEFAULT_TAILS`.
 - CFI balance: Flying kv `cfi_rate`, `cfi_aircraft` (tail), `cfi_paid_through` (date). Owed = hours in that tail after the date × rate; "Mark paid" advances the date.
 - Medical tab (Start, End, Kind, What, Symptoms, Treatment, Notes). An Illness row with no End = "sick mode": training targets paused, recovery plan on Health, IMSAFE grounding on Today/Flying.
@@ -154,3 +154,17 @@
   "[Verified live …]" stamp checkListings_ writes (Redfin rows are live per Redfin's status). Rows whose link is a search/city page
   are dropped. Dry-run one search only: `action=ventures&which=props&dry=1&only=wmc` (only=small|large|wmc, dry runs only).
 
+- Life OS Mail (Oct 12 2026): one sorted inbox across Brad's four addresses. Brain = backend Mail.js (not in this repo):
+  action `mailsync` (agents; Script Property MAIL_AGENT_KEY, never the dashboard pw) sorts each new email with Claude into
+  reply / important / fyi / junk / spam, learns from Teach clicks + who Brad writes to (MailRules), and queues commands
+  (reply/compose/move) for the agent that owns that inbox. Page actions (Brad pw): mail, mailact, maildraft, mailsend,
+  mailcompose, mailsetup, mailtest (dry run: AI sorts sample items, stores nothing). Mail* sheet tabs are skipped by readAll_.
+  Replies always go out from the inbox that received the thread; new emails pick the sender automatically (mailPickAccount_).
+  Agents: (1) PRIMARY `mac/lifeos-mail.js` (JXA, launchd every 10 min via mac/install.sh <key>; reads Apple Mail, which has all
+  four accounts incl. Cox; flags red = Needs reply, orange = Important; files FYI/Junk into "Life OS/FYI|Junk" mailboxes;
+  sends through Mail so the right account is used automatically). Logs: ~/Library/Logs/LifeOSMail.log; `--dry`, `--status`.
+  (2) fallback Google agent (Apps Script project "Life OS Mail", owned by the Anchor Soul account, web app executing as the
+  visitor; Config mail_agent_url / mail_agent_script). Off switch: Config mail_stop_<account> = yes (or mac / google).
+  Per-account rules + the "what Brad cares about" profile (Config mail_profile) are editable on the Mail tab. Never commit
+  email content or keys; the Mail tab's "Connect from your Mac" card shows the one-line install command (contains the key).
+  The AI chat bubble is now Pam (see Pam notes); Pam or any Claude session can draft/send via maildraft + mailsend.
