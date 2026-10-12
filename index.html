@@ -6473,19 +6473,20 @@ document.addEventListener('keydown', function(e){
   var tg=e.target, typing=tg && (tg.tagName==='INPUT' || tg.tagName==='TEXTAREA' || tg.tagName==='SELECT' || tg.isContentEditable);
   if(typing || $('mlPop')) return;
   var k=e.key.toLowerCase(), modalOpen=!$('modal').classList.contains('hidden');
-  if(modalOpen){ if(MAIL.tri && MAIL.modal && MAIL.modal.kind==='triage'){ var m={r:'r',e:'e',j:'j',arrowright:'j',k:'k',arrowleft:'k',t:'t',o:'o'}[k]; if(m){ e.preventDefault(); mailTriAct(m); } } return; }
-  if(k==='g'){ e.preventDefault(); mailTriage(); return; }
-  if(e.key==='/'){ var q=$('mlQ'); if(q){ e.preventDefault(); q.focus(); } return; }
-  if(k==='?'){ e.preventDefault(); mailToast('j / k move · r reply · e done · t teach · o open · g go through them'); return; }
+  if(modalOpen){ if(MAIL.tri && MAIL.modal && MAIL.modal.kind==='triage'){ var m={r:'r',e:'e',j:'j',arrowright:'j',k:'k',arrowleft:'k',t:'t',o:'o'}[k]; if(m){ e.preventDefault(); e.stopImmediatePropagation(); mailTriAct(m); } } return; }
+  var eat=function(){ e.preventDefault(); e.stopImmediatePropagation(); };   // beat the global keys (E = edit mode, / = palette)
+  if(k==='g'){ eat(); mailTriage(); return; }
+  if(e.key==='/'){ var q=$('mlQ'); if(q){ eat(); q.focus(); } return; }
+  if(k==='?'){ eat(); mailToast('j / k move · r reply · e done · t teach · o open · g go through them'); return; }
   var rows=mailKeyRows(); if(!rows.length) return;
   var cur=document.querySelector('#panels .ml-row.kb'), i=rows.indexOf(cur);
-  if(k==='j' || k==='k'){ e.preventDefault(); i=k==='j'?Math.min(rows.length-1, i+1):Math.max(0, i<0?0:i-1);
+  if(k==='j' || k==='k'){ eat(); i=k==='j'?Math.min(rows.length-1, i+1):Math.max(0, i<0?0:i-1);
     if(cur) cur.classList.remove('kb'); var r=rows[i]; r.classList.add('kb'); r.focus({preventScroll:true}); r.scrollIntoView({block:'nearest'}); return; }
   if(!cur) return;
   var btn=function(sel){ return cur.querySelector(sel); }, b=null;
   if(k==='r') b=btn('.ebtn.pri'); else if(k==='e') b=btn('[aria-label="Mark done"]'); else if(k==='t') b=btn('[aria-haspopup="menu"]'); else if(k==='o') b=btn('a.ebtn');
-  if(b){ e.preventDefault(); b.click(); }
-});
+  if(b){ eat(); b.click(); }
+}, true);   // capture phase: runs before the page-wide shortcuts
 function renderMail(){
   mailPopClose();
   if(ROLE==='chelsea') return '';
