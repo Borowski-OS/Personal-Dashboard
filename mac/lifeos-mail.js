@@ -1,6 +1,6 @@
 /* ============================ LIFE OS MAIL — the Mac agent (Apple Mail, JXA) ============================  LIFEOS_MAIL_AGENT
    Talks to Apple Mail on Brad's Mac and speaks the same `mailsync` contract to the Life OS brain as the Google agent.
-   launchd runs it every 10 minutes (com.lifeos.mail, set up by install.sh):
+   launchd runs it every 5 minutes (com.lifeos.mail, set up by install.sh):
      osascript -l JavaScript lifeos-mail.js            sort new mail, run queued replies / emails / moves
      osascript -l JavaScript lifeos-mail.js --dry      show what would go to Life OS (counts + subjects); changes nothing
                                                        (add --counts for counts only, no subjects)
@@ -8,25 +8,32 @@
    Every enabled account in Apple Mail is one inbox. A new one is first announced with an empty mailsync (no mail), so Life OS
    can turn it away before anything is sent. Per account, per run: new mail in its own inbox (since the last sync − 30 min;
    first run 3 days; newest 40) + Brad's sent mail + corrections → ONE mailsync POST → apply the sorting → run the commands
-   exactly once → POST the results back in the same run.
+   exactly once → POST the results back in the same run. Every move is checked: an email only counts as "rescued" (Brad pulled
+   it back) once a later run saw it gone from the inbox; a move Mail didn't keep is redone (twice at most), never reported.
+   At most every 6 h it updates itself from the Life OS site (only a higher VERSION that osacompile accepts).
    In Mail: Needs reply = red flag, Important = orange flag (both stay in the inbox); FYI → mailbox "Life OS/FYI", Unimportant →
    "Life OS/Unimportant" (on Gmail those ARE the Life OS labels), Spam / Junk → the account's Junk mailbox (no Junk mailbox:
    "Life OS/Junk"). Life OS's older answers still work: cat 'spam' = Spam / Junk, and junk with spam:false = "Life OS/Junk".
    Mail Brad flagged himself, or a reply to his own mail, never leaves the inbox and keeps his flag. Nothing is ever deleted or
    trashed. Replies go out from the account that received the message.
-   Files beside it (~/Library/Application Support/LifeOSMail; LIFEOS_MAIL_DIR overrides): config.json {key, brain} written by
-   install.sh (chmod 600), state.json (what's been handled), run.lock. Public file: no keys, no mail, no addresses in here. */
+   Files beside it (~/Library/Application Support/LifeOSMail; LIFEOS_MAIL_DIR overrides): config.json {key, brain, base} written by
+   install.sh (chmod 600), state.json (what's been handled), update.json (last self-update check), lifeos-mail.prev.js (the copy
+   before the last self-update), run.lock. Public file: no keys, no mail, no addresses in here. */
 ObjC.import('Foundation');
 
-var VERSION='2', LABEL='com.lifeos.mail';                              // 2 = knows Unimportant (Life OS keeps v1 on the old buckets)
+var VERSION='3', LABEL='com.lifeos.mail';   // 3 = checked moves (no false "rescued") + self-update; 2 = knows Unimportant. Keep this line's form:
+                                            // self-update reads /^var VERSION='N'/ and only installs a higher N
 var BRAIN_URL='https://script.google.com/macros/s/AKfycbwdO_d4gj2Rj_cLM7JFvehuRUHuwFFocaxJz0MwJxKYhECksIHVe3p3VdhbgjKioWd-/exec';
 var BOX={fyi:'Life OS/FYI', unimportant:'Life OS/Unimportant', junk:'Life OS/Junk'}, FLAG={reply:0, important:1};   // Mail flag colours: 0 red, 1 orange
 var LBLCAT={'Life OS/Needs reply':'reply', 'Life OS/Important':'important', 'Life OS/FYI':'fyi', 'Life OS/Unimportant':'unimportant', 'Life OS/Junk':'junk'};
 var CATS={reply:1, important:1, fyi:1, unimportant:1, junk:1};
+var DEF_BASE='https://borowski-os.github.io/Personal-Dashboard', UPD_EVERY=6*3600e3, MAX_RETRY=2, RESC_BURST=3;   // where install.sh got the agent
+var KEEP_BOXES=['Life OS/Important','Life OS/Needs reply'];
+var TRASH_NAMES=['Trash','Deleted Messages','Deleted Items','[Gmail]/Trash','[Google Mail]/Trash','Bin'];
 var JUNK_NAMES=['Junk','Spam','[Gmail]/Spam','[Google Mail]/Spam','Bulk Mail','Bulk','Bulk Folder','Junk E-mail','Junk Email'];
 var ARCH_NAMES=['Archive','[Gmail]/All Mail','[Google Mail]/All Mail','All Mail','Archives'], INBOX_NAMES=['INBOX','Inbox'];
 var MAX_ITEMS=40, MAX_SENT=30, RING=2000, SENT_RING=600, DONE_RING=500, LOG_N=60;
-var DAY=864e5, LOOKBACK=3*DAY, SENT_BACK=7*DAY, OVERLAP=30*60000, RECHECK=6*3600e3;
+var DAY=864e5, LOOKBACK=3*DAY, SENT_BACK=7*DAY, OVERLAP=30*60000, RECHECK=6*3600e3, RESC_AGE=7*DAY;
 var HARD=240000, ENUM_BY=75000, GATHER_BY=110000, ACCT_BY=170000, CMD_BY=200000, MAX_ROUNDS=3;   // ms into the run; hard stop at 4 min
 var T0=Date.now(), DRY=false, COUNTS=false, DIR='', SA=null, Mail=null, MINE={}, RUNERR=[];
 var SKEYS=['pend','pc','carry','lastSync','lastSent','floor','stopped','checked','lastErr','hello','mkFail'];   // per-account maps in state.json
@@ -36,6 +43,7 @@ function run(argv){
   SA=Application.currentApplication(); SA.includeStandardAdditions=true;
   DIR=dir_();
   if(argv.indexOf('--status')>=0) return status_();
+  if(argv.indexOf('--selfcheck')>=0){ cfg_(); var l0=lock_(), s0=load_(); if(l0){ save_(s0); rm_(l0); } return 'LIFEOS_MAIL_SELFCHECK v'+VERSION; }   // self-update runs a new copy this way (own empty folder) before switching to it
   var cfg=cfg_();
   if(!DRY && !cfg.key) throw new Error('Life OS Mail isn’t set up yet: run the install command from the Life OS Mail page (Mail → Connect your inboxes).');
   var lk=DRY?'':lock_();
@@ -43,13 +51,13 @@ function run(argv){
   if(!DRY) scrub_();
   try{ return DRY?dry_():sync_(cfg); }
   catch(e){ var pm=permMsg_(e); say_('ERROR '+(pm||msg_(e))); if(pm) throw new Error(pm); }
-  finally{ if(lk) rm_(lk); }
+  finally{ if(!DRY && !env_('LIFEOS_MAIL_INSTALLING')) update_(cfg); if(lk) rm_(lk); }   // even after a failed run: a newer agent may fix it
 }
 
 /* ---------------- one run ---------------- */
 function sync_(cfg){
   var S=load_(); stale_(S); mail_();
-  var A=accounts_(true), now=Date.now(), parts=[];
+  var A=keys_(accounts_(true), S), now=Date.now(), parts=[];
   if(!A.length){ save_(S); say_('no enabled accounts with an email address in Apple Mail'); return; }
   A.forEach(function(a){ a.addrs.forEach(function(x){ MINE[x]=1; }); });
   var chk=A.filter(function(a){ return S.stopped[a.key] && now-(Date.parse(S.checked[a.key]||'')||0)>RECHECK; });
@@ -84,14 +92,14 @@ function sync_(cfg){
 // One account: POST (items, sent, corrections, earlier results) → commit → sorting → commands → results POST.
 function acct_(a, cfg, S, o, s, snap){
   a.errs=a.errs.concat(o.errs);
-  var first=!S.lastSync[a.key], corr=corr_(a, S, snap), pc=(S.pc[a.key]||[]).slice(), pend=(S.pend[a.key]||[]).slice(), err0=S.lastErr[a.key]||'';
+  var first=!S.lastSync[a.key], corr=corr_(a, S, snap, true), pc=(S.pc[a.key]||[]).slice(), pend=(S.pend[a.key]||[]).slice(), err0=S.lastErr[a.key]||'';
   var r=post_(cfg, body_(cfg, a, {first:first, items:o.items.map(pub_), sent:s.sent, corrections:corr.map(pubC_).concat(pc), results:pend, error:err0}));
   // Life OS has it all now: commit (a failed POST commits nothing, so the same mail goes again next run)
   ackPend_(S, a.key, pend); S.pc[a.key]=(S.pc[a.key]||[]).slice(pc.length);
   s.ids.forEach(function(id){ sentAdd_(S, id); });
   o.skip.forEach(function(id){ seenPut_(S, {i:id, a:a.key, c:'', t:Date.now()}); });   // Brad's own messages: never items
   corr.forEach(function(c){ var e=c._e;
-    if(c.kind==='rescued'){ e.q=1; e.m=''; e.c='important'; e.f=-1; }
+    if(c.kind==='rescued'){ e.q=1; e.m=''; delete e.k; delete e.n; delete e.h; e.c='important'; e.f=-1; }
     else { e.r=1; if(e.f===FLAG.reply) try{ var h=find_(a, e.i, true); if(h && ours_(h.m, e)){ unflag_(h.m); e.f=-1; } }catch(x){ a.errs.push('clearing a flag: '+msg_(x)); } } });
   S.lastSync[a.key]=iso_(T0); if(!s.cut) S.lastSent[a.key]=iso_(T0);
   if(S.lastErr[a.key]===err0) delete S.lastErr[a.key];
@@ -111,9 +119,12 @@ function acct_(a, cfg, S, o, s, snap){
     cmds=uniqQ_(cmds.concat(r2.commands||[])); round++;
   }
   carry_(S, a.key, cmds);                                             // handed out but not run (out of time): first thing next run
+  if(a.gaveUp) a.errs.push('Mail kept putting '+a.gaveUp+' filed email'+(a.gaveUp>1?'s':'')+' back in the inbox, so '+(a.gaveUp>1?'they were':'it was')+' left there');
   var all=a.errs.concat(RUNERR);                                       // run-wide problems (reading Sent etc.) belong to every inbox
   if(all.length) S.lastErr[a.key]=clip_(stamp_()+' — '+all.join(' | '), 600);
   return o.items.length+' new, '+n+' sorted'+(ran?', '+ran+' command'+(ran>1?'s':''):'')+(o.cand.length>o.items.length+o.skip.length?', more next run':'')+
+    (a.redo?', '+a.redo+' moved again':'')+(a.stuck?', '+a.stuck+' Mail didn’t move (tried again next run)':'')+(a.left?', '+a.left+' left in the inbox':'')+
+    (a.burst?', '+a.burst+' filed emails back in the inbox at once (Mail re-syncing, not counted as Brad’s)':'')+
     (a.errs.length?' ('+clip_(a.errs.join(' | '), 200)+')':'');
 }
 function body_(cfg, a, x){
@@ -137,7 +148,7 @@ function hello_(A, cfg, S, parts){
 /* ---------------- --dry / --status ---------------- */
 function dry_(){
   var S=load_(); mail_();
-  var A=accounts_(true), L=['Life OS Mail (Mac) — dry run: nothing was sent to Life OS and nothing in Mail changed.'];
+  var A=keys_(accounts_(true), S), L=['Life OS Mail (Mac) — dry run: nothing was sent to Life OS and nothing in Mail changed.'];
   A.forEach(function(a){ a.addrs.forEach(function(x){ MINE[x]=1; }); });
   var act=A.filter(function(a){ return !S.stopped[a.key]; });
   var sc=scan_(act, S), sn=sent_(act, S), snap=snap_(act, S);
@@ -158,7 +169,7 @@ function status_(){
     'Connect key: '+(cfg.key?'saved':'MISSING (run the install command from the Life OS Mail page)'), 'Life OS: '+cfg.brain];
   var A=[], up=false; Mail=Application('Mail'); try{ up=Mail.running(); }catch(_){}
   if(!up) L.push('Apple Mail: not running (the next run opens it)');
-  else try{ A=accounts_(false); }catch(e){ L.push('Apple Mail: '+(permMsg_(e)||msg_(e))); }
+  else try{ A=keys_(accounts_(false), S); }catch(e){ L.push('Apple Mail: '+(permMsg_(e)||msg_(e))); }
   var keys=A.map(function(a){ return a.key; }), nm={};
   A.forEach(function(a){ nm[a.key]=a.name; });
   Object.keys(S.lastSync).forEach(function(k){ if(keys.indexOf(k)<0) keys.push(k); });
@@ -169,6 +180,8 @@ function status_(){
   var pend=0; Object.keys(S.pend).forEach(function(k){ pend+=(S.pend[k]||[]).length; });
   L.push('Last run: '+(S.lastRun?fmt_(S.lastRun.at)+' — '+S.lastRun.line:'never'));
   L.push('Remembered: '+S.seen.length+' emails, '+S.doneQ.length+' commands run, '+pend+' result'+(pend===1?'':'s')+' waiting to report');
+  var u=json_(readFile_(DIR+'/update.json'), {});
+  L.push('Self-update: '+(u.at?'last checked '+fmt_(iso_(+u.at))+(u.line?' — '+u.line:' — up to date'):'not checked yet')+' (from '+cfg.base+'/mac/)');
   return L.join('\n');
 }
 
@@ -198,6 +211,15 @@ function accounts_(wait){
       out.push({acc:acc, name:String(acc.name()), key:ad[0], addr:ad[0], addrs:ad, full:full, bx:{}, errs:[]});
     }catch(e){ if(permMsg_(e)) throw e; RUNERR.push('an account: '+msg_(e)); } });
   return out;
+}
+// An inbox keeps the key (address) it has synced under, even when Mail now lists another of its addresses first: otherwise it
+// would be a "new" inbox to Life OS and its last 3 days of mail would go again. (a.addr, the default From, stays Mail's first.)
+function keys_(A, S){
+  var used={}, known=function(k){ return !!(S.lastSync[k] || S.hello[k] || S.stopped[k]); };
+  A.forEach(function(a){ used[a.key]=1; });
+  A.forEach(function(a){ if(known(a.key)) return;
+    a.addrs.some(function(x){ if(x===a.key || used[x] || !known(x)) return false; delete used[a.key]; used[x]=1; a.key=x; return true; }); });
+  return A;
 }
 function since_(a, S, now){
   var last=Date.parse(S.lastSync[a.key]||'')||0, fl=+S.floor[a.key]||0, s=last?last-OVERLAP:now-LOOKBACK;
@@ -283,10 +305,9 @@ function sent_(A, S){
       o.ids.push(r.id); }catch(e){} });
   return out;
 }
-// Corrections from what Brad did in Mail: rescued = something we moved out (FYI/Unimportant/Junk/Archive) is back in the inbox;
-// replied = a Needs-reply email now shows "replied". Each is reported once. snap_ reads, per account and only when something is
-// waiting to be noticed, the Message-IDs in its own inbox (last 30 days) and the replied ones (their own whose(), so two lists
-// never have to line up).
+// What became of mail we moved, and what Brad did in Mail (corr_). snap_ reads, per account and only when something is waiting
+// to be noticed, the Message-IDs in its own inbox (last 30 days) and the replied ones (their own whose(), so two lists never
+// have to line up).
 function snap_(A, S){
   var out={}, d=new Date(Date.now()-30*DAY), put=function(set){ return function(x){ var id=mid_(x); if(id) set[id]=1; }; };
   A.forEach(function(a){
@@ -300,12 +321,69 @@ function snap_(A, S){
     }catch(e){ if(permMsg_(e)) throw e; a.errs.push('checking moved / replied mail: '+msg_(e)); } });
   return out;
 }
-function corr_(a, S, snap){
-  var out=[], s=snap && snap[a.key]; if(!s) return out;
-  S.seen.forEach(function(e){ if(e.a!==a.key || out.length>=60) return;
-    if(e.m && !e.q && s.inbox[e.i]) out.push({id:e.i, threadId:e.i, from:e.fr||'', kind:'rescued', _e:e});
-    else if(e.c==='reply' && !e.r && s.replied[e.i]) out.push({id:e.i, threadId:e.i, from:e.fr||'', kind:'replied', _e:e}); });
+// Corrections, each reported once (live=false for --dry: look, change nothing):
+//  - mail we moved out (FYI / Unimportant / Junk / Archive) that a later run saw gone from the inbox AND in the mailbox we put
+//    it in (or that can't be told: Gmail's All Mail): the move is confirmed (k). Gone from both: forgotten (Brad deleted or
+//    filed it elsewhere, or Mail was mid-sync), so it can never come back as "rescued".
+//  - back in the inbox before that: the move didn't stick (Mail or Gmail kept or restored the inbox copy) → moved again (redo_),
+//    never reported as rescued.
+//  - rescued = confirmed, now back in the inbox AND gone from where we put it: Brad moved it back. Still there as well = not
+//    Brad (Gmail keeps the label when a whole conversation is put back in the inbox): forgotten, not reported. Labeled
+//    Life OS/Important or /Needs reply now (Gmail) = Life OS put the whole conversation back through the Google agent: the same.
+//    Also forgotten, never reported: mail that arrived over a week ago, and RESC_BURST+ coming back in one run (Mail re-syncing
+//    an account puts back many at once; Brad pulls back one or two). A mailbox that couldn't be read: looked at next run.
+//  - replied = a Needs-reply email now shows "replied".
+function corr_(a, S, snap, live){
+  var out=[], back=[], s=snap && snap[a.key], work=0, now=Date.now(); if(!s) return out;
+  S.seen.forEach(function(e){ if(e.a!==a.key) return;
+    if(e.m && !e.q){
+      if(!s.inbox[e.i]){ if(live && !e.k){ var g=tgtHas_(a, e); if(g===true || g===null){ e.k=1; delete e.n; delete e.h; } else if(g===false) forget_(e); } return; }
+      if(out.length+back.length>=60 || work>=20 || late_(ACCT_BY-40000)) return;     // the rest next run
+      work++; var t=inTarget_(a, e); if(t==='err') return;
+      var lo=t!==true && kept_(a, e.i); if(lo===null) return;
+      if(e.k){ if(t!==true && !lo && now-(+e.t||0)<RESC_AGE) back.push(e); else if(live) left_(a, e); }
+      else if(live) try{ if(lo) left_(a, e); else redo_(a, e, S, t); }catch(x){ if(permMsg_(x)) throw x; a.errs.push('moving an email again: '+clip_(msg_(x), 160)); }
+      return; }
+    if(e.c==='reply' && !e.r && s.replied[e.i] && out.length+back.length<60) out.push({id:e.i, threadId:e.i, from:e.fr||'', kind:'replied', _e:e}); });
+  if(back.length>=RESC_BURST){ a.burst=back.length; if(live) back.forEach(forget_); }
+  else back.forEach(function(e){ out.push({id:e.i, threadId:e.i, from:e.fr||'', kind:'rescued', _e:e}); });
   return out;
+}
+// A move that didn't stick: moved again, once per run and MAX_RETRY times in all, then left in the inbox and forgotten. Left
+// alone straight away when Brad may have it now: his own flag on it, or it seemed to move but isn't where we put it either
+// (t===false; e.h = Mail visibly kept it in the inbox when we last tried, so then it's just tried again).
+function redo_(a, e, S, t){
+  if((e.n||0)>=MAX_RETRY){ a.gaveUp=(a.gaveUp||0)+1; return left_(a, e); }
+  if(t===false && !e.h) return left_(a, e);
+  var h=find_(a, e.i, true); if(!h) return;                            // out of the inbox again: confirmed next run
+  if(safe_(function(){ return !!h.m.flaggedStatus(); }, false) && !ours_(h.m, e)) return left_(a, e);
+  e.n=(e.n||0)+1; a.redo=(a.redo||0)+1; e.m=moveTo_(a, h.m, e.m, S, h); held_(a, e);
+}
+function held_(a, e){ if(a.held){ e.h=1; a.stuck=(a.stuck||0)+1; } else delete e.h; }
+function forget_(e){ e.m=''; delete e.k; delete e.n; delete e.h; }   // no longer watched: never "rescued", never moved again
+function left_(a, e){ forget_(e); a.left=(a.left||0)+1; }
+// In Life OS/Important or /Needs reply (Gmail labels the Google agent puts on a whole conversation it moves back to the inbox)?
+// null = Mail didn't answer (decide next run).
+function kept_(a, id){
+  for(var i=0;i<KEEP_BOXES.length;i++){ var b=findBox_(a, KEEP_BOXES[i]); if(!b) continue;
+    try{ if((b.messages.whose({messageId:id})()||[]).length) return true; }catch(x){ if(permMsg_(x)) throw x; return null; } }
+  return false;
+}
+// Is it still in the mailbox we moved it to? true / false, null when that can't be told (no such mailbox now, or it went to
+// Gmail's All Mail, which holds every email), 'err' when Mail didn't answer (decide next run, never "rescued" on a guess).
+function inTarget_(a, e){
+  var b=tbox_(a, e.m); if(!b) return null;
+  try{ return (b.messages.whose({messageId:e.i})()||[]).length>0; }catch(x){ if(permMsg_(x)) throw x; return 'err'; }
+}
+function tbox_(a, w){ return w==='spam'?junkBox_(a):w==='archive'?archBox_(a, true):BOX[w]?findBox_(a, BOX[w]):null; }
+// The same question for confirming a move, with the target mailbox's Message-IDs (last 30 days) read once per run (a.tg): a
+// miss here only delays or drops a confirmation, so the cheaper batch read is fine.
+function tgtHas_(a, e){
+  var c=a.tg||(a.tg={}), w=e.m;
+  if(!c.hasOwnProperty(w)){ var b=tbox_(a, w), set={}; c[w]=b?'err':null;
+    if(b && !late_(ACCT_BY-40000)) try{ (b.messages.whose({dateReceived:{'>':new Date(Date.now()-30*DAY)}}).messageId()||[]).forEach(function(x){ var id=mid_(x); if(id) set[id]=1; }); c[w]=set; }
+      catch(x){ if(permMsg_(x)) throw x; } }
+  return c[w]===null || c[w]==='err'?c[w]:!!c[w][e.i];
 }
 
 /* ---------------- applying Life OS's sorting (only to mail this run sent it) ---------------- */
@@ -326,7 +404,7 @@ function apply_(a, decs, o, S){
         if(!star){ flag_(m, fi); e.f=fi; }
       } else if(!star && !it.bradInThread){
         var tgt=d.spam && cat==='junk'?'spam':d.archive?(BOX[cat]?cat:'junk'):'';   // junk without spam = an older Life OS's archive-only junk
-        if(tgt) e.m=moveTo_(a, m, tgt, S);
+        if(tgt){ e.m=moveTo_(a, m, tgt, S, ibSrc_(a, id)); held_(a, e); }   // unconfirmed until a later run sees it gone (corr_)
       }
       n++;
     }catch(x){ a.errs.push('sorting an email: '+clip_(msg_(x), 160)); }      // no subject: the log stays free of email text
@@ -358,7 +436,7 @@ function runCmds_(a, cmds, S){
     try{
       if(c.type==='reply') cmdReply_(a, c, r, S);
       else if(c.type==='compose') cmdCompose_(a, c, r);
-      else if(c.type==='move') cmdMove_(a, c, S);
+      else if(c.type==='move') cmdMove_(a, c, S, r);
       else throw new Error('unknown command type: '+c.type);
     }catch(e){ r.ok=false; r.error=clip_(msg_(e), 300); }
     logSet_(S, r); addPend_(S, a.key, [r]); out.push(clean_(r));       // the real outcome, saved right away: a crash later in this
@@ -369,7 +447,7 @@ function runCmds_(a, cmds, S){
 function cmdReply_(a, c, r, S){
   var body=String(c.body||'').trim(); if(!body) throw new Error('the reply is empty');
   var id=mid_(c.msgId||c.threadId), h=find_(a, id, false, seenGet_(S, a.key, id));
-  if(!h) throw new Error('that email isn’t in Apple Mail ('+a.name+': inbox, Life OS or Junk) any more');
+  if(!h) throw new Error(gone_(a));
   var send=truthy_(c.send), rp=reply_(h.m, truthy_(c.replyAll));
   out_(rp, function(){                                                   // any problem from here on: the reply is left open in Mail
     delay(1);                                                            // Mail fills in the quoted original in the background
@@ -433,40 +511,58 @@ function pushRcpt_(col, cls, x){
 }
 // move: to inbox (+ flag for Needs reply / Important), archive (Life OS/FYI, /Unimportant or /Junk by label, else Archive), spam
 // (account Junk). 'trash' is treated like archive (Life OS/Junk without a label): the Mac agent never deletes or trashes anything.
-function cmdMove_(a, c, S){
+// Mail Brad deleted himself (in a Trash mailbox) stays there: done, with a note. A move Mail didn't make is an error, not "done".
+function cmdMove_(a, c, S, r){
   var id=mid_(c.threadId||c.msgId), e=seenGet_(S, a.key, id), h=find_(a, id, false, e);
-  if(!h) throw new Error('that email isn’t in Apple Mail ('+a.name+': inbox, Life OS or Junk) any more');
+  if(!h) throw new Error(gone_(a));
+  if(h.where==='trash'){ r.error='nothing moved: it’s in '+(h.bn||'the Trash')+' in '+a.name+' (deleted in Mail), so it was left there'; return; }
   var m=h.m, to=String(c.to||''), cat=LBLCAT[String(c.label||'')]||'';
   var ours=ours_(m, e), star=!!safe_(function(){ return m.flaggedStatus(); }, false) && !ours;
-  if(!e) e={i:id, a:a.key, c:cat||'important', t:Date.now(), fr:emails_(safe_(function(){ return m.sender(); }, ''))[0]||'', m:'', f:-1, s:star?1:0};
+  if(!e) e={i:id, a:a.key, c:cat||'important', t:+safe_(function(){ return m.dateReceived(); }, 0)||Date.now(), fr:emails_(safe_(function(){ return m.sender(); }, ''))[0]||'', m:'', f:-1, s:star?1:0};
   if(to==='inbox' || !to){                                           // back to the inbox (or just re-flag): red = Needs reply, orange = Important
+    var rep=cat==='reply' && !!safe_(function(){ return m.wasRepliedTo(); }, false);   // read before moving (the moved copy may not show up at once)
     if(h.where!=='inbox'){
       if(!to) m=null;                                                 // label-only on mail outside the inbox: nothing to flag
-      else { var ib=inboxBox_(a); if(!ib) throw new Error('couldn’t find the inbox of '+a.name); move_(m, ib); delay(1);
-        var b=find_(a, id, true); m=b?b.m:null; } }                  // the moved copy, for its flag
+      else { var ib=inboxBox_(a); if(!ib) throw new Error('couldn’t find the inbox of '+a.name);
+        if(!move_(m, ib, h)) throw new Error('Mail didn’t move it back to the inbox (it’s still in '+(h.bn||'the same mailbox')+')');
+        delay(1); var b=find_(a, id, true); m=b?b.m:null; } }        // the moved copy, for its flag
     if(m && !star){ if(FLAG[cat]!=null){ flag_(m, FLAG[cat]); e.f=FLAG[cat]; } else if(ours){ unflag_(m); e.f=-1; } }
-    if(to) e.m='';
+    if(cat==='reply'){ if(rep) e.r=1; else delete e.r; }             // already answered: only a reply from now on counts
+    if(to){ e.m=''; delete e.k; delete e.n; delete e.h; }
     if(cat) e.c=cat; e.q=0; seenPut_(S, e); return; }
   var tgt=to==='spam'?'spam':to==='archive' || to==='trash'?(BOX[cat]?cat:to==='trash'?'junk':'archive'):'';
   if(!tgt) throw new Error('unknown place to move to: '+to);
   if(star && (h.where==='inbox' || tgt==='spam')){ e.c=tgt==='spam'?'unimportant':cat||e.c; seenPut_(S, e); return; }   // rail: flagged mail never leaves the inbox or goes to Junk
   if(ours){ unflag_(m); e.f=-1; }
-  e.m=moveTo_(a, m, tgt, S); e.c=cat||(BOX[tgt]?tgt:'junk'); e.q=0; seenPut_(S, e);
+  var w=moveTo_(a, m, tgt, S, h);
+  if(a.held) throw new Error('Mail didn’t move it (it’s still in '+(h.bn||'the same mailbox')+')');
+  e.m=w; delete e.k; delete e.n; delete e.h; e.c=cat||(BOX[tgt]?tgt:'junk'); e.q=0; seenPut_(S, e);
 }
 
 /* ---------------- mailboxes, moving, flags ---------------- */
-// Move out of the inbox → where it went: 'fyi' | 'unimportant' | 'junk' | 'spam' | 'archive'.
-function moveTo_(a, m, tgt, S){
-  var box=null, where=tgt;
+// Move out of the inbox → where it went: 'fyi' | 'unimportant' | 'junk' | 'spam' | 'archive'. src = {box, bn, id} where it is
+// now (find_ / ibSrc_) so the move can be checked: a.held = Mail kept it where it was.
+function moveTo_(a, m, tgt, S, src){
+  var box=null, where=tgt; a.held=false;
   if(tgt==='spam'){ box=junkBox_(a); if(!box) where='junk'; }          // no Junk mailbox: Life OS/Junk
   if(!box && BOX[where]){ box=ensure_(a, BOX[where], S); if(!box) where='archive'; }   // ensure_ reports why
   if(!box) box=archBox_(a);
   if(!box) throw new Error('nowhere to move it in '+a.name+' (no Life OS, Junk or Archive mailbox)');
-  move_(m, box); return where;
+  if(src && src.box===box) return where;                              // already there
+  a.held=!move_(m, box, src); return where;
 }
-function move_(m, box){
-  try{ Mail.move(m, {to:box}); return; }catch(e){ if(permMsg_(e)) throw e; }
-  m.mailbox=box;
+// Move one message, then check it left: its old reference stops working, or names another mailbox. Mail.move first, then
+// setting its mailbox (older Mail). src = {box, bn, id}: the mailbox it was in, its name, its Message-ID; without a name
+// nothing can be checked (true). A reference that still names the old mailbox (Mail can lag; "Junk" and "Life OS/Junk" share a
+// name) only counts as "Mail kept it" when that mailbox really still has the Message-ID.
+function move_(m, box, src){
+  var from=src && src.bn, err=null, out=function(){ if(!from) return true; var n=safe_(function(){ return String(m.mailbox.name()); }, null); return n===null || n!==from; };
+  try{ Mail.move(m, {to:box}); }catch(e){ if(permMsg_(e)) throw e; err=e; }
+  if(!err){ if(out()) return true; delay(0.5); if(out()) return true; }
+  try{ m.mailbox=box; }catch(e){ if(permMsg_(e) || !from) throw e; }
+  if(out()) return true;
+  if(!src.box || !src.id) return false;
+  try{ return !(src.box.messages.whose({messageId:src.id})()||[]).length; }catch(e){ if(permMsg_(e)) throw e; return false; }
 }
 function flag_(m, i){ m.flaggedStatus=true; m.flagIndex=i; }
 function unflag_(m){ m.flaggedStatus=false; }
@@ -476,8 +572,8 @@ function findBox_(a, path){
   var acc=a.acc, b=null;
   try{ var x=acc.mailboxes.byName(path); x.name(); b=x; }catch(_){}
   if(!b && path.indexOf('/')>0) try{ var p=path.split('/'), y=acc.mailboxes.byName(p[0]); for(var i=1;i<p.length;i++) y=y.mailboxes.byName(p[i]); y.name(); b=y; }catch(_){}
-  if(!b) try{ var ns=acc.mailboxes.name()||[]; for(var j=0;j<ns.length;j++) if(String(ns[j]).toLowerCase()===k){ b=acc.mailboxes.byName(ns[j]); break; } }catch(_){}
-  return a.bx[k]=b;
+  if(!b) try{ var ns=a.nm||(a.nm=acc.mailboxes.name()||[]); for(var j=0;j<ns.length;j++) if(String(ns[j]).toLowerCase()===k){ b=acc.mailboxes.byName(ns[j]); break; } }catch(_){}
+  return a.bx[k]=b;                                                    // a.nm: the account's mailbox names, read once per run
 }
 // "Life OS/FYI" / "Life OS/Unimportant" / "Life OS/Junk": found, or made — three ways Mail accepts, each checked: it has to land IN this account (Mail can
 // quietly put it under On My Mac instead; then we stop and say so). A failed attempt is retried once a day, not every run. Never in --dry.
@@ -489,12 +585,12 @@ function ensure_(a, path, S){
   var mk=function(n, at){ return Mail.make({new:'mailbox', withProperties:{name:n}, at:at}); }, tries=[
     function(){ return mk(path, a.acc); },
     function(){ a.acc.mailboxes.push(Mail.Mailbox({name:path})); return null; },
-    function(){ delete a.bx[p[0].toLowerCase()]; var par=findBox_(a, p[0]);
-      if(!par){ var pm=mk(p[0], a.acc); delete a.bx[p[0].toLowerCase()]; par=findBox_(a, p[0]); if(!par){ stray=strayOf_(a, pm); return null; } }
+    function(){ delete a.bx[p[0].toLowerCase()]; delete a.nm; var par=findBox_(a, p[0]);
+      if(!par){ var pm=mk(p[0], a.acc); delete a.bx[p[0].toLowerCase()]; delete a.nm; par=findBox_(a, p[0]); if(!par){ stray=strayOf_(a, pm); return null; } }
       return mk(p.slice(1).join('/'), par); } ];
   for(var i=0;i<tries.length && !stray;i++){
     var mb=null; try{ mb=tries[i](); }catch(e){ if(permMsg_(e)) throw e; last=msg_(e); }
-    delete a.bx[path.toLowerCase()]; b=findBox_(a, path);
+    delete a.bx[path.toLowerCase()]; delete a.nm; b=findBox_(a, path);
     if(b){ delete S.mkFail[fk]; return b; }
     stray=stray||strayOf_(a, mb); }
   S.mkFail[fk]=iso_(Date.now());
@@ -520,27 +616,38 @@ function inboxBox_(a){
     catch(e){ if(permMsg_(e)) throw e; }
   return a.inboxBox=b;
 }
-// This account's copy of an email by Message-ID (Mail keeps it without <>): its inbox, then the mailbox we moved it to, then
-// Life OS/Unimportant, Life OS/Junk, Life OS/FYI and Junk. Never [Gmail]/All Mail: it holds everything (one search could outlast Apple's 2-minute
-// limit), and moving mail out of it would put it in Gmail's Trash. e = what state.json remembers about it.
+// This account's copy of an email by Message-ID (Mail keeps it without <>) → {m, where: 'inbox' | 'other' | 'trash', box, bn =
+// that mailbox's name}. Looks in its inbox, then the mailbox we moved it to, Life OS/Unimportant, /Junk, /FYI, every Junk / Spam
+// mailbox (Yahoo-hosted mail can have both Junk and Bulk Mail), its Archive, and last its Trash (so a command can say it was
+// deleted). Never [Gmail]/All Mail: it holds everything (one search could outlast Apple's 2-minute limit), and moving mail out
+// of it would put it in Gmail's Trash. e = what state.json remembers about it.
 function find_(a, id, inboxOnly, e){
   id=mid_(id); if(!id) return null;
   var look=function(box){ if(!box) return null;
     try{ var r=box.messages.whose({messageId:id})()||[]; return r[0]||null; }catch(x){ if(permMsg_(x)) throw x; return null; } };
-  var m=look(inboxBox_(a)); if(m) return {m:m, where:'inbox'};
+  var ib=ibSrc_(a, id), m=look(ib.box); a.lastLook=[ib.box];
+  if(m){ ib.m=m; ib.where='inbox'; return ib; }
   if(inboxOnly) return null;
-  var w=e && e.m||'', at={fyi:findBox_(a, BOX.fyi), unimportant:findBox_(a, BOX.unimportant), junk:findBox_(a, BOX.junk), spam:junkBox_(a), archive:w==='archive'?archBox_(a, true):null};
-  var boxes=[at[w]||null, at.unimportant, at.junk, at.fyi, at.spam, at.archive];
-  for(var i=0;i<boxes.length;i++){ if(!boxes[i] || boxes.indexOf(boxes[i])<i) continue; m=look(boxes[i]); if(m) return {m:m, where:'other'}; }
+  var w=e && e.m||'', at={fyi:findBox_(a, BOX.fyi), unimportant:findBox_(a, BOX.unimportant), junk:findBox_(a, BOX.junk), spam:junkBox_(a)};
+  var tr=boxes_(a, TRASH_NAMES), bs=[at[w]||null, at.unimportant, at.junk, at.fyi, at.spam].concat(boxes_(a, JUNK_NAMES), [archBox_(a, true)], tr);
+  for(var i=0;i<bs.length;i++){ var b=bs[i]; if(!b || b===ib.box || bs.indexOf(b)<i) continue; a.lastLook.push(b); m=look(b);
+    if(m) return {m:m, where:tr.indexOf(b)>=0?'trash':'other', box:b, bn:nameOf_(b), id:id}; }
   return null;
 }
+// The not-found message: which of this account's mailboxes were searched (their names only).
+function gone_(a){ var n=(a.lastLook||[]).map(nameOf_).filter(function(x, i, arr){ return x && arr.indexOf(x)===i; });
+  return 'that email isn’t in Apple Mail any more ('+a.name+': looked in '+(n.join(', ')||'no mailboxes it could open')+')'; }
+function boxes_(a, names){ var o=[]; names.forEach(function(n){ var b=findBox_(a, n); if(b && o.indexOf(b)<0) o.push(b); }); return o; }
+function nameOf_(b){ return b?String(safe_(function(){ return b.name(); }, '')||''):''; }
+// The account's inbox and its name (read once per run) + the Message-ID being moved: the source for checking a move.
+function ibSrc_(a, id){ var b=inboxBox_(a); if(a.ibn===undefined) a.ibn=nameOf_(b); return {box:b, bn:a.ibn, id:id||''}; }
 
 /* ---------------- talking to Life OS ---------------- */
 // curl follows Apps Script's 302 with -L and switches POST → GET for it (which is what Apps Script expects). No -X POST:
 // with -L that would force POST on the redirect too and the echo URL refuses it.
 function post_(cfg, body){
   var left=HARD-(Date.now()-T0); if(left<20000) throw new Error('out of time for this run (next run)');
-  var pid=String(safe_(function(){ return $.NSProcessInfo.processInfo.processIdentifier; }, 0)), tmp=DIR+'/post-'+pid+'.json', res=DIR+'/resp-'+pid+'.json', code='', txt='';
+  var pid=pid_(), tmp=DIR+'/post-'+pid+'.json', res=DIR+'/resp-'+pid+'.json', code='', txt='';
   if(!writeFile_(tmp, JSON.stringify(body))) throw new Error('couldn’t write a temporary file in '+DIR);
   try{
     code=String(SA.doShellScript('/usr/bin/curl -sS -m '+Math.min(120, Math.floor(left/1000)-10)+' -H '+q_('Content-Type: application/json; charset=utf-8')+
@@ -557,6 +664,53 @@ function post_(cfg, body){
 }
 function pub_(it){ var o={}; Object.keys(it).forEach(function(k){ if(k.charAt(0)!=='_') o[k]=it[k]; }); return o; }
 function pubC_(c){ return {id:c.id, threadId:c.threadId, from:c.from, kind:c.kind}; }
+// Self-update, at most every 6 h (update.json): BASE/mac/lifeos-mail.js (BASE = where install.sh got it, config.json `base`) over
+// https only, into a temp file. It replaces this script only if its VERSION is a higher number, its size is sane, it carries the
+// agent marker and osacompile accepts it; the old copy stays as lifeos-mail.prev.js. config.json and state.json are never touched.
+// The new copy runs from the next run on (this one already has the old one in memory). One log line when something happened.
+function update_(cfg){
+  try{
+    plist_();
+    var me=DIR+'/lifeos-mail.js', u=json_(readFile_(DIR+'/update.json'), {}), now=Date.now();
+    if(now-(+u.at||0)<UPD_EVERY && now>=(+u.at||0) || late_(HARD-60000) || !exists_(me)) return;
+    var base=String(cfg.base||DEF_BASE).replace(/\/+$/, ''), tmp=DIR+'/update-'+pid_()+'.js', line='', v='';
+    if(!/^https:\/\/[^\s'"\\]+$/.test(base)) line='skipped: '+base+' isn’t an https address';
+    else try{
+      var t=sh_('/usr/bin/curl -fsSL --proto =https --proto-redir =https -m 30 -o '+q_(tmp)+' '+q_(base+'/mac/lifeos-mail.js'))===null?null:readFile_(tmp);
+      v=t?(t.match(/^var VERSION='(\d{1,6})'/m)||[])[1]||'':'';
+      if(t===null) line='couldn’t download '+base+'/mac/lifeos-mail.js (tries again in 6 hours)';
+      else if(!(Number(v)>Number(VERSION))) line='';                  // nothing newer
+      else if(t.indexOf('LIFEOS_MAIL_AGENT')<0 || t.length<20000 || t.length>1500000) line='v'+v+' not installed: it doesn’t look like the Mac agent';
+      else if(sh_('/usr/bin/osacompile -l JavaScript -o '+q_(tmp+'.scpt')+' '+q_(tmp)+' >/dev/null 2>&1 && echo ok')!=='ok') line='v'+v+' not installed: it doesn’t compile';
+      else if(!selfok_(tmp, v)) line='v'+v+' not installed: it didn’t start (--selfcheck)';
+      else if(sh_('/bin/cp -p '+q_(me)+' '+q_(DIR+'/lifeos-mail.prev.js')+' && /bin/mv -f '+q_(tmp)+' '+q_(me)+' && echo ok')!=='ok') line='v'+v+' couldn’t be put in place';
+      else line='updated v'+VERSION+' → v'+v+' (runs from the next run; the old copy is lifeos-mail.prev.js)';
+    }finally{ rm_(tmp); rm_(tmp+'.scpt'); }
+    writeFile_(DIR+'/update.json', JSON.stringify({at:now, v:VERSION, seen:v, line:line}));
+    if(line) say_('self-update: '+line);
+  }catch(e){ say_('self-update: '+msg_(e)); }
+}
+// A downloaded copy must start before it replaces this one: run alone with --selfcheck in its own empty folder (no key, no
+// state, no Mail), it has to answer "LIFEOS_MAIL_SELFCHECK v<its VERSION>" within 30 s (else it's stopped). Every later
+// version keeps --selfcheck working.
+function selfok_(f, v){
+  var d=DIR+'/update-check-'+pid_(), o=d+'/out';
+  if(!mkdir_(d, true)) return false;
+  try{ sh_('LIFEOS_MAIL_DIR='+q_(d)+' /usr/bin/osascript -l JavaScript '+q_(f)+' --selfcheck >'+q_(o)+' 2>/dev/null </dev/null & p=$!; i=0; '+
+      'while [ $i -lt 30 ] && [ ! -s '+q_(o)+' ] && /bin/kill -0 $p 2>/dev/null; do /bin/sleep 1; i=$((i+1)); done; [ $i -lt 30 ] || /bin/kill -9 $p 2>/dev/null; true');
+    return String(readFile_(o)||'').trim()==='LIFEOS_MAIL_SELFCHECK v'+v; }
+  finally{ rm_(d); }
+}
+// Installs from before every-5-minutes have StartInterval 600 in the LaunchAgent file: rewrite the file only (checked, then
+// swapped in). launchd reads it at the next login; the job never unloads or reloads itself for this.
+function plist_(){
+  var p=ObjC.unwrap($.NSHomeDirectory())+'/Library/LaunchAgents/'+LABEL+'.plist', t=readFile_(p), re=/(<key>StartInterval<\/key>\s*<integer>)600(<\/integer>)/;
+  if(!t || !re.test(t)) return;
+  var nw=p+'.new';
+  if(writeFile_(nw, t.replace(re, function(_, x, y){ return x+'300'+y; })) && sh_('/usr/bin/plutil -lint -s '+q_(nw)+' && /bin/mv -f '+q_(nw)+' '+q_(p)+' && echo ok')==='ok')
+    say_('LaunchAgent: every 5 minutes from the next login (it was every 10)');
+  else sh_('/bin/rm -f '+q_(nw));
+}
 // Unload our own LaunchAgent (Life OS said stop for every inbox). disable keeps it off after a restart; install.sh re-enables.
 function stopAgent_(){
   if(DRY) return;
@@ -566,7 +720,9 @@ function stopAgent_(){
 
 /* ---------------- state (state.json beside config.json) ---------------- */
 // seen: [{i: Message-ID, a: account, c: category, t: received ms, fr: sender, m: where we moved it ('' = inbox),
-//         f: flag colour we set (-1 none), s: Brad had flagged it, r: replied reported, q: rescued reported}] — newest 2,000
+//         f: flag colour we set (-1 none), s: Brad had flagged it, r: replied reported, q: rescued reported,
+//         k: the move is confirmed (a later run saw it gone from the inbox; missing = not yet), n: times it was moved again,
+//         h: Mail kept it in the inbox the last time we moved it}] — newest 2,000
 function load_(){
   var j=json_(readFile_(DIR+'/state.json'), {}), S={};
   S.seen=Array.isArray(j.seen)?j.seen.filter(function(e){ return e && e.i && e.a; }):[];
@@ -629,13 +785,16 @@ function mtime_(p){ try{ var d=fm_().attributesOfItemAtPathError(p, null).object
 function exists_(p){ return sh_('[ -e '+q_(p)+' ] && echo y || echo n')==='y'; }
 function rm_(p){ p=String(p||''); if(!DIR || p.indexOf(DIR+'/')!==0 || /\/\.\.?(\/|$)/.test(p)) return; sh_('/bin/rm -rf '+q_(p)); }   // only ever inside our own folder
 // leftovers from runs that died mid-post (they hold mail text): anything older than 10 minutes goes
-function scrub_(){ sh_('/usr/bin/find '+q_(DIR)+' -maxdepth 1 -type f \\( -name '+q_('post-*.json')+' -o -name '+q_('resp-*.json')+' \\) -mmin +10 -delete'); }
+function scrub_(){ sh_('/usr/bin/find '+q_(DIR)+' -maxdepth 1 -type f \\( -name '+q_('post-*.json')+' -o -name '+q_('resp-*.json')+' -o -name '+q_('update-*')+' \\) -mmin +10 -delete');
+  sh_('/usr/bin/find '+q_(DIR)+' -maxdepth 1 -type d -name '+q_('update-check-*')+' -mmin +10 -exec /bin/rm -rf {} +'); }   // a self-check cut short
 function env_(k){ try{ var v=ObjC.unwrap($.NSProcessInfo.processInfo.environment.objectForKey(k)); return typeof v==='string'?v:''; }catch(_){ return ''; } }
 function dir_(){
   var d=env_('LIFEOS_MAIL_DIR')||(ObjC.unwrap($.NSHomeDirectory())+'/Library/Application Support/LifeOSMail');
   mkdir_(d, true); return d;
 }
-function cfg_(){ var j=json_(readFile_(DIR+'/config.json'), {}); return {key:String(j.key||'').trim(), brain:String(j.brain||'').trim()||BRAIN_URL}; }
+function cfg_(){ var j=json_(readFile_(DIR+'/config.json'), {});
+  return {key:String(j.key||'').trim(), brain:String(j.brain||'').trim()||BRAIN_URL, base:String(j.base||'').trim().replace(/\/+$/, '')||DEF_BASE}; }
+function pid_(){ return String(safe_(function(){ return $.NSProcessInfo.processInfo.processIdentifier; }, 0)); }
 
 /* ---------------- helpers ---------------- */
 function hdrs_(raw){

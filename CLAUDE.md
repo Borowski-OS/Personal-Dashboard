@@ -182,7 +182,18 @@
   count chips jump to sections; inbox health dot) replaced the four stat tiles; the page map is skipped on Mail. "Go through N"
   (mailTriage) = one email at a time in the modal, keys r/e/j/k/t/o, swipe right = done / left = skip on phones; after a reply
   is saved/sent from triage, "Next email →" continues. List keys on the Mail tab: j/k select, r/e/t/o act, g triage, ? help.
-  Today shows mailBar() (only when someone waits on a reply or an urgent item exists); it lazily runs mailLoad at most every 10 min.
+  Today shows mailBar() (only when someone waits on a reply or an urgent item exists). The page refreshes mail every 2 min on the Mail tab and
+  every 5 min elsewhere while visible (catch-up on return, never overlapping a Done/Teach/Send); '(N)' title badge + new-mail heads-up toast.
+  Re-listed rows (Why "Re-sorted…" / "You moved it back…", mailMachine) never lead "Start with", triage or the Urgent line; ages are real received ages.
+  "Old emails as new" fix (Oct 13 2026): Mac agent v2 reported 'rescued' whenever its own move didn't stick (Gmail/Workspace IMAP), so the brain
+  reopened old mail as Important and learned wrong sender rules. Mac agent v3 (VERSION '3') confirms a move before a rescue can count (gone from the
+  inbox AND present in the filed-in mailbox), ignores mail older than 7 days and bursts of 3+ (Mail re-syncing), runs every 5 min (plist 300), and
+  self-updates from Pages at most every 6 h (only a higher VERSION that passes osacompile and `--selfcheck`) — every change to mac/lifeos-mail.js must
+  raise VERSION and keep --selfcheck working. The brain ignores 'rescued' from Mac agents < v3 and from cross-route Gmail thread moves; repair action
+  `mailunrescue` (hours, src, account, apply=1; dry by default; counts only) re-sorts false rescues and removes the rules they taught.
+  Phone alerts (Mail.js mailAlert*): new open Needs-reply (or urgent Important) mail from the last 24 h → one batched notify_ per sync (sender name +
+  scrubbed subject; MAIL_ALERTED ring), quiet 9 PM–6 AM with an hourly digest after; Config mail_alerts=off disables; the email fallback
+  ("🔔 Life OS · …") is filed FYI/done and never alerts.
 - Default folds (Oct 2026): FOLD_DEFAULT lists reference cards that start folded on Brad's view (vendor contacts, buy-boxes,
   capital plan, codes/utilities/insurance look-ups, hunt point tables, points table, Mail's Teach/Connect). Opening one stores 0
   in lifeos_folds so it stays open on that device. Chelsea's view never default-folds.

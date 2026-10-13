@@ -44,6 +44,9 @@ main() {
   [[ "$key" =~ ^[A-Za-z0-9_-]{16,200}$ ]] || die "the connect key is missing or incomplete. Copy the whole command again from the Life OS Mail page (Mail → Connect your inboxes)."
   case "$BRAIN" in https://*) ;; *) die "LIFEOS_BRAIN must be an https:// address." ;; esac
   [[ "$BRAIN" != *[\"\\[:space:]]* ]] || die "LIFEOS_BRAIN has characters it can't contain."
+  BASE="${BASE%/}"                                                  # the agent updates itself from here later (config.json "base")
+  case "$BASE" in https://*) ;; *) die "LIFEOS_BASE must be an https:// address." ;; esac
+  [[ "$BASE" != *[\"\'\\[:space:]]* ]] || die "LIFEOS_BASE has characters it can't contain."
   [ -d /System/Applications/Mail.app ] || [ -d /Applications/Mail.app ] || die "Apple Mail isn't on this Mac."
 
   say "Installing Life OS Mail for Apple Mail…"
@@ -67,7 +70,7 @@ main() {
   fi
   mv -f "$DIR/lifeos-mail.js.new" "$DIR/lifeos-mail.js"
 
-  printf '{"key":"%s","brain":"%s","intervalMin":10}\n' "$key" "$BRAIN" > "$DIR/config.json.new"
+  printf '{"key":"%s","brain":"%s","base":"%s","intervalMin":5}\n' "$key" "$BRAIN" "$BASE" > "$DIR/config.json.new"
   chmod 600 "$DIR/config.json.new"
   mv -f "$DIR/config.json.new" "$DIR/config.json"
 
@@ -75,16 +78,16 @@ main() {
   say ""
   say "Sorting your mail for the first time (up to a few minutes)."
   say ">>> If macOS asks to let Terminal (or osascript) control \"Mail\", click OK. <<<"
-  if /usr/bin/osascript -l JavaScript "$DIR/lifeos-mail.js" </dev/null; then
+  if LIFEOS_MAIL_INSTALLING=1 /usr/bin/osascript -l JavaScript "$DIR/lifeos-mail.js" </dev/null; then   # (no self-update check: this copy is fresh)
     say "First sort done."
   else
     say ""
     say "The first sort didn't finish (the reason is just above). If it says macOS hasn't allowed it to control Mail:"
     say "  System Settings → Privacy & Security → Automation → under Terminal (and osascript) switch on Mail,"
-    say "  then run this same command again. Installing the every-10-minutes job anyway."
+    say "  then run this same command again. Installing the every-5-minutes job anyway."
   fi
 
-  # The every-10-minutes job (also runs at login and right now).
+  # The every-5-minutes job (also runs at login and right now).
   cat > "$PLIST.new" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -96,7 +99,7 @@ main() {
     <string>/usr/bin/osascript</string><string>-l</string><string>JavaScript</string>
     <string>$(xml "$DIR/lifeos-mail.js")</string>
   </array>
-  <key>StartInterval</key><integer>600</integer>
+  <key>StartInterval</key><integer>300</integer>
   <key>RunAtLoad</key><true/>
   <key>StandardOutPath</key><string>$(xml "$LOG")</string>
   <key>StandardErrorPath</key><string>$(xml "$LOG")</string>
@@ -115,17 +118,18 @@ EOF
 
   say ""
   say "Starting the background job."
-  say ">>> If macOS now asks to let \"osascript\" control \"Mail\", click OK (that's the every-10-minutes job). <<<"
+  say ">>> If macOS now asks to let \"osascript\" control \"Mail\", click OK (that's the every-5-minutes job). <<<"
   for i in $(seq 1 45); do
     sleep 2; now=$(size "$LOG")
     if [ "$now" -gt "$before" ]; then break; fi
-    if [ "$i" -eq 45 ]; then say "(Still waiting on it; if a permission box is open, click OK. It keeps running every 10 minutes either way.)"; fi
+    if [ "$i" -eq 45 ]; then say "(Still waiting on it; if a permission box is open, click OK. It keeps running every 5 minutes either way.)"; fi
   done
   if [ "$(size "$LOG")" -gt "$before" ]; then say "Background run: $(tail -n 1 "$LOG")"; fi
 
   say ""
-  say "Done. Every inbox in Apple Mail is now sorted every 10 minutes while this Mac is awake:"
-  say "  red flag = needs a reply · orange flag = worth knowing · \"Life OS/FYI\" and \"Life OS/Junk\" mailboxes = weeded out."
+  say "Done. Every inbox in Apple Mail is now sorted every 5 minutes while this Mac is awake:"
+  say "  red flag = needs a reply · orange flag = worth knowing · \"Life OS/FYI\" and \"Life OS/Unimportant\" mailboxes = weeded out."
+  say "It keeps itself up to date from $BASE (checked every 6 hours), so this is the last time you need Terminal for it."
   say "See it all on the Life OS Mail page."
   say "If macOS says \"Background Items Added\" (osascript), leave it switched on in System Settings → General → Login Items."
   say "Use this on one Mac only."
