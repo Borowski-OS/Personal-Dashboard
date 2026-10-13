@@ -191,3 +191,4 @@
   https://), probes every host's /api/health at once (CORS, then no-cors so a cloud host without CORS headers still counts; 6 s) and loads the
   first one in order that answers; the Mac (PAM_URL) is always last. Subtitle says "in the cloud" / "from your Mac"; when nothing answers the
   card offers Try again / Open Atlas directly / Use the Claude app (claude.ai/code). Set `atlas_url` with setkv — no page change needed.
+  The cloud Atlas lives at https://atlas.taila89b12.ts.net (Tailscale; ATLAS_CLOUD_URL in index.html), tried right after any `atlas_url` and before the Mac.

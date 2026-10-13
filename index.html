@@ -5872,13 +5872,14 @@ function closePalette(){ $('palette').classList.add('hidden'); }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', wake); else wake();
 })();
 /* ---------- Atlas (formerly Pam): the voice assistant. Cloud first, then the Mac over Tailscale ----------
-   Config kv `atlas_url` = the cloud Atlas address (several may be listed, best first); the Mac (PAM_URL) is always the last resort.
+   Config kv `atlas_url` (optional, several may be listed, best first), then ATLAS_CLOUD_URL, then the Mac (PAM_URL) as the last resort.
    Every open probes all of them at once and loads the first one, in that order, that answers. */
 var PAM_URL='https://bradleys-macbook-pro.taila89b12.ts.net';   // the Mac
+var ATLAS_CLOUD_URL='https://atlas.taila89b12.ts.net';            // the always-on cloud Atlas (tried after any Config atlas_url)
 var PAM_LOADED='', PAM_ACTIVE='';                                // host in the frame / host that last answered
 function pamHosts(){
   var out=[];
-  String(kv('Config').atlas_url||'').split(/[\s,]+/).concat([PAM_URL]).forEach(function(u){
+  String(kv('Config').atlas_url||'').split(/[\s,]+/).concat([ATLAS_CLOUD_URL, PAM_URL]).forEach(function(u){
     u=String(u||'').trim().replace(/\/+$/,''); if(/^[a-z0-9-]+(\.[a-z0-9-]+)+(:\d+)?(\/\S*)?$/i.test(u)) u='https://'+u;   // a bare host name gets https://
     if(/^https:\/\/[^\s"'<>()]+$/.test(u) && out.indexOf(u)<0) out.push(u); });
   return out;
@@ -5917,7 +5918,7 @@ function openAI(){
 }
 function closeAI(){ $('aiPanel').classList.add('hidden'); $('aiFab').classList.remove('hidden'); document.body.classList.remove('ai-open'); if(window.aiHiveWake) aiHiveWake(); }
 function aiExpand(){ $('aiPanel').classList.toggle('big'); }
-function pamOpenTab(){ window.open((PAM_ACTIVE||pamHosts()[0]||PAM_URL)+'/','_blank','noopener'); }
+function pamOpenTab(){ window.open((PAM_ACTIVE||pamHosts()[0]||ATLAS_CLOUD_URL)+'/','_blank','noopener'); }
 document.addEventListener('keydown',function(e){ if((e.metaKey||e.ctrlKey)&&(e.key==='j'||e.key==='J')){ if(ROLE==='chelsea'||!DATA) return; e.preventDefault(); $('aiPanel').classList.contains('hidden')?openAI():closeAI(); } if(e.key==='Escape'&&!$('aiPanel').classList.contains('hidden')) closeAI(); });
 function palRender(){
   var q=($('palInput').value||'').trim().toLowerCase();
