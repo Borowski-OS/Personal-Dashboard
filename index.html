@@ -1124,7 +1124,9 @@
   @media (max-width:1180px){ .g-today { grid-template-columns:1.5fr 1fr; } .deck-pulse { grid-column:1 / -1; display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); } }
   @media (max-width:900px){ .g-today { grid-template-columns:1fr; } }
   @media (max-width:640px){ .deck-gauges { gap:8px; } .deck-gauges .bchip { padding:10px 11px; gap:9px; } .deck-gauges .bchip-i { width:32px; height:32px; flex-basis:32px; }
-    .deck-gauges .bchip-l { white-space:normal; letter-spacing:.06em; } .deck-gauges .bchip-v { font-size:13.5px; } .deck-strip .hero-h { font-size:24px; } }
+    .deck-gauges .bchip-l { white-space:normal; letter-spacing:.06em; } .deck-gauges .bchip-v { font-size:13.5px; } .deck-strip .hero-h { font-size:24px; }
+    .deck-gauges { grid-template-columns:1fr 1fr; } .deck-gauges > .bchip:last-child:nth-child(odd) { grid-column:1 / -1; }
+    .pagemap::after { content:''; flex:0 0 64px; } }
   .deck-pulse { display:grid; gap:12px; }
   .stat.tc { padding:14px 16px; } .stat.tc .label { font-size:10.5px; letter-spacing:.09em; }
   .tc-row { display:flex; align-items:baseline; justify-content:space-between; gap:10px; margin-top:4px; }
@@ -1772,6 +1774,7 @@ function tafPeriods(t){ var now=Date.now()/1000;
     var peak=Math.max(spd,gust), fly = cat==='VFR' && peak<=15 && xw<=10;   // student limits: wind/gusts over 15 kt = no-go (10–15 = caution)
     return {f:f, ceil:ceil, vis:vis, cat:cat, spd:spd, gust:gust, xw:xw, fly:fly, tempo:/TEMPO|PROB|BECMG/.test(String(f.change||''))||f.prob}; });
 }
+function nbHm(sec){ return hhmm(sec).replace(/\s/g,'\u00a0'); } // keeps "8 AM" on one line in the gauges
 function hhmm(sec){ return new Date(sec*1000).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',timeZone:'America/Los_Angeles'}).replace(':00',''); }
 function dayLbl(sec){ var d=new Date(sec*1000), t=new Date(); var same=d.toLocaleDateString('en-US',{timeZone:'America/Los_Angeles'})===t.toLocaleDateString('en-US',{timeZone:'America/Los_Angeles'});
   return same?'Today':d.toLocaleDateString('en-US',{weekday:'short',timeZone:'America/Los_Angeles'}); }
@@ -2708,7 +2711,7 @@ function todayHero(){
   if(sickNow()) chips.push(chipHtml('plane','Flying','grounded — sick (IMSAFE)','bad','flying'));
   else if(!LIVE.tafs) chips.push(chipHtml('plane','Flying','checking TAF…','', 'flying'));
   else if(!nf||nf.none) chips.push(chipHtml('plane','Flying','no good window in TAF','bad','flying'));
-  else chips.push(chipHtml('plane','Good to fly', (nf.f.from*1000<=Date.now()+60000?'now':dayLbl(nf.f.from)+' '+hhmm(nf.f.from))+' – '+hhmm(nf.f.to),'good','flying'));
+  else chips.push(chipHtml('plane','Good to fly', (nf.f.from*1000<=Date.now()+60000?'now':dayLbl(nf.f.from)+' '+nbHm(nf.f.from))+' – '+nbHm(nf.f.to),'good','flying'));
   // town weather: Reno (work) and Carson City (home); the Flying tab keeps the airport weather
   TOWNS.forEach(function(t){ var w=LIVE.towns&&LIVE.towns[t.id];
     chips.push(chipHtml(w?skyIcon(w.sky):(t.id==='reno'?'work':'home'), t.name, w?(w.temp+'° · '+esc(w.sky)+(w.hi!=null?' <small>'+w.hi+'/'+w.lo+'</small>':'')):'loading…', '', 'flying', t.sub)); });
