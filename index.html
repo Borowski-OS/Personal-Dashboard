@@ -1481,6 +1481,10 @@
     .deck-strip .hero-actions > .ebtn { flex:0 0 auto; white-space:nowrap; }
   }
   @media (max-width:640px){ .mit-sm .mit-tx { display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; line-clamp:2; overflow:hidden; } }
+  /* Round 12: right-hand amounts in label|amount rows never break mid-figure ("$1,027 /" + "$1,000" on two lines on phones) */
+  div[style*="space-between"] > span.mono, .tm-t > span.mono, div[style*="text-align:right"] > div.mono { white-space:nowrap; }
+  /* Round 12: phones — enough bottom room that the last row on every tab scrolls clear of the AI orb (Chelsea has no orb) */
+  @media (max-width:640px){ body:not(.role-chelsea) { padding-bottom:calc(146px + env(safe-area-inset-bottom)); } }
 </style>
 </head>
 <body>
