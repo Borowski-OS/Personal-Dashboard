@@ -918,6 +918,7 @@
   .call-bar { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:8px 12px; margin:-8px 0 22px; padding:12px 16px; border-radius:12px; background:var(--card-bg); border:1px solid var(--card-border); border-left:3px solid var(--accent); }
   .call-main { font-size:15px; } .call-btns { display:flex; gap:8px; } .call-btns .ebtn { text-decoration:none; }
   .call-next { flex-basis:100%; display:flex; flex-wrap:wrap; gap:4px 16px; font-size:12.5px; color:var(--text-muted); }
+  @media (max-width:600px){ body.on-today .call-next { display:none; } }   /* phone Today: the week's calls are on Home & Life; keeps Top 3 on the first screen */
   .call-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:6px; } @media (max-width:640px){ .call-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
   .call-day { background:var(--card-2); border-radius:8px; padding:7px 9px; font-size:12.5px; display:flex; flex-direction:column; } .call-day span { color:var(--text-dim); font-size:11px; }
 
@@ -1616,7 +1617,7 @@ var TABS = {
 };
 /* old tabs fold into the 7 domains — route lingering links (and jump to the matching section) */
 var TAB_ALIAS = { bills:'home', money:'home', family:'life', travel:'life', projects:'life', vehicles:'life', hobbies:'life', hunting:'life', today:'overview' };
-var TAB_SECTION = { family:'sec-family', travel:'sec-travel', projects:'sec-projects', vehicles:'sec-vehicles', hobbies:'sec-hobbies', hunting:'sec-hobbies' };
+var TAB_SECTION = { bills:'sec-bills', family:'sec-family', travel:'sec-travel', projects:'sec-projects', vehicles:'sec-vehicles', hobbies:'sec-hobbies', hunting:'sec-hobbies' };
 
 function $(id){ return document.getElementById(id); }
 function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
@@ -1810,8 +1811,10 @@ function tafCard(){
       +'<div class="taf-wx">'+esc(wind)+' · vis '+(f.visib||'—')+' sm · '+esc(sky)+(f.wx?' · '+esc(f.wx):'')+(p.xw?' · <span style="color:'+(p.xw>10?'var(--amber)':'var(--text-dim)')+'">xwind '+p.xw+' kt</span>':'')+'</div>'
       +'<div class="taf-go">'+(p.fly?(dayHours(f.from,f.to)?(Math.max(p.spd,p.gust)>=10?'<span class="tag" style="color:var(--amber);background:rgba(255,222,0,.10)">Caution</span>':'<span class="tag active">Good to fly</span>'):'<span class="tag">Night</span>'):'<span class="tag blocked">'+(p.cat!=='VFR'?'Not VFR':'Too windy')+'</span>')+'</div></div>'; }).join('');
   var issued=new Date(t.issued).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',timeZone:'America/Los_Angeles'});
-  return card('KMEV forecast (TAF)','Official Minden terminal forecast, issued '+issued+' local. "Good to fly" = VFR, wind & gusts ≤15 kt (10–15 = use caution), crosswind ≤10 on the best runway.',
-    bookBar()+rows+'<details style="margin-top:12px"><summary class="foot" style="cursor:pointer;color:var(--text-dim)">Raw TAF</summary><div class="code" style="font-size:12.5px;margin-top:6px;color:var(--text-muted);white-space:pre-wrap">'+esc(t.raw)+'</div></details>', '--sky');
+  return card('KMEV forecast (TAF)','Official Minden forecast, issued '+issued+' local.',
+    bookBar()+rows+'<details style="margin-top:12px"><summary class="foot" style="cursor:pointer;color:var(--text-dim)">Raw TAF · what “Good to fly” means</summary>'
+    +'<p class="foot foot-dim" style="margin:6px 0 0">"Good to fly" = VFR, wind & gusts ≤15 kt (10–15 = use caution), crosswind ≤10 on the best runway.</p>'
+    +'<div class="code" style="font-size:12.5px;margin-top:6px;color:var(--text-muted);white-space:pre-wrap">'+esc(t.raw)+'</div></details>', '--sky');
 }
 /* next "good to fly" block from the TAF (for Today) */
 function tafNextFly(){ var t=(LIVE.tafs||{}).KMEV; if(!t) return null;
@@ -1908,7 +1911,7 @@ function showApp(res){
   applyBranding();
   $('stamp').textContent = fmtStamp(res.updated);
   $('loading').classList.add('hidden');
-  if(!CURRENT || CURRENT==='overview'){ var hashTab=(location.hash||'').replace('#',''); navGo(TABS[hashTab]?hashTab:'overview'); }
+  if(!CURRENT || CURRENT==='overview'){ var hashTab=(location.hash||'').replace('#',''); navGo(TABS[hashTab]||TAB_ALIAS[hashTab]?hashTab:'overview'); }   // old addresses (#bills, #vehicles…) resolve through navGo
   else render(CURRENT);
   fetchLive(); debugWide();
   try{ document.querySelectorAll('button[title]:not([aria-label])').forEach(function(b){ b.setAttribute('aria-label', b.getAttribute('title').replace(/\s*\(.*\)$/,'')); }); }catch(e){}
@@ -2000,6 +2003,7 @@ function navGo(tab){
   $('pageSub').textContent = TABS[tab].sub;
   location.hash = tab;
   if(tab==='mail') mailOnOpen();
+  MORE_PEEK={};                              // a new visit starts with every drawer as Brad left it
   render(tab);
   window.scrollTo(0,0);
   if(sec){ setTimeout(function(){ var el=$(sec); if(el){ moreReveal(el); el.scrollIntoView({behavior:'smooth'}); } }, 60); }
@@ -2015,27 +2019,29 @@ function clearCharts(){ charts.forEach(function(c){ try{c.destroy();}catch(e){} 
 function pageActs(tab){
   if(tab==='home' && ROLE!=='chelsea'){ var u=kv('Config').budget_sheet_url;
     if(has(u)) return '<a class="ebtn" href="'+esc(u)+'" target="_blank" rel="noopener" aria-label="Open the budget sheet in Google Sheets">Budget sheet <span aria-hidden="true">↗</span></a>'; }
-  if(tab==='health' && ROLE!=='chelsea' && typeof findCareCard==='function')
-    return '<button class="ebtn" onclick="jumpCare()" aria-label="Jump to Find care">Find care <span aria-hidden="true">↓</span></button>';
+  if(tab==='health')
+    return (ROLE!=='chelsea' && typeof findCareCard==='function'?'<button class="ebtn" onclick="jumpCare()" aria-label="Jump to Find care">Find care <span aria-hidden="true">↓</span></button>':'')
+      +'<button class="ebtn pri" onclick="quickLogWeight()">＋ Log weight</button>';
   if(tab==='mail' && ROLE!=='chelsea')
     return '<button class="ebtn" onclick="mailLoad(true)" aria-label="Check for new mail">Refresh</button><button class="ebtn pri" onclick="mailCompose()">New email</button>';
   return '';
 }
-/* scroll to the Find care card (far down Health) and put the cursor in its search box */
-function jumpCare(){ var c=$('sec-care'); if(!c) return; c.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion:reduce)').matches?'auto':'smooth', block:'start'});
+/* scroll to the Find care card (in "More on Health" — opened first — unless sick mode puts it up front) and put the cursor in its search box */
+function jumpCare(){ var c=$('sec-care'); if(!c) return; moreReveal(c); c.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion:reduce)').matches?'auto':'smooth', block:'start'});
   var q=$('fcQ'); if(q) setTimeout(function(){ try{ q.focus({preventScroll:true}); }catch(e){} }, 450); }
 function render(tab){
   clearCharts();
   var pa=$('pageActs'); if(pa){ try{ pa.innerHTML=DATA?pageActs(tab):''; }catch(e){ pa.innerHTML=''; } }
   var el = $('panels');
   el.innerHTML = ({
-    overview: function(){ return ROLE==='chelsea'?renderChelseaHome():renderOverview(); }, home: function(){ return renderHome()+receiptsCard(); }, taxes: renderTaxes, life: renderLife,
+    overview: function(){ return ROLE==='chelsea'?renderChelseaHome():renderOverview(); }, home: renderHome, taxes: renderTaxes, life: renderLife,
     flying: renderFlying, ventures: renderVentures, health: renderHealth, faith: renderFaith, mail: renderMail
   }[tab] || function(){return '';})();
   if(tab==='mail') try{ mailSnap(); }catch(e){}   // what's painted, so a background mail refresh repaints only what changed
   if(tab==='home') drawMoneyCharts();
   if(tab==='ventures') setTimeout(wiRun,0);
   if(tab==='flying'){ [fetchAirports, fetchNwsFc, xcMount, atMount, window.parMount].forEach(function(f){ try{ if(f) f(); }catch(e){ console.error('flying widget', e); } }); }
+  try{ moreRecount(); }catch(e){}
   applyLive();
   try{ cardFolds(tab); }catch(e){ console.error('cardFolds', e); }
   try{ pageMap(); }catch(e){ console.error('pageMap', e); }
@@ -2053,9 +2059,9 @@ function foldSave(st){ try{ localStorage.setItem(FOLD_LS, JSON.stringify(st)); }
 function foldKey(tab, h){ return tab+'|'+String(h.textContent||'').replace(/\s+/g,' ').trim().slice(0,60); }
 /* Reference cards (look-ups, settings, raw tables) start folded so long tabs open short; one tap opens them and that's
    remembered (stored as 0 = Brad opened it). Brad's view only — Chelsea's cards stay as they were. Oct 2026. */
-var FOLD_DEFAULT={ home:['Vendor & service contacts'], ventures:['Buy-box','RE buy-box','Capital plan'],
-  life:['Codes & IDs','Utilities & accounts','Insurance & claims','Points & miles','Nevada','Wyoming'],
-  mail:['Teach it what matters','Connect your inboxes'] };
+var FOLD_DEFAULT={ ventures:['Buy-box','RE buy-box','Capital plan'],
+  life:['Codes & IDs','Utilities & accounts','Insurance & claims','Points & miles','Nevada','Wyoming','Points game plan','Hunt planner','Drive-in call rotation'],
+  flying:['Flight log','Checkride requirements','Performance & loading'] };   // long reference cards inside each tab's "More" drawer open as one-line headers
 function foldDefault(tab, h){ if(ROLE==='chelsea') return false; var t=String(h.textContent||'').replace(/^[^A-Za-z0-9₿$]+/,'').replace(/\s+/g,' ').trim();
   return (FOLD_DEFAULT[tab]||[]).some(function(x){ return t===x || t.indexOf(x+' ')===0 || t.indexOf(x+' —')===0; }); }
 function cardFolds(tab){
@@ -2077,13 +2083,26 @@ function foldToggle(card, force){ var st=foldState(), key=card.getAttribute('dat
    Nothing is removed — every card is one tap away. Chelsea's view always shows the drawer open. */
 var MORE_LS='lifeos_more';
 function moreState(){ try{ return JSON.parse(localStorage.getItem(MORE_LS)||'{}')||{}; }catch(e){ return {}; } }
-function moreSave(d){ var st=moreState(); st[d.getAttribute('data-more')]=d.open?1:0; try{ localStorage.setItem(MORE_LS, JSON.stringify(st)); }catch(e){} if(d.open && window.dispatchEvent) setTimeout(function(){ window.dispatchEvent(new Event('resize')); }, 30); }
+/* A drawer opened by code (a deep link, a Today alert, Find care ↓, search, the page map's More chip) is a peek: open for this
+   visit only (MORE_PEEK, cleared by navGo), never stored, so one jump doesn't leave the tab fully expanded for good. Only a tap
+   on the drawer's own bar is remembered. The browser fires 'toggle' for a drawer drawn already open; that's ignored. */
+var MORE_PEEK={};
+function moreSave(d){ var k=d.getAttribute('data-more'), st=moreState(), v=d.open?1:0;
+  if(!v) delete MORE_PEEK[k];
+  if(v===(st[k]===1?1:0)) return;                                    // drawn in the state already stored: nothing changed
+  if(v && window.dispatchEvent) setTimeout(function(){ window.dispatchEvent(new Event('resize')); }, 30);   // charts/maps inside re-measure
+  if(ROLE==='chelsea' || (v && MORE_PEEK[k])) return;                // her view always opens it; a peek isn't remembered
+  st[k]=v; try{ localStorage.setItem(MORE_LS, JSON.stringify(st)); }catch(e){} }
 function moreDrawer(key, html, label){
   if(!html || !String(html).replace(/<[^>]*>/g,'').trim()) return '';
-  var n=(String(html).match(/class="card[" ]/g)||[]).length, open=ROLE==='chelsea' || moreState()[key]===1;
+  var n=(String(html).match(/class="card[" ]/g)||[]).length, open=ROLE==='chelsea' || moreState()[key]===1 || !!MORE_PEEK[key];
   return '<details class="more-drawer" data-more="'+esc(key)+'"'+(open?' open':'')+' ontoggle="moreSave(this)"><summary><span class="md-t">'+esc(label||'More')+'</span>'
     +(n?'<span class="md-n">'+n+' more</span>':'')+'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></summary><div class="more-body">'+html+'</div></details>'; }
-function moreReveal(el){ for(var d=el&&el.closest&&el.closest('details.more-drawer'); d; d=d.parentElement&&d.parentElement.closest('details.more-drawer')){ if(!d.open){ d.open=true; moreSave(d); } } }
+function moreReveal(el){ for(var d=el&&el.closest&&el.closest('details.more-drawer'); d; d=d.parentElement&&d.parentElement.closest('details.more-drawer')){ if(!d.open){ MORE_PEEK[d.getAttribute('data-more')]=1; d.open=true; } } }
+/* the drawer's "N more" counts cards in its HTML; widgets mounted afterwards (Flying's trip planner) are added by a recount */
+function moreRecount(){ [].slice.call($('panels').querySelectorAll('details.more-drawer')).forEach(function(d){ var body=d.querySelector('.more-body'), n=0, el=d.querySelector('.md-n'); if(!body||!el) return;
+  [].slice.call(body.querySelectorAll('.card, .xc-card')).forEach(function(c){ var up=c.parentElement&&c.parentElement.closest('.card, .xc-card'); if(!up||!body.contains(up)) n++; });
+  if(n) el.textContent=n+' more'; }); }
 function foldAll(on){ [].slice.call($('panels').querySelectorAll('.card.foldable')).forEach(function(c){ foldToggle(c, on); }); var b=document.querySelector('.pm-fold'); if(b) b.textContent=on?'Expand all':'Collapse all'; }
 document.addEventListener('click', function(e){ var h=e.target.closest('.card.foldable > h2'); if(!h) return; if(e.target.closest('a, input, select, textarea, .ebtn:not(.fold-btn)')) return; foldToggle(h.parentElement); });
 document.addEventListener('keydown', function(e){ if((e.key==='Enter'||e.key===' ') && e.target.matches && e.target.matches('.card.foldable > h2')){ e.preventDefault(); foldToggle(e.target.parentElement); } });
@@ -2092,13 +2111,15 @@ document.addEventListener('keydown', function(e){ if((e.key==='Enter'||e.key==='
 var PAGEMAP={io:null};
 function pageMap(){
   var p=$('panels'); if(!p) return; if(PAGEMAP.io){ PAGEMAP.io.disconnect(); PAGEMAP.io=null; }
-  var old=p.querySelector(':scope > .subnav, :scope > .pagemap'); var extra=old?[].slice.call(old.querySelectorAll('a')).filter(function(a){ return /navGo/.test(a.getAttribute('onclick')||''); }):[];
+  var old=p.querySelector(':scope > .subnav, :scope > .pagemap'), oldA=old?[].slice.call(old.querySelectorAll('a')):[];
+  // a hand-made row's other links ride along: jumps into the More drawer (they call moreReveal) before the More chip, tab links after
+  var reveal=oldA.filter(function(a){ return /moreReveal/.test(a.getAttribute('onclick')||''); }), extra=oldA.filter(function(a){ var o=a.getAttribute('onclick')||''; return /navGo/.test(o) && !/moreReveal/.test(o); });
   if(p.scrollHeight < window.innerHeight*2.2){ return; }
-  if(CURRENT==='mail') return;   // Mail's brief bar chips already jump to each section
+  if(CURRENT==='mail' || CURRENT==='overview') return;   // Mail's brief bar chips already jump to each section; Today is three cards and a map only pushed its Top 3 below the fold
   var divs=[].slice.call(p.querySelectorAll('.domain-sec')), targets=[];
   // a hand-made subnav with 4+ named sections wins (its labels are better than anything inferred)
   var named=old?[].slice.call(old.querySelectorAll('a')).map(function(a){ var m=(a.getAttribute('onclick')||'').match(/getElementById\('([^']+)'\)/); var el=m&&document.getElementById(m[1]); return el?{el:el, t:a.textContent.trim()}:null; }).filter(Boolean):[];
-  if(named.length>=4){ targets=named; divs=[]; }
+  if(named.length>=4){ targets=named; divs=[]; reveal=[]; }
   var cards=[].slice.call(p.querySelectorAll('.card')).filter(function(c){ return c.querySelector(':scope > h2') && !c.closest('.card .card') && !c.closest('.more-drawer'); });
   divs=divs.filter(function(d){ return !d.closest('.more-drawer'); });
   function label(t){ t=String(t||'').replace(/^[^A-Za-z0-9₿$]+/,'').replace(/[—:(].*$/,'').trim(); return t.length>26?t.slice(0,25)+'…':t; }
@@ -2110,14 +2131,17 @@ function pageMap(){
   } else {
     cards.forEach(function(c){ var t=label(c.querySelector('h2').textContent); if(t) targets.push({el:c, t:t}); });
   }
-  var drw=p.querySelector('.more-drawer'); if(drw) targets.push({el:drw, t:'More'});
+  var drw=p.querySelector('.more-drawer'), xa=function(a){ return '<a class="pm-i pm-x" href="javascript:void(0)" onclick="'+esc(a.getAttribute('onclick'))+'">'+esc(a.textContent)+'</a>'; };
+  if(drw) targets.push({el:drw, t:'More'}); else extra=reveal.concat(extra);
   if(targets.length<3) return;
   targets.forEach(function(x,i){ if(!x.el.id) x.el.id='pm-'+i; x.el.style.scrollMarginTop='72px'; });
   var bar=document.createElement('nav'); bar.className='pagemap'; bar.setAttribute('aria-label','On this page');
-  bar.innerHTML='<span class="pm-l">On this page</span>'+targets.map(function(x){ return '<a class="pm-i" data-t="'+x.el.id+'" href="#'+x.el.id+'">'+esc(x.t)+'</a>'; }).join('')
-    +extra.map(function(a){ return '<a class="pm-i pm-x" href="javascript:void(0)" onclick="'+esc(a.getAttribute('onclick'))+'">'+esc(a.textContent)+'</a>'; }).join('')
+  bar.innerHTML='<span class="pm-l">On this page</span>'+targets.map(function(x){ return (x.el===drw?reveal.map(xa).join(''):'')+'<a class="pm-i" data-t="'+x.el.id+'" href="#'+x.el.id+'">'+esc(x.t)+'</a>'; }).join('')
+    +extra.map(xa).join('')
     +(p.querySelector('.card.foldable')?'<button type="button" class="pm-i pm-fold" onclick="foldAll(this.textContent===\'Collapse all\')">'+(p.querySelectorAll('.card.foldable.folded').length>p.querySelectorAll('.card.foldable').length/2?'Expand all':'Collapse all')+'</button>':'');
-  bar.addEventListener('click', function(e){ var a=e.target.closest('a[data-t]'); if(!a) return; e.preventDefault(); var t=document.getElementById(a.getAttribute('data-t')); if(t) t.scrollIntoView({behavior:'smooth', block:'start'}); });
+  bar.addEventListener('click', function(e){ var a=e.target.closest('a[data-t]'); if(!a) return; e.preventDefault(); var t=document.getElementById(a.getAttribute('data-t')); if(!t) return;
+    if(t.matches('details.more-drawer') && !t.open) moreReveal(t.querySelector('.more-body'));   // More opens the drawer (for this visit), not just scrolls to its bar
+    t.scrollIntoView({behavior:'smooth', block:'start'}); });
   if(old) old.replaceWith(bar);
   else { var anchor=targets[0].el; while(anchor.parentElement && anchor.parentElement!==p) anchor=anchor.parentElement; p.insertBefore(bar, anchor.parentElement===p?anchor:p.firstChild); }
   if('IntersectionObserver' in window){
@@ -2434,31 +2458,36 @@ function goalBar(label, pct, sub, color){ pct=Math.max(0,Math.min(100,Math.round
     +'<span class="mono" style="color:var('+color+')">'+pct+'%</span></div>'
     +'<div class="bar"><span style="width:'+pct+'%;background:var('+color+')"></span></div>'
     +(sub?'<div class="foot">'+esc(sub)+'</div>':'')+'</div>'; }
+/* Today's Goal progress (More drawer): only goals the trend tiles don't already show — weight and the cash buffer have their own tiles up top */
 function goalsHtml(){
-  var out='', h=kv('Health'), cur=num(h.weight), goal=num(h.weight_goal), ws=weightSeries();
-  if(!isNaN(cur)&&!isNaN(goal)){ var start=ws.length?Math.max.apply(null,ws):cur; start=Math.max(start,goal+1);
-    out+=goalBar('Weight → '+goal+' lb', (start-cur)/(start-goal)*100, cur+' lb now · '+Math.max(0,Math.round(cur-goal))+' to go', '--pink'); }
+  var out='';
   var fh=num(kv('Flying').total_hours); if(!isNaN(fh)) out+=goalBar('Flying → PPL (~60 hr est.)', fh/60*100, fh+' hrs logged', '--sky');
   var heloc=arr('Debts').filter(function(d){return /heloc/i.test(String(d.Type)+String(d.Name));})[0];
   if(heloc){ var bal=num(heloc.Balance)||0; out+=goalBar('Pay off HELOC', (20000-bal)/20000*100, money(bal)+' left of $20k', '--emerald'); }
-  var cash=arr('Accounts').reduce(function(s,a){var t=String(a.Type||'').toLowerCase();return s+(t.indexOf('credit')>=0?0:(num(a.Balance)||0));},0);
-  out+=goalBar('Cash buffer → $40k', cash/40000*100, money(cash)+' liquid', '--gold');
-  return out||'<div class="empty">Set weight & goals to track progress.</div>';
+  return out;
 }
 /* event time: "h:mm AM" text, or a Sheets time value (1899-12-30THH:MM…Z, stored 8h ahead of Pacific) */
 function evMins(t){ t=String(t||''); var m=t.match(/^1899-12-30T(\d\d):(\d\d)/); if(m) return ((+m[1]-8+24)%24)*60+(+m[2]);
   m=t.match(/(\d+):(\d+)\s*(AM|PM)/i); return m?((+m[1]%12)+(/pm/i.test(m[3])?12:0))*60+(+m[2]):-1; }
 function evTime(t){ var n=evMins(t); if(n<0) return String(t||''); var h=Math.floor(n/60), mm=n%60; return ((h%12)||12)+':'+('0'+mm).slice(-2)+' '+(h<12?'AM':'PM'); }
-function agendaHtml(){
-  var ev=arr('Events').filter(function(e){return has(e.Title);})
-    .sort(function(a,b){ var da=String(a.Date).slice(0,10), db=String(b.Date).slice(0,10); return da<db?-1:da>db?1:evMins(a.Time)-evMins(b.Time); });
-  if(!ev.length) return '<div class="empty">No events in the next 7 days. To see your Apple calendars here: iPhone Calendar app → Calendars → ⓘ next to a calendar → turn on <b>Public Calendar</b> → Share Link, and send Claude the link.</div>';
-  var days=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-  return ev.slice(0,10).map(function(e){ var m=String(e.Date).match(/(\d{4})-(\d{2})-(\d{2})/);
-    var dl=m?(days[new Date(+m[1],+m[2]-1,+m[3]).getDay()]+' '+(+m[3])):esc(e.Date);
-    return '<div class="kv-row"><span class="k"><span class="mono" style="color:var(--text-dim);font-size:12px">'+dl+'</span> · '+esc(e.Title)+(has(e.Location)?' <span style="color:var(--text-dim)">· '+esc(e.Location)+'</span>':'')+'</span><span class="v" style="color:var(--text-muted);font-size:12.5px">'+esc(evTime(e.Time))+'</span></div>';
-  }).join('');
-}
+/* Today's "Next 7 days" calendar, compact: day · time · title (short location dimmed, 3 lines max; full text on hover). Events earlier today that started
+   over an hour ago drop off. Returns one row per event so the card can show the first few and tuck the rest under "N more". */
+function agendaEvents(){
+  var n=laNow(), today=ymd(n), nowM=n.getHours()*60+n.getMinutes();
+  return arr('Events').filter(function(e){ if(!has(e.Title)) return false; var ds=String(e.Date).slice(0,10);
+      if(/^\d{4}-\d\d-\d\d$/.test(ds) && ds<today) return false; var m=evMins(e.Time); return !(ds===today && m>=0 && m<nowM-60); })
+    .sort(function(a,b){ var da=String(a.Date).slice(0,10), db=String(b.Date).slice(0,10); return da<db?-1:da>db?1:evMins(a.Time)-evMins(b.Time); }); }
+function agendaRows(ev){
+  var days=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'], today=ymd(laNow());
+  return ev.map(function(e,i){ var ds=String(e.Date).slice(0,10), m=ds.match(/(\d{4})-(\d{2})-(\d{2})/);
+    var first=!i||String(ev[i-1].Date).slice(0,10)!==ds, sameNext=ev[i+1]&&String(ev[i+1].Date).slice(0,10)===ds;
+    var dl=ds===today?'Today':(m?days[new Date(+m[1],+m[2]-1,+m[3]).getDay()]+' '+(+m[3]):esc(e.Date));
+    var full=String(e.Title)+(has(e.Location)?' · '+e.Location:''), loc=String(e.Location||'').replace(/,?\s*United States$/i,'').replace(/,?\s*[A-Z]{2}\s+\d{5}(-\d{4})?$/,'').trim();
+    return '<div class="kv-row" style="flex-wrap:nowrap;gap:10px;padding:7px 0;align-items:baseline'+(sameNext?';border-bottom:none':'')+'">'
+      +'<span class="mono" style="flex:0 0 46px;font-size:12px;color:var('+(ds===today?'--accent':'--text-dim')+')">'+(first?dl:'')+'</span>'
+      +'<span class="mono" style="flex:0 0 60px;font-size:12px;color:var(--text-muted);white-space:nowrap">'+esc(evTime(e.Time))+'</span>'
+      +'<span class="k" title="'+esc(full)+'" style="flex:1 1 auto;color:var(--text);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden">'+esc(e.Title)
+      +(loc?' <span style="color:var(--text-dim)">· '+esc(loc)+'</span>':'')+'</span></div>'; }); }
 function snapCard(tab, rowsHtml){ var d=DOMAIN[tab];
   return '<div class="card" style="border-top:3px solid var('+d[1]+');cursor:pointer" onclick="navGo(\''+tab+'\')">'
     +'<div style="display:flex;justify-content:space-between;align-items:center"><h2 style="font-size:15px">'+(d[2]?d[2]+' ':'')+d[0]+'</h2><span class="foot" style="color:var('+d[1]+')">Open →</span></div>'
@@ -2569,8 +2598,8 @@ function vfrWindowCard(){
     +'<div class="kv-row"><span class="k">Sunset</span><span class="v mono">'+fmtT(ss)+'</span></div>'
     +'<div class="kv-row"><span class="k">Evening civil twilight (night begins)</span><span class="v mono">'+fmtT(dusk)+'</span></div>';
   var daylen = (sr&&ss)? Math.round((ss-sr)/6e4) : null;
-  var foot = daylen!=null ? Math.floor(daylen/60)+'h '+(daylen%60)+'m of daylight · Day VFR runs sunrise→sunset; night currency & lighting apply after evening twilight.' : '';
-  return card('VFR day window — KMEV','Local Pacific time. Plan your flying hours.', rows+(foot?'<p class="foot foot-dim foot-gap">'+foot+'</p>':''), '--sky');
+  var foot = daylen!=null ? Math.floor(daylen/60)+'h '+(daylen%60)+'m of daylight · night currency & lighting apply after evening twilight.' : '';
+  return card('VFR day window — KMEV','Today, Pacific time.', rows+(foot?'<p class="foot foot-dim foot-gap">'+foot+'</p>':''), '--sky');
 }
 /* ---------- Go / no-go takeoff performance at current density altitude ---------- */
 function goNoGoCard(){
@@ -2601,14 +2630,14 @@ function goNoGoCard(){
   else if(issues.length){ level='CAUTION'; lcol='--amber'; advice='Watch: '+issues.join(' · ')+'.'+(roll>=3000?' Lean for best power, lighten the load, or go early while it\'s cool.':''); }
   else { level='GO'; lcol='--green'; advice='Weather is VFR within your student limits (wind & gusts under 10 kt, crosswind ≤10) and the runway is plenty long for today\'s density altitude.'+(tp?'':' (TAF still loading.)'); }
   var rows='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><span class="foot">Verdict</span><span class="tag" style="color:var('+lcol+');border:1px solid var('+lcol+');background:transparent;font-weight:700">'+level+'</span></div>'
-    +'<div class="kv-row"><span class="k">Density altitude</span><span class="v mono">'+da.da.toLocaleString()+' ft</span></div>'
+    +'<div class="kv-row"><span class="k">Density altitude <span class="foot foot-dim foot-inline">'+da.tempC+'°C</span></span><span class="v mono">'+da.da.toLocaleString()+' ft</span></div>'
     +'<div class="kv-row"><span class="k">Est. ground roll</span><span class="v mono" style="color:var('+(roll>=3000?'--amber':'--text')+')">~'+roll.toLocaleString()+' ft</span></div>'
     +'<div class="kv-row"><span class="k">Runway 16/34 available</span><span class="v mono">7,400 ft</span></div>';
   var sk=sickNow();
   if(sk) rows='<div style="border:1px solid var(--amber);border-radius:10px;padding:10px 12px;margin-bottom:10px;color:var(--amber);font-weight:600">🤒 IMSAFE — you\'re logged as sick (day '+sk.day+'). Don\'t fly until you\'re symptom-free and off cold meds.</div>'+rows;
-  return card('Go / no-go — takeoff @ KMEV','Weather (KMEV TAF + nearest observation) and runway performance ('+da.src+', '+da.tempC+'°C).',
+  return card('Go / no-go — takeoff @ KMEV','Weather + runway, next 3 hrs · '+da.src+'.',
     rows+'<p style="font-size:12.5px;color:var(--text-muted);margin:12px 0 0">'+advice+'</p>'
-    +'<p class="foot foot-dim foot-gap-s">Rough estimate for planning only — not a substitute for the POH performance charts and your own weight & balance.</p>','--sky');
+    +'<p class="foot foot-dim foot-gap-s">Rough planning estimate, not a substitute for the POH charts and your own weight & balance.</p>','--sky');
 }
 /* ---------- Overview: the top idea from each venture track (Deals, Properties, side income) ---------- */
 function ventureBestBetsCard(){
@@ -2632,7 +2661,7 @@ function ventureBestBetsCard(){
     : row('🏘️','Real estate investment', unvProps?'No verified rental this week':'Nothing cash-flows at today’s rates', unvProps?unvProps+' in the pipeline couldn’t be verified live':'Near Carson or in Winnemucca · the daily search keeps looking');
   out+= row('💡','Side income (start now)','Anchor Soul Coaching + church websites',
       coach+'/'+coachGoal+' coaching clients · '+web+'/'+webGoal+' church sites · '+money(side)+'/mo recurring now');
-  return card('🎯 Best bets','The top idea from each venture track — tap for the full pipeline.', out, '--indigo') + '<div style="height:22px"></div>';
+  return card('🎯 Best bets','The top idea from each venture track.', out, '--indigo');
 }
 
 /* ---------- Acquisition readiness: buy-box capital plan as live progress ---------- */
@@ -2641,27 +2670,10 @@ function acquisitionReadinessCard(){
   var heloc=arr('Debts').filter(function(d){return /heloc/i.test(String(d.Type)+String(d.Name));})[0];
   var helocBal=heloc?(num(heloc.Balance)||0):0;
   var crypto=arr('Investments').filter(function(i){return /crypto|btc|bitcoin/i.test(String(i.Type)+' '+String(i.Name));}).reduce(function(s,i){return s+(num(i.Value)||0);},0);
-  var out=goalBar('Cash buffer → $40k', cash/40000*100, money(cash)+' liquid of $40k', '--emerald');
+  var out=goalBar('Buy-box cash → $40k', cash/40000*100, money(cash)+' liquid of $40k', '--emerald');   // the buy-box plan's mark, not Money's cash-buffer target
   out+=goalBar('Kill the HELOC', helocBal>0?((20000-helocBal)/20000*100):100, helocBal>0?money(helocBal)+' left':'clear ✓', '--rose');
   out+=goalBar('Acquisition fund → $150k', crypto/150000*100, money(crypto)+' (crypto, trim on ladder)', '--gold');
-  return card('Acquisition readiness','Your buy-box says: build ~$40k cash, kill the HELOC, keep dry powder. Live progress:', out, '--indigo');
-}
-/* ---------- BTC scenario → capital freed at each rung ---------- */
-function btcScenarioCard(){
-  var crypto=arr('Investments').filter(function(i){return /crypto|btc|bitcoin/i.test(String(i.Type)+' '+String(i.Name));}).reduce(function(s,i){return s+(num(i.Value)||0);},0);
-  if(!crypto) return '';
-  var spot=LIVE.btc;
-  var rungs=[250000,1000000];
-  var rowsBody=rungs.map(function(p){
-    var q=num(kv('Config').btc_qty), rest=spot&&q?Math.max(0,crypto-q*spot):0;   // non-BTC crypto (SOL) held flat
-    var proj = q ? Math.round(q*p+rest) : (spot? Math.round(crypto*(p/spot)) : null);
-    var trim = proj? Math.round(proj*0.5) : null;   // illustrative: trim ~half at the rung
-    return '<div class="kv-row"><span class="k">At $'+ (p/1000>=1000?(p/1e6)+'M':(p/1000)+'k') +'/BTC</span><span class="v mono">'+(proj!=null?money(proj)+' <span class="foot foot-dim">· trim ~'+money(trim)+'</span>':'—')+'</span></div>';
-  }).join('');
-  var head='<div class="kv-row"><span class="k">Crypto position now</span><span class="v mono">'+money(crypto)+'</span></div>'
-    +'<div class="kv-row"><span class="k">BTC spot (live)</span><span class="v mono" '+(spot?'':'data-live="btc"')+'>'+(spot?'$'+Math.round(spot).toLocaleString():'…')+'</span></div>';
-  return card('BTC → acquisition capital','If your position tracks BTC, what each rung could free (trim ≈ half, illustrative).', head+rowsBody
-    +'<p class="foot foot-dim foot-gap">'+(num(kv('Config').btc_qty)?'Uses your '+kv('Config').btc_qty+' BTC'+(num(kv('Config').sol_qty)?' (+ '+kv('Config').sol_qty+' SOL held at today’s price)':'')+'.':'Assumes the whole crypto position moves with BTC. Add btc_qty in Config for exact math.')+'</p>','--gold');
+  return card('Acquisition readiness','Buy-box plan: ~$40k cash, no HELOC, dry powder.', out, '--indigo');
 }
 /* ---------- Side-income funnel: church web + coaching toward MRR goals ---------- */
 function sideIncomeFunnelCard(){
@@ -2673,7 +2685,7 @@ function sideIncomeFunnelCard(){
   out+=goalBar('Coaching — '+coachNow+'/'+coachGoal+' clients', coachTgt?coachMrr/coachTgt*100:0, money(coachMrr)+'/mo of '+money(coachTgt)+'/mo goal', '--indigo');
   var total=webMrr+coachMrr;
   out+='<div class="kv-row" style="border-top:1px solid var(--card-border);margin-top:6px;padding-top:8px"><span class="k"><strong>Recurring now</strong></span><span class="v mono" style="color:var(--green)">'+money(total)+'/mo</span></div>';
-  return card('Side-income funnel','Anchor Soul recurring revenue toward your targets. Update counts with ✎ Edit → Ventures.', out, '--indigo');
+  return card('Side-income funnel','Anchor Soul recurring revenue vs. your targets.', out+'<p class="foot foot-dim foot-gap">Update counts with ✎ Edit → Ventures.</p>', '--indigo');
 }
 /* ---------- Biggest movers: which budget lines are trending up ---------- */
 function biggestMoversCard(){
@@ -2778,7 +2790,7 @@ function big3Card(){
   var top=steps.slice(0,3).map(function(s,i){return item(s,i,true);}).join('');
   var rest=steps.slice(3);
   var more=rest.length?'<details class="mit-more"><summary>'+rest.length+' more on your list</summary>'+rest.map(function(s,i){return item(s,i,false);}).join('')+'</details>':'';
-  return card('Today’s top 3','Do these first. Everything else can wait (Ivy Lee method).', top+more, '--gold');
+  return card('Today’s top 3','Do these first. Everything else can wait.', top+more, '--gold');
 }
 function rhythmCard(){
   var today=ymd(laNow()), hb=arr('Habits').filter(function(h){return has(h.Practice);});
@@ -2786,7 +2798,7 @@ function rhythmCard(){
   var rows=hb.map(function(h){ var done=String(h.LastDone||'').slice(0,10)===today, st=parseInt(h.Streak,10)||0;
     return '<div class="rh'+(done?' rh-done':'')+'"><button class="chk'+(done?' on':'')+'" '+(done?'disabled':'onclick="this.disabled=true;this.classList.add(\'on\');this.textContent=\'✓\';habitDidToday('+h.__row+')"')+'>'+(done?'✓':'')+'</button>'
       +'<span class="rh-t">'+esc(h.Practice)+'<span class="rh-c">'+(/scripture|bible/i.test(h.Practice)?(function(){var r=todaysReading(); return '<a href="'+r.url+'" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="color:var(--gold);text-decoration:none">'+esc(r.ot+' · '+r.nt)+' ↗</a>';})():esc(h.Cadence||''))+'</span></span><span class="rh-s">'+(st?'🔥 '+st+'d':'')+'</span></div>'; }).join('');
-  return card('Daily rhythm','Small, repeatable, non-negotiable. Tap to log.', rows, '--gold');
+  return card('Daily rhythm','Tap to log.', rows, '--gold');
 }
 /* weekly scorecard — a handful of lead measures, each with a target and a traffic light */
 function scorecardRows(){
@@ -2811,8 +2823,8 @@ function scorecardRows(){
   row('flying','Days since last flight', dsf==null?'—':dsf, '≤ 7', dsf==null?'r':(dsf<=7?'g':(dsf<=14?'a':'r')), 'currency + skill retention');
   var ov=budgetOverruns(), ovTot=ov.reduce(function(s,o){return s+o.over;},0);
   row('home','Budget lines over plan', ov.length, '≤ 3', ov.length<=3?'g':(ov.length<=6?'a':'r'), ov.length?'+'+money(ovTot)+'/mo · biggest: '+ov.slice(0,2).map(function(o){return o.cat+' +'+money(o.over);}).join(', '):'all lines on plan');
-  var cash=liquidCash();
-  row('home','Cash buffer', money2(cash), '$40k', cash>=40000?'g':(cash>=25000?'a':'r'));
+  var cash=liquidCash(), bufT=num(kv('Tax').cash_buffer_target)||35000;   // same target as the Cash buffer tile
+  row('home','Cash buffer', money2(cash), money2(bufT), cash>=bufT?'g':(cash>=bufT*0.625?'a':'r'));
   var heloc=arr('Debts').filter(function(d){return /heloc/i.test(String(d.Type)+String(d.Name));})[0], hb=heloc?(num(heloc.Balance)||0):0;
   row('home','HELOC balance', money2(hb), '$0', hb<=0?'g':(hb<10000?'a':'r'));
   var nws=nwSeries(); if(nws.length){ var nwd=nws.length>=2?nws[nws.length-1]-nws[Math.max(0,nws.length-5)]:0;
@@ -2832,35 +2844,48 @@ function scorecardCard(){
   var body='<div class="sc">'+rows.map(function(r){ return '<div class="sc-row" onclick="navGo(\''+r.tab+'\')"><span class="sc-dot '+cls[r.status]+'"></span>'
     +'<span class="sc-l">'+esc(r.label)+(r.note?'<span class="sc-n">'+esc(r.note)+'</span>':'')+'</span><span class="sc-v">'+r.now+'</span><span class="sc-t">'+r.target+'</span><span class="sc-s '+cls[r.status]+'">'+lbl[r.status]+'</span></div>'; }).join('')+'</div>';
   var g=rows.filter(function(r){return r.status==='g';}).length;
-  return card('Weekly scorecard', g+' of '+rows.length+' on track. Lead measures you control — green, amber, red at a glance (EOS / 12 Week Year).', body, '--emerald');
+  return card('Weekly scorecard', g+' of '+rows.length+' on track — lead measures you control.', body, '--emerald');
 }
+/* Next 7 days (Today, up front): calendar + what's due in 2 weeks. First 6 events show, the rest sit under "N more this week";
+   later deadlines (renewals, trips) under "N coming up later". Empty blocks are skipped; with nothing at all it's one quiet line. */
 function agendaCard(){
-  var al=upcomingAlerts();
-  var due = al.length ? al.slice(0,6).map(function(a){return '<div class="kv-row" style="cursor:pointer" onclick="navGo(\''+a.tab+'\')"><span class="k">'+a.label+(a.sub?' <span style="color:var(--text-dim)">· '+a.sub+'</span>':'')+'</span><span class="v '+dueClass(a.d)+'">'+fmtDue(a.d)+'</span></div>';}).join('') : '<div class="empty">Nothing due in the next two weeks.</div>';
-  return card('Next 7 days','Calendar, deadlines and renewals in one place.', '<div class="agenda-h">Calendar</div>'+agendaHtml()+'<div class="agenda-h" style="margin-top:14px">Due soon</div>'+due, '--cyan');
+  var ev=agendaEvents(), rows=agendaRows(ev), al=upcomingAlerts();
+  var soon=al.filter(function(a){ return a.d<=14; }).slice(0,5), later=al.filter(function(a){ return soon.indexOf(a)<0; }).slice(0,8);
+  var drow=function(a){ return '<div class="kv-row" style="cursor:pointer;padding:7px 0" onclick="navGo(\''+a.tab+'\')"><span class="k">'+a.label+(a.sub?' <span style="color:var(--text-dim)">· '+a.sub+'</span>':'')+'</span><span class="v '+dueClass(a.d)+'">'+fmtDue(a.d)+'</span></div>'; };
+  var howto='To see your Apple calendars here: iPhone Calendar app → Calendars → ⓘ next to a calendar → turn on <b>Public Calendar</b> → Share Link, and send Claude the link.';
+  if(!rows.length && !al.length) return '<details class="foot foot-dim" style="margin:0 2px 22px"><summary style="cursor:pointer">Nothing on the calendar or due in the next two weeks.</summary><div style="margin-top:6px">'+howto+'</div></details>';
+  var cal=rows.slice(0,6).join('')+(rows.length>6?'<details class="mit-more"><summary>'+(rows.length-6)+' more this week</summary>'+rows.slice(6).join('')+'</details>':'');
+  var dueLater=later.length?'<details class="mit-more"><summary>'+later.length+' deadline'+(later.length===1?'':'s')+' coming up later</summary>'+later.map(drow).join('')+'</details>':'';
+  var body=!soon.length?cal+dueLater:(!rows.length?soon.map(drow).join('')+dueLater
+    :'<div class="grid cols-2" style="gap:14px 32px"><div><div class="agenda-h">Calendar</div>'+cal+'</div><div><div class="agenda-h">Due soon</div>'+soon.map(drow).join('')+dueLater+'</div></div>');
+  return card('Next 7 days','', body, '--cyan')+'<div style="height:22px"></div>';
 }
+/* Today (simplified Oct 2026): the command-deck frame (greeting + gauges, call/mail bars, Top 3 | Daily rhythm | 5 trend tiles),
+   then the Tesla watch only when it needs a decision, then Next 7 days. Everything else — Radar, Best bets, Goal progress,
+   Weekly scorecard and a quiet Tesla watch — lives in the "More on Today" drawer. */
 function renderOverview(){
   var nw=netWorth(), h=kv('Health'), cur=num(h.weight), goal=num(h.weight_goal), wk=trainingWeek().sessions;
-  var tw=teslaWatchCard();   // only while a Tesla is still 'Considering' (see Config tesla_* keys)
+  var tw=teslaWatchCard(), twHot=!!tw&&teslaWatchHot();   // card only while a Tesla is still 'Considering' (see Config tesla_* keys)
   var liq=liquidCash(), bufT=num(kv('Tax').cash_buffer_target)||35000, h90=flightHoursSince(90);
   var pulse='<div class="deck-pulse">'
     + trendCard('Net worth', nw?money2(nw):'—', nwSeries(), '--accent', 'tracking')
     + trendCard('Cash buffer', money(liq), null, '--accent-b', Math.round(liq/bufT*100)+'% of the '+money(bufT)+' target', Math.max(0,Math.min(100,liq/bufT*100)))
-    + trendCard('Weight', (!isNaN(cur)?cur+' lb':'—'), weightSeries(), '--accent', 'toward '+(isNaN(goal)?'goal':goal+' lb'))
+    + trendCard('Weight', (!isNaN(cur)?cur+' lb':'—'), weightSeries(), '--accent', 'toward '+(isNaN(goal)?'goal':goal+' lb'+(!isNaN(cur)&&cur>goal?' · '+Math.round(cur-goal)+' to go':'')))
     + trendCard('Workouts this week', ''+wk, workoutWeekSeries(), '--accent-b', 'weekly, last 8 wks')
     + trendCard('Flight hours · 90 days', h90.toFixed(1)+' h', null, '--accent', (daysSinceFlight()!=null?daysSinceFlight()+' days since last flight':'no flights logged'))
     + '</div>';
-  var trends='';
+  var goals=goalsHtml();
+  var more='<div class="grid cols-2" style="margin-bottom:22px">'
+    + card('📡 Radar','What changed that affects your plans.', radarHtml(), '--gold')
+    + '<div style="display:flex;flex-direction:column;gap:22px">' + ventureBestBetsCard() + (goals?card('Goal progress','Where you stand on the big ones.', goals, '--gold'):'') + '</div>'
+    + '</div>'
+    + scorecardCard() + '<div style="height:22px"></div>'
+    + (tw&&!twHot?tw:'');
   return todayHero() + testDayBar() + callBar() + mailBar()
     + '<div class="grid g-today" style="margin-bottom:22px">' + big3Card() + rhythmCard() + pulse + '</div>'
-    + scorecardCard() + '<div style="height:22px"></div>'
-    + '<div class="grid cols-2" style="margin-bottom:22px">'
-    + card('📡 Radar','What changed out there that affects your plans, money, and flying.', radarHtml(), '--gold')
-    + ventureBestBetsCard().replace('<div style="height:22px"></div>','')
-    + '</div>'
-    + (tw?tw+'<div style="height:22px"></div>':'')
-    + trends
-    + '<div class="grid cols-2" style="margin-bottom:22px">' + agendaCard() + card('Goal progress','Where you stand on the big ones.', goalsHtml(), '--gold') + '</div>';
+    + (twHot?tw+'<div style="height:22px"></div>':'')
+    + agendaCard()
+    + moreDrawer('overview', more, 'More on Today');
 }
 function printReview(){
   var nw=netWorth(), bills=totalMonthlyBills(), h=kv('Health'), fly=kv('Flying');
@@ -2919,10 +2944,10 @@ function printBinder(){
    ============================================================ */
 function secDivider(t,id){ return '<div id="'+id+'" style="height:30px;scroll-margin-top:70px"></div><div class="section-title domain-sec">'+t+'</div>'; }
 function subnavHtml(items){ return '<div class="subnav">'+items.map(function(s){return '<a class="subpill" href="javascript:void(0)" onclick="var e=document.getElementById(\''+s[1]+'\');if(e)e.scrollIntoView({behavior:\'smooth\'})">'+s[0]+'</a>';}).join('')+'</div>'; }
-function renderHome(){
-  return subnavHtml([['Net worth & budget','sec-money'],['Bills & contacts','sec-bills']]).replace('</div>','<a class="subpill" href="javascript:void(0)" onclick="navGo(\'taxes\')">Taxes →</a></div>')
-    + '<div id="sec-money"></div>' + renderMoney()
-    + secDivider('Bills & vendor contacts','sec-bills') + renderBills();
+function renderHome(){   // Money tab. Bills, contacts and receipts now live in renderMoney's "More on Money" drawer; jumps open it first
+  var go=function(t,id){ return '<a class="subpill" href="javascript:void(0)" onclick="var e=document.getElementById(\''+id+'\');if(e){moreReveal(e);e.scrollIntoView({behavior:\'smooth\'})}">'+t+'</a>'; };
+  return '<div class="subnav">'+go('Raise &amp; Roth plan','sec-plan')+go('Accounts','sec-accts')+go('Bills &amp; contacts','sec-bills')+'<a class="subpill" href="javascript:void(0)" onclick="navGo(\'taxes\')">Taxes →</a></div>'
+    + '<div id="sec-money"></div>' + renderMoney();
 }
 /* Home & Life: everything about the household that isn't money */
 /* ---------- Points game plan: best transfer partners for Brad's actual trips (RNO home; FL family, AK trip, Tahoe, western hunts) ---------- */
@@ -2952,15 +2977,78 @@ function pointsPlanCard(points){
     + cur('Amex Membership Rewards'+bal(/amex|membership/i),'Aeroplan → Flying Blue · avoid “pay with points” (~0.6¢)')
     + cur('Capital One'+bal(/capital one/i),'Purchase Eraser for AK/hunting trips (1¢) · Aeroplan / Flying Blue / BA for flights')
     + '<p class="foot foot-dim foot-gap">Rules of thumb: find the award seat first, then transfer. Keep small airline balances alive (United and Southwest miles don’t expire). Transfer ratios and bonuses change — check before moving points.</p>';
-  return card('Points game plan', 'Where your points go furthest for the trips you actually take (home airport: Reno).', body, '--cyan');
+  return card('Points game plan', 'Best use of your points for the trips you take (from Reno).', body, '--cyan');
 }
+/* Home & Life, simplified (Oct 2026, Brad: "cluttered — simplify"). Up front: this week's drive-in calls, what's due (car service,
+   renewals, project tasks, trips, hunt draws), four numbers, and every project as one tap-to-open row. Everything else — emergency
+   binder + household reference, the call list, the task planner, each vehicle + maintenance, hobbies + hunting, travel + points —
+   sits in one "More on Home & Life" drawer (moreDrawer; Chelsea's view shows it open). Nothing removed: sec-family / sec-vehicles /
+   sec-hobbies / sec-travel live in the drawer (navGo opens it), sec-projects is up front. */
 function renderLife(){
-  return subnavHtml([['Family & household','sec-family'],['Projects','sec-projects'],['Vehicles','sec-vehicles'],['Hunting & hobbies','sec-hobbies'],['Travel & points','sec-travel']])
-    + '<div id="sec-family" style="scroll-margin-top:70px"></div>' + callRotationCard() + '<div style="height:22px"></div>' + renderFamily()
-    + secDivider('Projects','sec-projects') + renderProjects()
+  var jump=function(t,id){ return '<a class="subpill" href="javascript:void(0)" onclick="var e=document.getElementById(\''+id+'\');if(e)e.scrollIntoView({behavior:\'smooth\'})">'+t+'</a>'; };
+  var more='<div style="display:flex;gap:8px;flex-wrap:wrap">'+jump('Family &amp; household','sec-family')+jump('All open tasks','sec-planner')+jump('Vehicles','sec-vehicles')+jump('Hunting &amp; hobbies','sec-hobbies')+jump('Travel &amp; points','sec-travel')+'</div>'
+    + secDivider('Family & household','sec-family') + renderFamily() + (callPeople().length||ROLE!=='chelsea'?'<div style="height:22px"></div>'+callRotationCard():'')
+    + secDivider('All open tasks','sec-planner') + lifePlannerCard()
     + secDivider('Vehicles','sec-vehicles') + renderVehicles() + '<div style="height:22px"></div>' + maintenanceCard()
     + secDivider('Hunting & hobbies','sec-hobbies') + renderHobbies()
     + secDivider('Travel & points','sec-travel') + renderTravel();
+  return lifeCallLine() + lifeNeedsCard() + lifeTiles()
+    + '<div id="sec-projects" style="scroll-margin-top:70px"></div>' + renderProjects() + '<div style="height:22px"></div>'
+    + moreDrawer('life', more, 'More on Home & Life');
+}
+/* this week's drive-in calls (Mon–Thu; Fri–Sun shows next week) in one bar, with Call / ✓ Called for today. Brad's rotation only. */
+function lifeCallLine(){
+  if(ROLE==='chelsea' || !callPeople().length) return '';
+  var now=laNow(); now.setHours(12,0,0,0); var dow=now.getDay(), wk=dow>=5||dow===0, today=ymd(now), p=callFor(today), called=p&&String(p.LastCalled||'').slice(0,10)===today;
+  var mon=new Date(now); mon.setDate(now.getDate()-((dow+6)%7)+(wk?7:0));
+  var week=[0,1,2,3].map(function(i){ var d=new Date(mon); d.setDate(mon.getDate()+i); var k=ymd(d); return {k:k, p:callFor(k)}; }).filter(function(x){ return x.p; })
+    .map(function(x){ var done=String(x.p.LastCalled||'').slice(0,10)>=x.k;
+      return '<span'+(x.k<today&&!done?' style="color:var(--text-dim)"':'')+'>'+esc(shortDay(x.k).split(',')[0])+': '+(x.k===today?'<b>'+esc(x.p.Name)+'</b>':esc(x.p.Name))+(done?' <span style="color:var(--green)">✓</span>':'')+'</span>'; }).join('');
+  var nx=p?null:callSchedule(1)[0];
+  var main=p ? (called?'<span style="color:var(--green)">✓</span> Called <b>'+esc(p.Name)+'</b> today.'
+      : '📞 On the drive in today, call <b>'+esc(p.Name)+'</b>'+(p.Relation&&p.Relation!==p.Name?' <span class="foot foot-dim foot-inline">'+esc(p.Relation)+'</span>':''))
+    : '📞 Next drive-in call: <b>'+esc(nx?nx.p.Name:'—')+'</b>'+(nx?' on '+esc(shortDay(nx.date)):'');
+  var btns=p&&!called?telLink(p,'Call '+String(p.Name).split(' ')[0])+'<button class="ebtn" onclick="markCalled('+p.__row+')">✓ Called</button>':'';
+  return '<div class="call-bar" style="margin:0 0 22px"><div class="call-main">'+main+'</div><div class="call-btns">'+btns+'</div>'+(week?'<div class="call-next">'+(wk?'Next week':'This week')+' · '+week+'</div>':'')+'</div>';
+}
+/* what's due on Home & Life: car service (maintenance autopilot), registration / insurance renewals within 60 days, project and
+   car-checklist tasks due within 3 weeks (or late), trips starting within 60 days, hunt draws closing within 45 days.
+   Nothing due → one quiet line instead of a card. */
+function lifeNeedsCard(){
+  var out=[], ok=function(js){ return '<button class="ebtn" style="padding:2px 8px;margin-left:8px" title="Mark done" onclick="'+js+'">✓</button>'; };
+  try{ maintVehicles().forEach(function(o){ o.items.forEach(function(i){ if(i.status!=='over'&&i.status!=='soon') return;
+    out.push({d:Math.round(i.days||0), t:'🔧 '+esc(vehName(o.v))+' · '+esc(i.name.toLowerCase()), sub:i.dueAt?'due ~'+i.dueAt.toLocaleString()+' mi':'',
+      act:ok('maintDone(\''+esc(o.v.Name).replace(/'/g,"\\'")+'\',\''+esc(i.name)+'\','+(o.est||0)+')')}); }); }); }catch(e){}
+  arr('Vehicles').forEach(function(v){ if(isAircraft(v)||isPotential(v)) return;   // aircraft live on Flying
+    ['RegRenewal','InsRenewal'].forEach(function(f){ if(!has(v[f])) return; var d=daysUntilDate(v[f]); if(d==null||d>60) return;
+      out.push({d:d, t:'🚗 '+esc(vehName(v))+(f==='RegRenewal'?' registration':' insurance')+' renewal', sub:esc(prettyIso(String(v[f])))}); }); });
+  lifeProjects().tasks.forEach(function(t){ if(truthy(t.Done)||!has(t.Task)||!has(t.Due)) return; var d=daysUntilDate(t.Due); if(d==null||d>21) return;
+    out.push({d:d, t:'○ '+esc(t.Task), sub:esc(t.Project||''), act:ok('this.disabled=true;taskDoneToggle('+t.__row+')')}); });
+  arr('Travel').forEach(function(t){ if(String(t.Status||'').toLowerCase()==='past'||!has(t.StartDate)) return; var d=daysUntilDate(t.StartDate); if(d==null||d<-1||d>60) return;
+    var cl=arr('TravelChecklist').filter(function(c){ return String(c.Trip||'').trim()===String(t.Trip||'').trim() && !truthy(c.Done); }).length;
+    out.push({d:d, t:'✈️ '+esc(t.Trip||t.Destination), sub:cl?cl+' checklist item'+(cl>1?'s':'')+' left':'trip'}); });
+  arr('Hunts').forEach(function(h){ if(!has(h.Deadline)) return; var d=daysUntilDate(h.Deadline); if(d==null||d<-2||d>45) return;
+    out.push({d:d, t:'🦌 Apply: '+esc(h.Species)+(has(h.State)?' ('+esc(h.State)+')':''), sub:esc(h.Deadline)}); });
+  var noLog=false; try{ var mv=maintVehicles(); noLog=mv.length>0 && !mv.some(function(o){ return o.items.some(function(i){ return i.status!=='unknown'; }); }); }catch(e){}
+  if(!out.length) return '<div class="foot" style="margin:0 0 22px;color:var(--text-dim)">✓ Nothing due at home right now'+(noLog?' (no car service logged yet)':'')+'.</div>';
+  out.sort(function(a,b){ return a.d-b.d; });
+  var row=function(x){ return '<div class="kv-row"><span class="k">'+x.t+(x.sub?' <span class="foot foot-dim foot-inline">'+x.sub+'</span>':'')+'</span><span class="v '+dueClass(x.d)+'" style="white-space:nowrap">'+fmtDue(x.d)+(x.act||'')+'</span></div>'; };
+  return card('Needs you', '', out.slice(0,8).map(row).join('')+(out.length>8?'<details class="bud-more"><summary>'+(out.length-8)+' more</summary>'+out.slice(8).map(row).join('')+'</details>':''), '--amber')
+    + '<div style="height:22px"></div>';
+}
+/* the few numbers on Home & Life: next trip, points value, emergency binder, cars. Each tile opens its section in the drawer. */
+function lifeTiles(){
+  var trips=arr('Travel').filter(function(t){ return String(t.Status||'').toLowerCase()!=='past'; }).map(function(t){ return {t:t, d:has(t.StartDate)?daysUntilDate(t.StartDate):null}; })
+    .filter(function(x){ return x.d==null||x.d>=-1; }).sort(function(a,b){ return (a.d==null?1e6:a.d)-(b.d==null?1e6:b.d); });
+  var nt=trips[0], w=travelWallet(), b=binderStatus(), cars=maintVehicles(), due=0, known=0;
+  cars.forEach(function(o){ o.items.forEach(function(i){ if(i.status==='over'||i.status==='soon') due++; if(i.status!=='unknown') known++; }); });
+  var pv=arr('Vehicles').filter(function(v){ return !isAircraft(v) && isPotential(v); })[0], pvD=pv?daysUntilDate(spec(pv,'Target order')):null;
+  return '<div class="grid cols-4" style="margin-bottom:22px">'
+    + statTile('Next trip', nt?esc(nt.t.Destination||nt.t.Trip):'—', nt?(nt.d!=null?fmtDue(nt.d):'no date yet'):'none planned', 'travel')
+    + statTile('Points value', w.total?money(w.total):'—', w.list.length?w.list.length+' programs with a balance':'no balances yet', 'travel')
+    + statTile('Emergency binder', b.have+' of '+b.total, b.have>=b.total?'all set ✓':(b.total-b.have)+' not set up yet', 'family')
+    + statTile('Cars', !cars.length?'—':due?due+' due':known?'All OK':'Log a service', (cars.length&&!due&&!known?'so oil/tire reminders work · ':'')+(cars.length?cars.length+' car'+(cars.length>1?'s':''):'none')+(pv&&pvD!=null&&pvD>=0?' · '+(pv.Make||'new car')+' order '+fmtDue(pvD):''), 'vehicles')
+    + '</div>';
 }
 
 /* ============================================================
@@ -2968,13 +3056,7 @@ function renderLife(){
    ============================================================ */
 function renderBills(){
   var bills = arr('Bills').slice().sort(function(a,b){return billMonthly(b)-billMonthly(a);});
-  var monthly=totalMonthlyBills();
-  var byCat={}; bills.forEach(function(b){var c=b.Category||'Other'; byCat[c]=(byCat[c]||0)+billMonthly(b);});
-  var top = '<div class="grid cols-3" style="margin-bottom:22px">'
-    + statTile('Total / month', money(monthly), money(monthly*12)+' / yr')
-    + statTile('Bills tracked', bills.length||'—', '')
-    + statTile('Biggest', bills.length?esc(bills[0].Vendor):'—', bills.length?money(billMonthly(bills[0]))+'/mo':'')
-    + '</div>';
+  // total / count now sit in Money's "Bills / month" tile up front, and the biggest bill is this table's first row
   var cols=[
     {label:'Vendor', render:function(r){ var name=esc(r.Vendor);
       return has(r.URL)?'<a class="tel" href="'+esc(r.URL)+'" target="_blank" rel="noopener">'+name+'</a>':name; }},
@@ -3001,8 +3083,7 @@ function renderBills(){
     {label:'Notes', render:function(r){return esc(r.Notes||'');}}
   ];
 
-  return top
-    + card('Bills & services','Sorted by monthly cost. Tap a phone number to call, or a vendor to open their site.', body, '--teal')
+  return card('Bills & services','Biggest first. Tap a vendor to open their site, a number to call.', body, '--teal')
     + '<div style="height:22px"></div>'
     + card('Vendor & service contacts','People and companies to reach when something breaks.', tableEl(cc, contacts, {empty:'No saved contacts yet.',editTab:'Contacts'}), '--teal');
 }
@@ -3029,22 +3110,26 @@ var BINDER_HELP={
   'Key accounts access':'Free, 10 min each: <a href="https://support.apple.com/en-us/102631" target="_blank" rel="noopener">Apple Legacy Contact</a> · <a href="https://myaccount.google.com/inactive" target="_blank" rel="noopener">Google Inactive Account Manager</a> · add Chelsea as payable-on-death / beneficiary on bank, Robinhood, IRA and 403(b) accounts (in each app’s settings).',
   'Safe / documents':'Note where originals live (safe, fireproof box) so Chelsea can find the policy, deeds and titles.'
 };
+// Curated "if something happens to me" essentials — pulled from Family keys by meaning (the binder card, the Home & Life tile, renderFamily)
+var BINDER_WANT=[
+  ['Life insurance', /life insurance|life policy|term life/i],
+  ['Beneficiaries', /beneficiar/i],
+  ['Will / trust', /\bwill\b|living trust|estate/i],
+  ['Executor / trustee', /executor|trustee/i],
+  ['Power of attorney', /power of attorney|\bpoa\b/i],
+  ['Advance directive', /advance directive|health.?care proxy|living will/i],
+  ['Password manager', /password manager|1password|bitwarden|lastpass/i],
+  ['Safe / documents', /\bsafe\b|safe deposit|document location|fireproof/i],
+  ['Key accounts access', /account access|emergency access|master list/i]
+];
+function binderKeyIn(w, k){ var label=String(k).split('|').pop(); return w[1].test(label)||w[1].test(k); }
+function binderStatus(){ var f=kv('Family');
+  var have=BINDER_WANT.filter(function(w){ return Object.keys(f).some(function(k){ return binderKeyIn(w,k)&&has(f[k]); })||!!binderFromOtherTabs(w[0]); }).length;
+  return {have:have, total:BINDER_WANT.length}; }
 function emergencyBinderCard(){
-  var f=kv('Family');
-  // Curated "if something happens to me" essentials — pull from Family keys by meaning
-  var want=[
-    ['Life insurance', /life insurance|life policy|term life/i],
-    ['Beneficiaries', /beneficiar/i],
-    ['Will / trust', /\bwill\b|living trust|estate/i],
-    ['Executor / trustee', /executor|trustee/i],
-    ['Power of attorney', /power of attorney|\bpoa\b/i],
-    ['Advance directive', /advance directive|health.?care proxy|living will/i],
-    ['Password manager', /password manager|1password|bitwarden|lastpass/i],
-    ['Safe / documents', /\bsafe\b|safe deposit|document location|fireproof/i],
-    ['Key accounts access', /account access|emergency access|master list/i]
-  ];
+  var f=kv('Family'), want=BINDER_WANT;
   var rows=want.map(function(w){
-    var hit=Object.keys(f).filter(function(k){var label=k.split('|').pop(); return w[1].test(label)||w[1].test(k);})
+    var hit=Object.keys(f).filter(function(k){ return binderKeyIn(w,k); })
       .filter(function(k){return has(f[k]);});
     if(hit.length){ var v=hit.map(function(k){return String(f[k]);}).join(' · ');
       if(/^not needed|^skip/i.test(v)) return '<div class="kv-row"><span class="k" style="color:var(--text-dim)">– '+esc(w[0])+'</span><span class="v" style="color:var(--text-dim)">'+esc(v)+'</span></div>';
@@ -3057,15 +3142,17 @@ function emergencyBinderCard(){
     return '<div class="kv-row"><span class="k" style="color:var(--text-dim)">○ '+esc(w[0])+'</span><span class="v" style="color:var(--amber)">not set up yet</span>'
       +(help?'<div class="foot" style="flex-basis:100%;color:var(--text-muted);margin-top:2px">'+help+'</div>':'')+'</div>';
   }).join('');
-  var have=want.filter(function(w){return Object.keys(f).some(function(k){var label=k.split('|').pop();return (w[1].test(label)||w[1].test(k))&&has(f[k]);})||!!binderFromOtherTabs(w[0]);}).length;
-  var head='<div class="sub">If something happens to you, Chelsea can find everything here. '+have+' of '+want.length+' essentials documented. '
-    +(EDIT?'Use keys like <span class="mono">Emergency|Life insurance</span> in Family to fill gaps.':'Turn on ✎ Edit → Family to fill any gaps.')+'</div>';
+  var have=binderStatus().have;
+  var head='<div class="sub">If something happens to you, Chelsea can find everything here. '+have+' of '+want.length+' essentials documented.</div>'
+    +(have<want.length?'<div class="foot foot-dim">'+(EDIT?'Use keys like <span class="mono">Emergency|Life insurance</span> in Family to fill gaps.':'Turn on ✎ Edit → Family to fill any gaps.')+'</div>':'');
   return '<div class="card" style="border-top:3px solid var(--rose)"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><h2>🗂️ Emergency binder</h2><span style="display:flex;gap:8px">'+(EDIT?kvEditBtn('Family'):'')+'<button class="ebtn" onclick="printBinder()" style="text-transform:none;letter-spacing:0">🖨 Print for Chelsea</button></span></div>'+head+'<div style="margin-top:8px">'+rows+'</div></div>';
 }
 function renderFamily(){
   var f=kv('Family');
   var keys=Object.keys(f).filter(function(k){return has(f[k]);});
   if(!keys.length) return (EDIT?'<div class="editbar">'+kvEditBtn('Family')+'</div>':'')+emergencyBinderCard()+'<div style="height:22px"></div>'+card('Family & Household','', emptyAct('No household reference info yet — door codes, account numbers, insurance claims. Keys like <span class="mono">Home|Front door codes</span> group them.','Family'),'--amber');
+  // the "Emergency" group repeats what the binder above already shows (will, executor, beneficiaries…): keep only what the binder doesn't
+  keys=keys.filter(function(k){ return !(/^\s*emergency\s*\|/i.test(k) && BINDER_WANT.some(function(w){ return binderKeyIn(w,k); })); });
   // group by text before "|"; ungrouped keys go to "General"
   var groups={}, order=[];
   keys.forEach(function(k){ var parts=String(k).split('|'); var g=parts.length>1?parts[0].trim():'General'; var label=parts.length>1?parts.slice(1).join('|').trim():k;
@@ -3092,56 +3179,60 @@ function renderFamily(){
    PROJECTS
    ============================================================ */
 function isFlyingProject(p){ return /^(flying|aviation)$/i.test(String(p.Area||'').trim()); }
-function renderProjects(){
+function lifeProjects(){   // flight-training projects and their tasks live on Flying
   var flyNames={}; arr('Projects').filter(isFlyingProject).forEach(function(p){ flyNames[p.Name]=1; });
-  var ps = arr('Projects').filter(function(p){ return !isFlyingProject(p); }), tasks=arr('ProjectTasks').filter(function(t){ return !flyNames[t.Project]; });   // flight training lives on Flying
-  if(!ps.length) return card('Projects','House & family projects', emptyAct('No projects yet. Each one tracks an area, status, budget and target date.','Projects','project'),'--orange');
-  var order={active:0,planning:1,blocked:2,idea:3,done:9};
-  ps=ps.slice().sort(function(a,b){return (order[String(a.Status||'').toLowerCase()]||5)-(order[String(b.Status||'').toLowerCase()]||5);});
-
-  // planner summary
+  return {ps:arr('Projects').filter(function(p){ return !isFlyingProject(p); }), tasks:arr('ProjectTasks').filter(function(t){ return !flyNames[t.Project]; })}; }
+/* Projects (Home & Life, up front): one tap-to-open row per project — status, tasks done, and inside: target, budget, notes,
+   every task. Task groups with no Projects row (a yard job, the checklist for a car Brad is considering) get a row while they
+   have open tasks. Done projects fold into one line. The all-tasks Planner sits in the "More on Home & Life" drawer. */
+function renderProjects(){
+  var P=lifeProjects(), ps=P.ps, tasks=P.tasks, names={}, extra=[], seen={};
+  var tk=function(n){ n=String(n||'').trim(); return tasks.filter(function(t){ return has(t.Task) && String(t.Project||'').trim()===n; }); };
+  ps.forEach(function(p){ names[String(p.Name||'').trim()]=1; });
+  tasks.forEach(function(t){ var n=String(t.Project||'').trim(); if(!n||names[n]||seen[n]) return; seen[n]=1;
+    var ts=tk(n); if(!ts.some(function(x){ return !truthy(x.Done); })) return;
+    var vi=-1; arr('Vehicles').forEach(function(v,i){ if(vi<0 && String(v.Name||'').trim().toLowerCase()===n.toLowerCase()) vi=i; });
+    extra.push({name:n, ts:ts, vi:vi}); });
+  if(!ps.length && !extra.length) return card('Projects','House & family projects', emptyAct('No projects yet. Each one tracks an area, status, budget and target date.','Projects','project'),'--orange');
+  var order={active:0,planning:1,blocked:2,idea:3,done:9}, rank=function(p){ var o=order[String(p.Status||'').toLowerCase()]; return o==null?5:o; };
   function cnt(s){ return ps.filter(function(p){return String(p.Status||'').toLowerCase()===s;}).length; }
   var totBudget=ps.reduce(function(s,p){var n=num(p.Budget);return s+(isNaN(n)?0:n);},0);
   var totSpent=ps.reduce(function(s,p){var n=num(p.Spent);return s+(isNaN(n)?0:n);},0);
-  var openTasks=tasks.filter(function(t){return !truthy(t.Done)&&has(t.Task);});
-  var tiles='<div class="grid cols-4" style="margin-bottom:22px">'
-    + statTile('Active', cnt('active')||'—', cnt('planning')+' planning · '+cnt('blocked')+' blocked')
-    + statTile('Open tasks', openTasks.length||'—', tasks.length+' total')
-    + statTile('Budgeted', totBudget?money(totBudget):'—', totSpent?('spent '+money(totSpent)):'')
-    + statTile('Remaining', totBudget?money(totBudget-totSpent):'—', 'across projects')
-    + '</div>';
-
-  // consolidated planner: next open tasks sorted by due date
-  var planned=openTasks.map(function(t){return {t:t, d:daysUntilDate(t.Due)};})
-    .sort(function(a,b){ if(a.d==null&&b.d==null) return 0; if(a.d==null) return 1; if(b.d==null) return -1; return a.d-b.d; });
-  var plannerHtml = planned.length
-    ? planned.slice(0,12).map(function(x){return '<div class="kv-row"><span class="k">○ '+esc(x.t.Task)+' <span style="color:var(--text-dim)">· '+esc(x.t.Project||'')+'</span></span><span class="v '+dueClass(x.d)+'">'+(x.d!=null?fmtDue(x.d):esc(x.t.Due||''))+'</span></div>';}).join('')
-    : emptyAct('No open tasks.','ProjectTasks','task');
-
-  var cards = ps.map(function(p){
-    var st=String(p.Status||'').toLowerCase();
-    var budget=num(p.Budget), spent=num(p.Spent);
-    var barHtml='';
+  var openN=tasks.filter(function(t){return !truthy(t.Done)&&has(t.Task);}).length;
+  var sub=[openN?openN+' open task'+(openN>1?'s':''):'no open tasks', cnt('active')?cnt('active')+' active':'', cnt('planning')?cnt('planning')+' planning':'', cnt('blocked')?cnt('blocked')+' blocked':'',
+    cnt('idea')?cnt('idea')+' idea'+(cnt('idea')>1?'s':''):'', totBudget?money(totSpent)+' of '+money(totBudget)+' spent':''].filter(Boolean).join(' · ');
+  var taskList=function(ts){ return ts.map(function(t){ var dn=truthy(t.Done), d=dn?null:daysUntilDate(t.Due);
+    return '<div class="kv-row"><span class="k"'+(dn?' style="color:var(--text-dim)"':'')+'>'+(dn?'✓ ':'○ ')+esc(t.Task)+'</span><span class="v '+dueClass(d)+'">'+(d!=null?fmtDue(d):'')+'</span></div>'; }).join(''); };
+  var row=function(title, sub, right, body){ return '<details class="cov-sec"><summary><span style="flex:1;min-width:0;display:flex;align-items:baseline;gap:10px"><span style="font-weight:600">'+title+'</span>'+(sub?'<span class="cov-s">'+sub+'</span>':'')+'</span>'
+    +'<span style="display:flex;gap:8px;align-items:center;white-space:nowrap;font-size:12.5px;color:var(--text-dim)">'+right+'</span></summary><div class="cov-b">'+body+'</div></details>'; };
+  var items=ps.map(function(p){
+    var st=String(p.Status||'').toLowerCase(), ts=tk(p.Name), dn=ts.filter(function(t){return truthy(t.Done);}).length, budget=num(p.Budget), spent=num(p.Spent), bar='';
     if(!isNaN(budget)&&budget>0){ var pct=Math.min(100,Math.round((isNaN(spent)?0:spent)/budget*100));
-      barHtml='<div class="bar'+((!isNaN(spent)&&spent>budget)?' over':'')+'"><span style="width:'+pct+'%"></span></div>'
-        +'<div class="foot">'+money(isNaN(spent)?0:spent)+' of '+money(budget)+'</div>'; }
-    var pt=tasks.filter(function(t){return String(t.Project||'').trim()===String(p.Name||'').trim();});
-    var doneN=pt.filter(function(t){return truthy(t.Done);}).length;
-    var taskBar = pt.length?'<div class="foot" style="margin-top:10px">Tasks '+doneN+'/'+pt.length+'</div><div class="bar"><span style="width:'+Math.round(doneN/pt.length*100)+'%"></span></div>':'';
-    var taskHtml = pt.length?'<div style="margin-top:10px">'+pt.map(function(t){return '<div class="kv-row"><span class="k">'+(truthy(t.Done)?'✓ ':'○ ')+esc(t.Task)+'</span><span class="v" style="color:var(--text-dim)">'+esc(t.Due||'')+'</span></div>';}).join('')+'</div>':'';
-    return '<div class="card" style="border-top:3px solid var(--orange)"><div style="display:flex;justify-content:space-between;align-items:start;gap:10px">'
-      +'<div><h2>'+esc(p.Name)+'</h2><div class="sub" style="margin-bottom:8px">'+esc(p.Area||'')+(has(p.Owner)?' · '+esc(p.Owner):'')+'</div></div>'
-      +'<span class="tag '+st+'">'+esc(p.Status||'')+'</span></div>'
-      +(EDIT?'<div style="margin:4px 0 8px">'+editBtn('Projects',p.__row)+'</div>':'')
-      +(has(p.TargetDate)?'<div class="foot">Target: '+esc(p.TargetDate)+'</div>':'')
-      +barHtml+taskBar+(has(p.Notes)?'<p style="font-size:13.5px;color:var(--text-muted);margin:12px 0 0">'+esc(p.Notes)+'</p>':'')+taskHtml+'</div>';
-  }).join('');
-
-  return tiles
-    + (EDIT?'<div class="editbar"><button class="ebtn pri" onclick="openEditor(\'Projects\')">＋ Add project</button> <button class="ebtn pri" onclick="openEditor(\'ProjectTasks\')" style="margin-left:8px">＋ Add task</button></div>':'')
-    + card('Planner','Every open task, soonest first.', plannerHtml, '--orange')
-    + '<div style="height:22px"></div>'
-    + '<div class="grid cols-2">'+cards+'</div>';
+      bar='<div class="bar'+((!isNaN(spent)&&spent>budget)?' over':'')+'"><span style="width:'+pct+'%"></span></div><div class="foot">'+money(isNaN(spent)?0:spent)+' of '+money(budget)+'</div>'; }
+    var body=(has(p.TargetDate)?'<div class="foot">Target: '+esc(prettyIso(String(p.TargetDate)))+'</div>':'')+bar
+      +(has(p.Notes)?'<p style="font-size:13.5px;color:var(--text-muted);margin:4px 0 0">'+linkify(p.Notes)+'</p>':'')
+      +(ts.length?'<div style="margin-top:4px">'+taskList(ts)+'</div>':'')+(EDIT?'<div style="margin-top:8px">'+editBtn('Projects',p.__row)+'</div>':'');
+    return {r:rank(p), h:row(esc(p.Name), esc([p.Area,p.Owner].filter(has).join(' · ')), (ts.length?dn+'/'+ts.length+' done':'')+(has(p.Status)?'<span class="tag '+esc(st)+'">'+esc(p.Status)+'</span>':''),
+      body||'<div class="foot foot-dim">No notes or tasks yet.</div>')};
+  }).concat(extra.map(function(x){ var v=x.vi>=0?arr('Vehicles')[x.vi]:null, pv=v&&isPotential(v), dn=x.ts.filter(function(t){return truthy(t.Done);}).length;
+    return {r:0.5, h:row(esc(v?vehName(v):x.name), '', dn+'/'+x.ts.length+' done'+(pv?statusTag(vehStatus(v)):''),
+      taskList(x.ts)+(v?'<div class="foot" style="margin-top:8px"><a class="tel" href="javascript:void(0)" onclick="openVehicle('+x.vi+')">Open the plan &amp; checklist →</a></div>':''))}; }));
+  items.sort(function(a,b){ return a.r-b.r; });
+  var live=items.filter(function(x){ return x.r<9&&x.r!==3; }), ideas=items.filter(function(x){ return x.r===3; }), done=items.filter(function(x){ return x.r>=9; });   // ideas need nothing yet: folded
+  return card('Projects', sub,
+    (EDIT?'<div class="editbar" style="margin-bottom:6px"><button class="ebtn pri" onclick="openEditor(\'Projects\')">＋ Add project</button> <button class="ebtn pri" onclick="openEditor(\'ProjectTasks\')" style="margin-left:8px">＋ Add task</button></div>':'')
+    + '<div>'+live.map(function(x){ return x.h; }).join('')+'</div>'
+    + (ideas.length?'<details class="bud-more"><summary>'+ideas.length+' idea'+(ideas.length===1?'':'s')+'</summary><div>'+ideas.map(function(x){ return x.h; }).join('')+'</div></details>':'')
+    + (done.length?'<details class="bud-more"><summary>'+done.length+' done</summary><div>'+done.map(function(x){ return x.h; }).join('')+'</div></details>':''), '--orange');
+}
+/* every open project task, soonest first (Home & Life drawer) */
+function lifePlannerCard(){
+  var planned=lifeProjects().tasks.filter(function(t){return !truthy(t.Done)&&has(t.Task);}).map(function(t){return {t:t, d:daysUntilDate(t.Due)};})
+    .sort(function(a,b){ if(a.d==null&&b.d==null) return 0; if(a.d==null) return 1; if(b.d==null) return -1; return a.d-b.d; });
+  var line=function(x){return '<div class="kv-row"><span class="k">○ '+esc(x.t.Task)+' <span style="color:var(--text-dim)">· '+esc(x.t.Project||'')+'</span></span><span class="v '+dueClass(x.d)+'">'+(x.d!=null?fmtDue(x.d):esc(x.t.Due||''))+'</span></div>';};
+  return card('Planner','Every open task, soonest first.', planned.length
+    ? planned.slice(0,12).map(line).join('')+(planned.length>12?'<details class="bud-more"><summary>'+(planned.length-12)+' more</summary>'+planned.slice(12).map(line).join('')+'</details>':'')
+    : emptyAct('No open tasks.','ProjectTasks','task'), '--orange');
 }
 
 /* ============================================================
@@ -3773,7 +3864,8 @@ function xcMapHint(){ var h=XC.el&&XC.el.querySelector('.xc-maphint'); if(!h||!X
    which holds the key, caches answers and enforces a monthly spending cap.
    Planes: Flying kv `tracked_aircraft` ("N51207 = Brad & Chelsea; N6058A = Mike"),
    else AT_DEFAULT_TAILS. Relay URL: Config kv `aircraft_relay_url`, else AT_RELAY.
-   Polls every 30 s only while the Flying tab is open and visible. Opening or returning to the
+   Polls every 30 s only while the Flying tab is open and visible and the map can be seen (it lives in the
+   "More on Flying" drawer since Oct 2026; closed drawer = no FlightAware lookups). Opening or returning to the
    tab asks for a fresh answer (≤2 min old); while it sits open the relay re-asks FlightAware
    every 20+ min for parked planes, 5 min for flying ones, 60 s for positions in the air.
    Last-seen spots are remembered on this device.
@@ -3841,8 +3933,9 @@ function atStatus(p){
 }
 
 /* ---- polling ---- */
+function atShut(){ return !!(AT.el&&AT.el.closest&&AT.el.closest('details:not([open])')); }   // inside a closed drawer
 function atPoll(fresh){
-  if(CURRENT!=='flying'||document.hidden||!AT.el||!AT.el.isConnected){ atStop(); return; }
+  if(CURRENT!=='flying'||document.hidden||!AT.el||!AT.el.isConnected||atShut()){ atStop(); return; }
   var relay=atRelay(), planes=atPlanes();
   if(!relay||!planes.length||AT.busy){ atPaint(); return; }
   AT.busy=true;
@@ -3867,8 +3960,19 @@ function atPoll(fresh){
     .catch(function(e){ AT.err=(e&&e.message)||String(e); })
     .then(function(){ AT.busy=false; atPaint(); });
 }
-function atStart(){ if(AT.timer) return; atPoll(true); AT.timer=setInterval(atPoll, AT_POLL_MS); }
+function atStart(){ if(AT.timer||atShut()) return; atPoll(true); AT.timer=setInterval(atPoll, AT_POLL_MS); }
 function atStop(){ if(AT.timer){ clearInterval(AT.timer); AT.timer=null; } }
+/* "More on Flying" drawer opened/closed: Leaflet can't measure a map inside a closed <details>, so re-measure the trip planner's
+   map (and Who's flying's, re-framed if it was ever drawn hidden, which Leaflet leaves zoomed out to the whole world). Who's
+   flying sits up front now, so closing the drawer stops its polling only if the map is somehow inside it (atShut). */
+function flyMoreToggle(d){
+  if(!d.open){ if(atShut()) atStop(); return; }
+  setTimeout(function(){
+    try{ if(AT.map){ AT.map.invalidateSize(false); if(AT.map.getZoom()<4){ AT.map.fitBounds(AT_HOME,{padding:[50,50], maxZoom:10, animate:false}); AT.fitKey=''; } } }catch(e){}
+    try{ if(XC.map) XC.map.invalidateSize(false); }catch(e){}
+    if(CURRENT==='flying'&&AT.el&&AT.el.isConnected){ atPaint(); atStart(); }
+  }, 40); }
+document.addEventListener('toggle', function(e){ var d=e.target; if(d&&d.matches&&d.matches('details.more-drawer[data-more="flying"]')) flyMoreToggle(d); }, true);
 document.addEventListener('visibilitychange', function(){ if(!document.hidden&&CURRENT==='flying'&&AT.el&&AT.el.isConnected) atStart(); });
 
 /* ---- UI: persistent panel, re-attached each time the Flying tab renders ---- */
@@ -4098,13 +4202,28 @@ function cfiOwedCard(){
   if(!o.flights.length){
     body='<div style="display:flex;align-items:baseline;gap:10px"><span style="font-size:26px;font-weight:700;color:var(--green)">$0</span><span class="foot" style="margin:0">all paid up'+(o.paid?' through '+esc(prettyIso(o.paid)):'')+'</span></div>';
   } else {
+    var fl=o.flights.map(function(r){ return '<div class="kv-row"><span class="k">'+esc(prettyIso(String(r.Date)))+' · '+esc(r.Route||'')+'</span><span class="v">'+num(r.Hours)+' hr · '+cfiUsd(num(r.Hours)*o.rate)+'</span></div>'; }).join('');
     body='<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">'
       +'<div><span style="font-size:28px;font-weight:700;color:var(--amber)">'+cfiUsd(o.amt)+'</span>'
       +'<span class="foot" style="display:inline;margin-left:8px">'+o.hrs+' hr × '+cfiUsd(o.rate)+'/hr</span></div>'
       +'<button class="ebtn pri" onclick="markCfiPaid()">✓ Mark paid</button></div>'
-      +o.flights.map(function(r){ return '<div class="kv-row"><span class="k">'+esc(prettyIso(String(r.Date)))+' · '+esc(r.Route||'')+'</span><span class="v">'+num(r.Hours)+' hr · '+cfiUsd(num(r.Hours)*o.rate)+'</span></div>'; }).join('');
+      +(o.flights.length>3?'<details class="bud-more" style="margin-top:6px"><summary>'+o.flights.length+' flights since '+esc(o.paid?prettyIso(o.paid):'the start')+'</summary>'+fl+'</details>':fl);
   }
-  return card('Owed to '+o.name, plane+' at '+cfiUsd(o.rate)+'/hr, plane + instruction. Adds up automatically when a flight in his plane lands in your logbook.', body, '--amber');
+  return card('Owed to '+o.name, plane+' at '+cfiUsd(o.rate)+'/hr · adds up from your logbook.', body, '--amber');
+}
+/* Flying front: the checkride in four numbers + the next step (details live in the drawer's milestones / requirements cards) */
+function pplOnceDone(o, f, t){ return truthy(f[o[0]])||(o[2]&&/pass|done|complete|current|valid|yes/i.test(String(f[o[2]]||'')))||(o[0]==='req_solo'&&t.solo>0); }
+function pplNext(){ var f=kv('Flying'), t=logTotals(), by={}; PPL_ONCE.forEach(function(o){ by[o[0]]=o; });
+  return ['req_medical','req_solo','req_written','solo_xc','req_towered','req_long_xc','req_night_xc','req_night_ldg'].map(function(k){
+      return k==='solo_xc'?{key:null, label:'Solo cross-country hours ('+t.soloXC.toFixed(1)+' / 5)', done:t.soloXC>=5}:{key:k, label:by[k][1], done:pplOnceDone(by[k],f,t)}; })
+    .filter(function(x){ return !x.done; }).concat([{key:null, label:'Checkride'+(has(f.checkride_target)?' ('+f.checkride_target+')':'')}]); }
+function checkrideProgressCard(half){   // half = sharing a row with the Owed card: tiles 2×2
+  var nx=pplNext(), n=nx[0], ex=knowledgeExpiry();
+  var next='<div class="kv-row" style="margin-top:12px;align-items:center"><span class="k">Next up: <b>'+esc(n.label)+'</b>'+(nx[1]?' <span class="foot foot-dim foot-inline">then '+esc(nx[1].label.replace(/ \(.*$/,''))+'</span>':'')+'</span>'
+    +(n.key?'<span class="v"><button class="ebtn" title="Check it off" onclick="setOnce(\''+n.key+'\',true)">✓ Done</button></span>':'')+'</div>';
+  var dl=ex&&ex.days<180?'<div class="kv-row"><span class="k" style="color:var(--amber)">Checkride deadline</span><span class="v" style="color:var(--amber)">'+esc(ex.label)+' · '+ex.days+' days</span></div>':'';
+  return card('Checkride progress','Private pilot · from your logbook.', checkrideForecastHtml(half)+next+dl
+    +'<details class="bud-more" style="margin-top:6px"><summary>How this is figured</summary>'+checkrideAssumptions()+'</details>', '--sky');
 }
 function ppl109Card(){
   var t=logTotals();
@@ -4118,7 +4237,7 @@ function ppl109Card(){
   rows+='<div class="req"><div class="req-h"><span>Checkride prep — 3 hrs dual in the 60 days before the test</span><span class="req-v" style="color:var(--text-dim)">'+(dToCk!=null&&dToCk<=60?t.dual60.toFixed(1)+' / 3 hrs':'when a checkride date is set')+'</span></div></div>';
   var foot='<div class="req-o">Also required: 150 nm solo XC with full-stop landings at 3 points (one leg 50 nm+) · 3 solo takeoffs & landings at a towered airport · knowledge test · practical test. '
     +'Landings logged: <b>'+t.ldg+'</b>. Night and hood time are read from the flight Type or Notes ("night", "hood").</div>';
-  return card('Checkride tracker', 'Your pace, projected checkride date and cost to finish, plus the FAA minimums (§61.109) computed from your logbook.', checkrideForecastHtml()+'<div class="section-title" style="margin:16px 0 6px">FAA minimums</div>'+rows+foot, '--sky');
+  return card('Checkride requirements', 'One-time items and the FAA minimums (§61.109), from your logbook.', checkrideOnceHtml()+'<div class="section-title" style="margin:16px 0 6px">FAA minimums</div>'+rows+foot, '--sky');
 }
 function renderFlying(){
   var f=kv('Flying'), ac=arr('Aircraft'), log=arr('FlightLog');
@@ -4146,12 +4265,12 @@ function renderFlying(){
   function ms(done, label, detail){
     return '<div class="kv-row"><span class="k">'+(done?'<span style="color:var(--green)">✓</span> ':'<span style="color:var(--text-dim)">○</span> ')+esc(label)+'</span><span class="v" style="color:var(--text-dim)">'+esc(detail||'')+'</span></div>';
   }
-  var L=logTotals(), soloDone=L.solo>0, xcDone=L.soloXC>0;
-  var writtenDone=/pass|complete|done/i.test(String(f.written_status||''));
+  var L=logTotals(), soloDone=L.solo>0||truthy(f.req_solo), xcDone=L.soloXC>0;
+  var writtenDone=truthy(f.req_written)||/pass|complete|done/i.test(String(f.written_status||''));
   var milestoneHtml=
       ms(has(f.total_hours), 'Begin primary training', has(f.total_hours)?f.total_hours+' hrs logged':'')
-    + ms(/pass|current|valid|done/i.test(String(f.ppl_medical||'')), 'FAA medical certificate', f.ppl_medical||'update in sheet (ppl_medical)')
-    + ms(soloDone, 'First solo', soloDone?(f.solo_hours+' solo hrs'):'pre-solo — landings & maneuvers')
+    + ms(truthy(f.req_medical)||/pass|current|valid|done|yes/i.test(String(f.ppl_medical||'')), 'FAA medical certificate', f.ppl_medical||(truthy(f.req_medical)?'done':'update in sheet (ppl_medical)'))
+    + ms(soloDone, 'First solo', soloDone?((has(f.solo_hours)?f.solo_hours:L.solo.toFixed(1))+' solo hrs'):'pre-solo — landings & maneuvers')
     + ms(writtenDone, 'Written (knowledge) exam', f.written_status||'not started')
     + ms(xcDone, 'Solo cross-country', xcDone?(L.soloXC.toFixed(1)+' solo XC hrs'):'after solo ('+L.dualXC.toFixed(1)+' dual XC so far)')
     + ms(false, 'Checkride (PPL)', (has(f.checkride_target)?('target '+f.checkride_target):'target TBD')+(knowledgeExpiry()?' · before '+knowledgeExpiry().label:''));
@@ -4162,27 +4281,32 @@ function renderFlying(){
   var logCols=[{label:'Date',key:'Date'},{label:'Aircraft',key:'Aircraft'},{label:'Route',key:'Route'},
     {label:'Hrs',num:true,key:'Hours'},{label:'Type',render:function(r){return has(r.Type)?'<span class="chip">'+esc(r.Type)+'</span>':'';}},{label:'Notes',key:'Notes'}];
 
-  var gap='<div style="height:22px"></div>';
-  // Top: go/no-go, live airport weather (METARs), 7-day outlook — then the cross-country planner
-  return (EDIT?'<div class="editbar">'+kvEditBtn('Flying')+'</div>':'')
+  var gap='<div style="height:22px"></div>', owe=cfiOwed(), owed=!!(owe&&owe.flights.length);
+  // Simplified (Oct 2026): up front = can I fly (go/no-go, daylight, TAF + next good window), who's flying (live map; it only
+  // polls while visible, so it stays out of the drawer), what I owe Jeremy (only when > $0), and the checkride in four numbers +
+  // the next step. Everything else (trip planner, airports, outlook, pilots, milestones, requirements, aircraft, logbook,
+  // oral prep) sits in the "More on Flying" drawer.
+  var front=(EDIT?'<div class="editbar">'+kvEditBtn('Flying')+'</div>':'')
     + planesDownBanner()
     + (writtenInfo()?writtenCard()+gap:'')
     + '<div class="grid cols-2">' + goNoGoCard() + vfrWindowCard() + '</div>'
     + gap
-    + '<div id="atHost"></div>'
-    + gap
     + tafCard()
     + gap
-    + '<div class="section-title" style="display:flex;justify-content:space-between"><span>Live airport weather (AWOS / ATIS)</span>'+(EDIT?'<button class="ebtn pri" onclick="openEditor(\'Airports\')" style="text-transform:none;letter-spacing:0">＋ Add airport</button>':'')+'</div>'
+    + '<div id="atHost"></div>'
+    + gap
+    + (owed?'<div class="grid cols-2">'+cfiOwedCard()+checkrideProgressCard(true)+'</div>':checkrideProgressCard())
+    + gap
+    + flyingStudyCards();
+  var more='<div id="xcHost"></div>'
+    + gap
+    + '<div class="section-title" id="sec-airports" style="display:flex;justify-content:space-between;scroll-margin-top:70px"><span>Live airport weather (AWOS / ATIS)</span>'+(EDIT?'<button class="ebtn pri" onclick="openEditor(\'Airports\')" style="text-transform:none;letter-spacing:0">＋ Add airport</button>':'')+'</div>'
     + airportsHtml()
     + gap
     + flyingOutlookCard()
     + gap
-    + '<div id="xcHost"></div>'
-    + gap
-    + (cfiOwedCard()?cfiOwedCard()+gap:'')
+    + (owe&&!owed?cfiOwedCard()+gap:'')                 // all paid up: the $0 card waits in the drawer
     + pilots
-    + flyingStudyCards()
     + '<div class="grid cols-2">'
     + card('PPL milestones','Brad\'s path to the certificate.', milestoneHtml, '--sky')
     + ppl109Card()
@@ -4192,6 +4316,7 @@ function renderFlying(){
         : card('Aircraft','', tableEl(acCols, ac, {empty:'Add your aircraft (e.g. Maule N51207) in the Aircraft tab.',editTab:'Aircraft'}), '--sky')+gap+aircraftPerfCard()+gap)
     + flightLogCard(logCols, log)
     + oralPrepCard();
+  return front + moreDrawer('flying', more, 'More on Flying');
 }
 /* Flight log: the 12 most recent flights, the rest one tap away (the full list ran ~4,000px on a phone).
    Toggled in place with a class, not a re-render — re-rendering Flying re-mounts the live map (FlightAware lookups). */
@@ -4273,24 +4398,25 @@ function aircraftPerfCard(){
 }
 
 /* Bitcoin derisking ladder — Brad's plan: trim at $250k and $1M to fund acquisitions. */
+/* ₿ Derisking ladder (Ventures drawer): progress to each rung, and what your crypto would be worth there with an illustrative
+   half-trim (folded in from the old "BTC → acquisition capital" card, Oct 2026: same two rungs). Live spot is the Ventures tile. */
 function btcLadderCard(){
-  var cfg=kv('Config');
-  var spot=LIVE.btc;
-  var qty=num(cfg.btc_qty);
+  var cfg=kv('Config'), spot=LIVE.btc, qty=num(cfg.btc_qty);
+  var crypto=arr('Investments').filter(function(i){return /crypto|btc|bitcoin/i.test(String(i.Type)+' '+String(i.Name));}).reduce(function(s,i){return s+(num(i.Value)||0);},0);
+  var rest=spot&&qty?Math.max(0,crypto-qty*spot):0;   // non-BTC crypto (SOL) held flat at today's price
   var rungs=[{p:250000,label:'$250k rung',note:'first derisk — seed acquisition capital'},{p:1000000,label:'$1M rung',note:'major derisk — buy the business'}];
-  var spotHtml = spot? '$'+Math.round(spot).toLocaleString() : '<span data-live="btc">…</span>';
-  var body='<div class="kv-row"><span class="k">Bitcoin spot (live)</span><span class="v mono" '+(spot?'':'data-live="btc"')+'>'+spotHtml+'</span></div>';
-  body+=rungs.map(function(r){
+  var body=rungs.map(function(r){
     var pct = spot? Math.min(100, Math.round(spot/r.p*100)) : 0;
     var moveTxt = spot? (spot>=r.p? '<span style="color:var(--green)">reached ✓</span>' : '+'+Math.round((r.p/spot-1)*100)+'% to go') : '';
-    var proceeds = (spot && !isNaN(qty)) ? ' · ~'+money(qty*r.p)+' if you hold '+qty+' BTC' : '';
-    return '<div style="margin-top:14px"><div style="display:flex;justify-content:space-between;font-size:13.5px"><span><strong>'+r.label+'</strong> <span class="foot foot-dim">'+r.note+'</span></span><span class="mono">'+moveTxt+'</span></div>'
+    var proj = qty? Math.round(qty*r.p+rest) : (spot&&crypto? Math.round(crypto*(r.p/spot)) : null);
+    return '<div style="margin-top:14px"><div style="display:flex;justify-content:space-between;gap:10px;font-size:13.5px"><span><strong>'+r.label+'</strong> <span class="foot foot-dim">'+r.note+'</span></span><span class="mono" style="white-space:nowrap">'+moveTxt+'</span></div>'
       +'<div class="bar"><span style="width:'+pct+'%"></span></div>'
-      +'<div class="foot">$'+r.p.toLocaleString()+' target'+proceeds+'</div></div>';
+      +'<div class="foot">$'+r.p.toLocaleString()+' target'+(proj!=null?' · your crypto ≈ '+money(proj)+', trim ~'+money(Math.round(proj*0.5)):'')+'</div></div>';
   }).join('');
   body+='<p style="font-size:12.5px;color:var(--text-muted);margin:14px 0 0">Your thesis: BTC to $250k in 1–2 yrs, $1M within 10. The plan is to trim at each rung and roll proceeds into a cash-flowing acquisition — not to time the top. '
-    +(isNaN(qty)?'Add your BTC quantity (✎ Edit → Config key <span class="mono">btc_qty</span>) to see exact dollar proceeds at each rung.':'')+'</p>';
-  return card('₿ Derisking ladder','Live progress toward your two exit rungs.', body, '--gold');
+    +(qty?'Uses your '+esc(cfg.btc_qty)+' BTC'+(num(cfg.sol_qty)?' (+ '+esc(cfg.sol_qty)+' SOL held at today’s price)':'')+'; trim ≈ half, illustrative.'
+      :'Add your BTC quantity (✎ Edit → Config key <span class="mono">btc_qty</span>) to see exact dollar proceeds at each rung.')+'</p>';
+  return card('₿ Derisking ladder','Progress to your two exit rungs, and what each could free.', body, '--gold');
 }
 
 /* Compact monthly plan grouped by type. Budget per line + (where computed from your transactions)
@@ -4323,11 +4449,11 @@ function budgetPlanHtml(){
       }
       return '<div style="padding:7px 0;border-bottom:1px solid var(--card-border)"><div style="display:flex;justify-content:space-between;gap:10px;font-size:13.5px"><span>'+esc(c.Category)+(has(c.Notes)?' <span class="foot foot-dim">'+esc(c.Notes)+'</span>':'')+'</span>'+right+'</div>'+trend+'</div>';
     };
-    // over-budget lines stay visible; the rest fold away so the list scans in seconds
-    var isOver=function(c){ var a=num(c.MonthlyActual), bb=num(c.MonthlyBudget)||0; return !isNaN(a)&&a>bb*1.05; };
+    // over-budget lines stay visible; the rest fold away (always, since the Oct 2026 simplify) so the plan scans in seconds
+    var isOver=function(c){ var a=num(c.MonthlyActual), bb=num(c.MonthlyBudget)||0; return !isNaN(a)&&a>bb*1.05&&a-bb>=100; };   // small overruns (<$100) fold with the rest; the red banner still counts every one
     var hot=list.filter(isOver), calm=list.filter(function(c){return !isOver(c);});
     out+=hot.map(lineHtml).join('');
-    if(calm.length) out+='<details class="bud-more"'+(hot.length?'':' open')+'><summary>'+calm.length+' '+(anyActual?'on-track / planned':'planned')+' line'+(calm.length===1?'':'s')+'</summary>'+calm.map(lineHtml).join('')+'</details>';
+    if(calm.length) out+='<details class="bud-more"><summary>'+(anyActual?calm.length+' line'+(calm.length===1?'':'s')+' on track or within $100':calm.length+' planned line'+(calm.length===1?'':'s'))+'</summary>'+calm.map(lineHtml).join('')+'</details>';
   });
   var grand=cats.reduce(function(s,c){return s+(num(c.MonthlyBudget)||0);},0);
   var grandAct=cats.reduce(function(s,c){var a=num(c.MonthlyActual);return s+(isNaN(a)?0:a);},0);
@@ -4338,7 +4464,7 @@ function budgetPlanHtml(){
   var ov=budgetOverruns(), ovTot=ov.reduce(function(s,o){return s+o.over;},0);
   var alert=ov.length?'<div class="bud-alert"><b>'+ov.length+' lines over plan · +'+money(ovTot)+'/mo.</b> Biggest: '+ov.slice(0,4).map(function(o){return esc(o.cat)+' +'+money(o.over);}).join(' · ')+'</div>':'';
   var bnote=String(kv('Config').budget_note||''); if(bnote) alert+='<div class="foot" style="margin:-4px 0 12px;color:var(--text-dim)">'+esc(bnote)+'</div>';
-  return head+alert+out+note;
+  return head+alert+out+'<details class="bud-more"><summary>How this works</summary>'+note+'</details>';
 }
 
 /* True total return of a rental — appreciation + cash flow + debt paydown + tax savings.
@@ -4419,23 +4545,29 @@ function rothEligibilityCard(){ var I=taxInputs(), t=I.t, n=I.n; if(!(n('chelsea
     +'<div class="rs-sl"><label>Usable housing allowance <span class="mono" id="rs-housing-v">'+money(c.housing)+'/yr</span></label><input type="range" id="rs-housing" min="0" max="'+Math.max(80000,Math.round(n('brad_housing_designated')||78000))+'" step="1000" value="'+Math.round(c.housing)+'" oninput="rothSim()"></div>'
     +'<div class="foot foot-dim">Sliders only preview; they don’t save. Edit the real inputs on the Taxes tab.</div></div>';
   function chk(id,title,sub){ var done=truthy(t[id]); return '<div class="tax-move'+(done?' done':'')+'"><label class="tm-chk"><input type="checkbox"'+(done?' checked':'')+' onchange="taxSaveKv(\''+id+'\',this.checked?\'yes\':\'\')"></label><div class="tm-body"><div class="tm-t">'+title+'</div>'+(sub?'<div class="tm-s">'+sub+'</div>':'')+'</div></div>'; }
-  var list=chk('move_roth_chelsea','Fund Chelsea’s Roth IRA for 2026 — '+money(TAX26.ira),'Opened, unfunded. Any time until Apr 15, 2027; she has no pre-tax IRA, so a backdoor stays clean if ever needed.')
-    +chk('move_roth_brad','Fund Brad’s Roth IRA for 2026 — '+money(TAX26.ira),'Same deadline. Balance about '+money(num((arr('Investments').filter(function(x){return /roth/i.test(String(x.Name)+' '+String(x.Type));})[0]||{}).Value)||0)+'.')
-    +chk('move_403b','Max Brad’s 403(b) — '+money(TAX26.k403)+' pre-tax','Salary-reduction agreement with the church office. Planned for 2027 ('+(num(t.pretax_403b)?money(num(t.pretax_403b))+' deferred in 2026':'nothing deferred yet in 2026')+'). It lowers MAGI by the same amount.')
-    +chk('move_housing','Confirm the 2027 housing allowance is designated in writing before Jan 1','Board minutes or resolution every year. The allowance is what keeps MAGI under the limit.')
+  var list=rothMoves().map(function(m){ return chk(m[0],m[1],m[2]); }).join('')
     +'<div class="tax-move"><span class="chk chk-auto" style="margin-top:2px">•</span><div class="tm-body"><div class="tm-t">Leave the iTrust traditional IRA as-is</div><div class="tm-s">Pre-tax, self-directed (BTC + SOL). Rolling it anywhere isn’t worth it; it only matters if a backdoor Roth were ever needed for Brad.</div></div></div>';
   var watch='<div class="foot" style="color:var(--amber);margin-top:10px">Watch-out: if the housing allowance lapses or drops, MAGI jumps by about '+money(Math.round(c.housing/1000)*1000)+' and you’d cross the '+money(TAX26.rothHi)+' ceiling. Not in this calc: HSA (no high-deductible plan), an employer plan for Chelsea (none), SECA. Ministry expenses reduce SECA only, so they don’t lower MAGI.</div>';
   var body=income+'<div class="grid cols-2" style="gap:18px">'+rothYearHtml('2026',c.magi26,c.s26,'rs26')+rothYearHtml('2027',c.magi27,c.s27,'rs27')+'</div>'+sliders
     +'<div class="section-title" style="margin:14px 0 4px">The plan</div>'+list+watch;
   return card('🎯 Income & Roth IRA eligibility', 'MAGI = Brad’s base + bonus − usable housing allowance − 403(b), plus Chelsea’s wages and side-business net. 2026 limits: full Roth under '+money(TAX26.rothLo)+', phase-out to '+money(TAX26.rothHi)+', '+money(TAX26.ira)+' each.', body, '--emerald') + '<div style="height:22px"></div>';
 }
+/* the Roth panel's check-offs [Tax kv key, title, why]; the two Roths are also listed (titles only) in Money's "Needs you" card
+   while unticked — move_403b / move_housing are shared with the Taxes tab, so Needs you points there instead */
+function rothMoves(){ var t=kv('Tax'); return [
+  ['move_roth_chelsea','Fund Chelsea’s Roth IRA for 2026 — '+money(TAX26.ira),'Opened, unfunded. Any time until Apr 15, 2027; she has no pre-tax IRA, so a backdoor stays clean if ever needed.'],
+  ['move_roth_brad','Fund Brad’s Roth IRA for 2026 — '+money(TAX26.ira),'Same deadline. Balance about '+money(num((arr('Investments').filter(function(x){return /roth/i.test(String(x.Name)+' '+String(x.Type));})[0]||{}).Value)||0)+'.'],
+  ['move_403b','Max Brad’s 403(b) for 2027 — '+money(TAX26.k403)+' pre-tax','Salary-reduction agreement with the church office. Planned for 2027 ('+(num(t.pretax_403b)?money(num(t.pretax_403b))+' deferred in 2026':'nothing deferred yet in 2026')+'). It lowers MAGI by the same amount.'],
+  ['move_housing','Confirm the 2027 housing allowance is designated in writing before Jan 1','Board minutes or resolution every year. The allowance is what keeps MAGI under the limit.']]; }
 function rothSim(){ var b=$('rs-bonus'), h=$('rs-housing'); if(!b||!h) return; var c=rothPanelCalc({bonusMo:+b.value, housing:+h.value});
   $('rs-bonus-v').textContent=money(+b.value)+'/mo'; $('rs-housing-v').textContent=money(+h.value)+'/yr';
   [['rs26',c.magi26,c.s26],['rs27',c.magi27,c.s27]].forEach(function(x){ $(x[0]+'-magi').textContent=money(Math.round(x[1])); $(x[0]+'-gauge').innerHTML=rothGauge(x[1]); $(x[0]+'-status').innerHTML=rothStatusTag(x[2]); $(x[0]+'-cushion').textContent=x[2].cushion>0?'~'+money(Math.round(x[2].cushion/1000)*1000)+' under the limit':''; }); }
-function raisePlanCard(){
+/* raisePlan(): the waterfall as data — steps [{id,title,amt,how,opts}] — so the full card (in More on Money) and the
+   "Needs you" to-do list up front read the same rows and the same raise_move_<id> check-offs. null = no raise inputs. */
+function raisePlan(){
   var I=taxInputs(), t=I.t, n=I.n;
-  if(!(n('chelsea_salary')>0&&n('chelsea_salary_prev')>0)) return '';
-  var grossYr=(n('chelsea_salary')-n('chelsea_salary_prev'))+12*(n('chelsea_bonus_mo')-n('chelsea_bonus_mo_prev')); if(grossYr<=0) return '';
+  if(!(n('chelsea_salary')>0&&n('chelsea_salary_prev')>0)) return null;
+  var grossYr=(n('chelsea_salary')-n('chelsea_salary_prev'))+12*(n('chelsea_bonus_mo')-n('chelsea_bonus_mo_prev')); if(grossYr<=0) return null;
   var r=taxCalc(), marg=r.marginal||0.22, pretax=Math.max(0,Math.min(0.5,n('chelsea_pretax_pct')/100));
   var grossMo=grossYr/12, netMo=grossMo*(1-pretax)*(1-marg-0.0765);
   var oldYr=n('chelsea_salary_prev')+12*n('chelsea_bonus_mo_prev'), newYr=n('chelsea_salary')+12*n('chelsea_bonus_mo');
@@ -4446,11 +4578,7 @@ function raisePlanCard(){
   var rest=Math.round(netMo-tithe-cleaners-roth);
   var phase=cash<target?'buffer':(heloc>0?'heloc':'principal');
   var moBuf=rest>0?Math.ceil(Math.max(0,target-cash)/rest):null, moHeloc=rest>0?Math.ceil(heloc/rest):null;
-  function row(id,title,amt,how,opts){ opts=opts||{}; var done=opts.auto!=null?opts.auto:truthy(t['raise_move_'+id]);
-    var chk=opts.auto!=null?'<span class="chk chk-auto" style="margin-top:2px" title="Tracked automatically">'+(done?'✓':'•')+'</span>'
-      :'<label class="tm-chk"><input type="checkbox"'+(done?' checked':'')+' onchange="taxSaveKv(\'raise_move_'+id+'\',this.checked?\'yes\':\'\')"></label>';
-    return '<div class="tax-move'+(done?' done':'')+(opts.dim?' rp-dim':'')+'">'+chk+'<div class="tm-body"><div class="tm-t" style="display:flex;justify-content:space-between;gap:10px"><span>'+title+'</span>'+(amt!=null?'<span class="mono" style="white-space:nowrap">'+(amt>=0?'+':'−')+money(Math.abs(amt))+'/mo</span>':'')+'</div>'
-      +(how?'<div class="tm-s">'+how+'</div>':'')+(opts.bar||'')+'</div></div>'; }
+  var steps=[]; function row(id,title,amt,how,opts){ opts=opts||{}; steps.push({id:id, title:title, amt:amt, how:how, opts:opts, done:opts.auto!=null?opts.auto:truthy(t['raise_move_'+id])}); return ''; }
   function bar(pct,color){ pct=Math.max(0,Math.min(100,Math.round(pct))); return '<div class="bar" style="margin-top:6px"><span style="width:'+pct+'%;background:var('+color+')"></span></div>'; }
   var rows='';
   rows+=row('tithe','Tithe on the raise', tithe, 'Giving stays at 10% of household gross. The Giving line in the monthly plan is now '+money((arr('BudgetCategories').filter(function(c){return /giving|tithe/i.test(String(c.Category||''));})[0]||{}).MonthlyBudget)+'. Update the recurring church gift.');
@@ -4463,7 +4591,45 @@ function raisePlanCard(){
   var warn=rest<0?'<div class="foot" style="color:var(--amber);margin-top:8px">The committed lines add up to more than the take-home increase by '+money(-rest)+'/mo — trim one.</div>':'';
   var rothWarn='<div class="foot" style="color:var(--text-dim);margin-top:8px">Roth eligibility at the new income: see the Income &amp; Roth panel below (Brad’s 403(b) and the housing allowance are the levers; Chelsea has no employer plan).</div>';
   var sub='+'+money(grossYr)+'/yr gross ('+money(grossMo)+'/mo) ≈ +'+money(Math.round(netMo))+'/mo take-home after ~'+Math.round(marg*100)+'% federal + 7.65% FICA'+(pretax?' + '+Math.round(pretax*100)+'% pre-tax':'')+' (Nevada: no state tax). Effective '+(has(t.raise_effective)?esc(prettyIso(String(t.raise_effective)).slice(0,12)):'—')+'. Tick each line as you set it up.';
-  return card('💵 Chelsea’s raise — where the new money goes', sub, rows+warn+rothWarn, '--emerald') + '<div style="height:22px"></div>';
+  return {steps:steps, sub:sub, warn:warn, rothWarn:rothWarn, phase:phase};
+}
+function raisePlanCard(p){ p=p||raisePlan(); if(!p) return '';
+  var rows=p.steps.map(function(s){ var o=s.opts, done=s.done;
+    var chk=o.auto!=null?'<span class="chk chk-auto" style="margin-top:2px" title="Tracked automatically">'+(done?'✓':'•')+'</span>'
+      :'<label class="tm-chk"><input type="checkbox"'+(done?' checked':'')+' onchange="taxSaveKv(\'raise_move_'+s.id+'\',this.checked?\'yes\':\'\')"></label>';
+    return '<div class="tax-move'+(done?' done':'')+(o.dim?' rp-dim':'')+'">'+chk+'<div class="tm-body"><div class="tm-t" style="display:flex;justify-content:space-between;gap:10px"><span>'+s.title+'</span>'+(s.amt!=null?'<span class="mono" style="white-space:nowrap">'+(s.amt>=0?'+':'−')+money(Math.abs(s.amt))+'/mo</span>':'')+'</div>'
+      +(s.how?'<div class="tm-s">'+s.how+'</div>':'')+(o.bar||'')+'</div></div>'; }).join('');
+  return card('💵 Chelsea’s raise — where the new money goes', p.sub, rows+p.warn+p.rothWarn, '--emerald') + '<div style="height:22px"></div>';
+}
+/* Money, up front (Simplify, Oct 2026): what needs Brad — non-autopay bills due within 14 days (the same window as Today's
+   alerts), a refi window, stale balances, then the money plan's unticked set-up steps (raise waterfall + the two Roth IRAs; same
+   Tax kv check-offs as the full cards in "More on Money", titles only). The 403(b) and housing-allowance check-offs belong to the
+   Taxes tab (shared keys), so they show here only as one "Taxes: N year-end moves open" link; the raise's paystub note is
+   informational and stays in the full card. Nothing to do → one quiet line instead of a card. */
+function moneyNeedsCard(plan, yourRates){
+  var t=kv('Tax'), cfg=kv('Config'), rows=[], steps=[], tn=taxInputs().n, rothOn=tn('chelsea_salary')>0&&tn('brad_comp')>0;
+  function line(chk, title, right, sub){ return '<div class="tax-move">'+chk+'<div class="tm-body"><div class="tm-t" style="display:flex;justify-content:space-between;gap:10px"><span>'+title+'</span>'+(right?'<span class="mono" style="white-space:nowrap">'+right+'</span>':'')+'</div>'+(sub?'<div class="tm-s">'+sub+'</div>':'')+'</div></div>'; }
+  var dot='<span class="chk chk-auto" style="margin-top:2px">•</span>';
+  function box(key){ return '<label class="tm-chk"><input type="checkbox" onchange="taxSaveKv(\''+key+'\',this.checked?\'yes\':\'\')"></label>'; }
+  arr('Bills').filter(function(b){ return has(b.DueDay)&&!truthy(b.Autopay); }).map(function(b){ return {b:b, d:daysUntilDueDay(b.DueDay)}; })
+    .filter(function(x){ return x.d!=null&&x.d<=14; }).sort(function(a,b){ return a.d-b.d; }).forEach(function(x){ var b=x.b;
+      var name=has(b.URL)?'<a class="tel" href="'+esc(b.URL)+'" target="_blank" rel="noopener">'+esc(b.Vendor)+'</a>':esc(b.Vendor);
+      rows.push(line(dot, '<b>'+name+'</b> due '+fmtDue(x.d), has(b.Amount)&&num(b.Amount)?money(b.Amount,2):'', 'Not on autopay'+(has(b.Phone)?' · <a class="tel" href="'+telHref(b.Phone)+'">'+esc(b.Phone)+'</a>':''))); });
+  var mk=num(cfg.market_mortgage_30yr), refi=num(cfg.refi_alert_rate)||6.5;
+  if(!isNaN(mk)&&mk>0&&mk<refi) rows.push(line(dot, 'Refi window: 30-yr mortgages at '+esc(cfg.market_mortgage_30yr)+'%', '', 'Under your '+refi+'% alert line'+(yourRates?' · you: '+yourRates:'')+'. Worth a lender quote.'));
+  var asofs=arr('Accounts').map(function(x){return parseDate(x.AsOf);}).filter(Boolean).sort(function(a,b){return b-a;});
+  if(asofs.length){ var age=Math.floor((Date.now()-asofs[0].getTime())/864e5);
+    if(age>=14) rows.push(line(dot, 'Refresh account balances', age+' days old', 'Last updated '+asofs[0].toLocaleDateString('en-US',{month:'short',day:'numeric',timeZone:'UTC'})+'. Send Claude a Monarch screenshot.')); }
+  if(plan) plan.steps.forEach(function(s){ if(s.done||s.opts.auto!=null||s.opts.dim||s.id==='paystub'||(s.id==='roth'&&rothOn)) return;   // Roth panel lists the two Roths separately
+    steps.push(line(box('raise_move_'+s.id), s.title, s.amt!=null?(s.amt>=0?'+':'−')+money(Math.abs(s.amt))+'/mo':'')); });
+  if(rothOn) rothMoves().forEach(function(m){ if(m[0]==='move_403b'||m[0]==='move_housing'||truthy(t[m[0]])) return; steps.push(line(box(m[0]), m[1], '')); });
+  var taxOpen=0; try{ if(rothOn&&Object.keys(t).length) taxOpen=taxPlaybook(taxCalc()).filter(function(m){ return !truthy(t['move_'+m.id]); }).length; }catch(e){}
+  if(taxOpen) steps.push(line('<span class="chk chk-auto" style="margin-top:2px">→</span>', '<a class="tel" href="javascript:void(0)" onclick="navGo(\'taxes\')">Taxes: '+taxOpen+' year-end move'+(taxOpen===1?'':'s')+' open →</a>', '', '403(b), housing allowance and the rest are checked off on the Taxes tab.'));
+  if(!rows.length&&!steps.length) return '<div class="foot" style="margin:-8px 0 22px;color:var(--text-dim)">✓ Nothing needs you on Money right now.</div>';
+  var jump='var e=document.getElementById(\'sec-plan\');if(e){moreReveal(e);e.scrollIntoView({behavior:\'smooth\'})}';
+  var body=rows.join('')+(steps.length?'<div class="section-title" style="margin:'+(rows.length?'14px':'0')+' 0 2px">Money plan — still to set up</div>'+steps.join('')
+    +'<div class="foot" style="margin-top:8px"><a class="tel" href="javascript:void(0)" onclick="'+jump+'">Full plan and the why ↓</a></div>':'');
+  return card('Needs you', '', body, '--amber') + '<div style="height:22px"></div>';
 }
 function renderMoney(){
   var bt=budgetTotals(), nw=netWorth();
@@ -4473,11 +4639,13 @@ function renderMoney(){
   var liabilities=debts.reduce(function(s,x){var n=num(x.Balance);return s+(isNaN(n)?0:n);},0)
     + accounts.reduce(function(s,x){var n=num(x.Balance);var t=String(x.Type||'').toLowerCase();return s+(t.indexOf('credit')>=0&&!isNaN(n)?Math.abs(n):0);},0);
 
+  // the few numbers that matter (Simplify, Oct 2026): debt total rides on the net-worth line; bill count/total moved up from the Bills card
+  var liq=liquidCash(), bufT=num(kv('Tax').cash_buffer_target)||35000, billsMo=totalMonthlyBills(), nBills=arr('Bills').length, left=bt.budget-bt.actual;
   var tiles='<div class="grid cols-4" style="margin-bottom:22px">'
     + statTile('Net worth', nw?money(nw):'—', money(assets)+' assets · '+money(liabilities)+' debt')
-    + statTile('Budget / mo', bt.budget?money(bt.budget):'—', bt.actual?('spent '+money(bt.actual)):'')
-    + statTile('Left this month', bt.budget?money(bt.budget-bt.actual):'—', '')
-    + statTile('Debts', debts.length?money(liabilities):'—', debts.length+' accounts')
+    + statTile('Cash buffer', money(liq), Math.round(liq/bufT*100)+'% of the '+money(bufT)+' target')
+    + statTile('Left this month', bt.budget?(left<0?'<span style="color:var(--rose)">'+money(left)+'</span>':money(left)):'—', bt.budget?((bt.actual?'spent '+money(bt.actual)+' of ':'budget ')+money(bt.budget)):'')
+    + statTile('Bills / month', billsMo?money(billsMo):'—', nBills?nBills+' bills · '+money(billsMo*12)+' / yr':'')
     + '</div>';
 
   // Budget vs actual bars by category
@@ -4536,7 +4704,7 @@ function renderMoney(){
   var givingCard=card('Giving & tithe — '+thisYr,'Generosity is a first-line value, not a leftover.',
     giveBar
     + (gTypeHtml?'<div style="margin-top:8px">'+gTypeHtml+'</div>':'')
-    + tableEl(gCols, giving.slice().reverse(), {empty:'',editTab:'Giving'}), '--gold');
+    + (giving.length||EDIT?tableEl(gCols, giving.slice().reverse(), {empty:'',editTab:'Giving'}):''), '--gold');   // no gifts logged → no empty table
 
   // ---- Subscription audit (recurring drains, computed from Bills) ----
   var subRe=/subscription|stream|software|saas|media|music|membership|\bapp\b|cloud|news|premium|plus/i;
@@ -4575,19 +4743,15 @@ function renderMoney(){
     rentalCard='<div class="editbar">'+addBtn('Rentals','property')+'</div><div class="empty">Add the Lahontan rental (rent, mortgage, taxes, insurance) to track monthly cash flow.</div>';
   }
 
-  return tiles
-    + raisePlanCard()
-    + rothEligibilityCard()
-    + mkt
+  // Simplify (Oct 2026): up front = the numbers, what needs Brad, and the monthly plan. Everything else — the raise + Roth
+  // plans, charts, account/debt/investment tables, giving, subscriptions, the rental, bills, contacts, receipts — sits in
+  // one "More on Money" drawer (moreDrawer). Nothing removed. Bitcoin ladder + thesis live on the Ventures tab.
+  var plan=raisePlan(), movers=biggestMoversCard();
+  var jump=function(t,id){ return '<a class="subpill" href="javascript:void(0)" onclick="var e=document.getElementById(\''+id+'\');if(e)e.scrollIntoView({behavior:\'smooth\'})">'+t+'</a>'; };
+  var more='<div style="display:flex;gap:8px;flex-wrap:wrap;margin:0 0 18px">'+jump('Accounts &amp; investments','sec-accts')+jump('Giving &amp; rental','sec-giving')+jump('Bills &amp; contacts','sec-bills')+jump('Receipts','sec-receipts')+'</div>'
+    + '<div id="sec-plan" style="scroll-margin-top:70px"></div>' + raisePlanCard(plan) + rothEligibilityCard()
     + nwCard
-    + '<div class="grid cols-2">'
-    + card('Asset allocation','Where your net worth lives.', '<div class="chart-wrap"><canvas id="allocChart"></canvas></div>', '--emerald')
-    + card('Spending mix','Monthly budget by type.', '<div class="chart-wrap"><canvas id="mixChart"></canvas></div>', '--emerald')
-    + '</div><div style="height:22px"></div>'
-    + card('Monthly plan','Your budget by line, with spend history where transactions are uploaded.', budgetHtml, '--emerald')
-    + '<div style="height:22px"></div>'
-    + (biggestMoversCard()?biggestMoversCard()+'<div style="height:22px"></div>':'')
-    + '<div class="grid cols-2">'
+    + '<div id="sec-accts" style="scroll-margin-top:70px"></div><div class="grid cols-2">'
     + card('Accounts', '', tableEl(acctCols, accounts, {empty:'Add accounts in the Accounts tab.',editTab:'Accounts'}), '--emerald')
     + card('Debts & mortgages', '', tableEl(debtCols, debts, {empty:'Add debts/mortgages in the Debts tab.',editTab:'Debts'}), '--emerald')
     + '</div><div style="height:22px"></div>'
@@ -4595,10 +4759,21 @@ function renderMoney(){
         ? '<div class="grid cols-2">' + card('Investments', '', tableEl(invCols, inv, {empty:'Add investments (brokerage, retirement, bitcoin) in the Investments tab.',editTab:'Investments'}), '--emerald') + card('Savings goals', '', goalsHtml, '--emerald') + '</div>'
         : card('Investments', '', tableEl(invCols, inv, {empty:'Add investments (brokerage, retirement, bitcoin) in the Investments tab.',editTab:'Investments'}), '--emerald'))
     + '<div style="height:22px"></div>'
-    + '<div class="grid cols-2">' + givingCard + subCard + '</div>'
+    + '<div class="grid cols-2">'
+    + card('Asset allocation','Where your net worth lives.', '<div class="chart-wrap"><canvas id="allocChart"></canvas></div>', '--emerald')
+    + card('Spending mix','Monthly budget by type.', '<div class="chart-wrap"><canvas id="mixChart"></canvas></div>', '--emerald')
+    + '</div><div style="height:22px"></div>'
+    + (movers?movers+'<div style="height:22px"></div>':'')
+    + mkt
+    + '<div id="sec-giving" style="scroll-margin-top:70px"></div><div class="grid cols-2">' + givingCard + subCard + '</div>'
+    + (rentalCard?'<div style="height:22px"></div>'+rentalCard:'')
+    + secDivider('Bills & vendor contacts','sec-bills') + renderBills()
+    + '<div id="sec-receipts" style="scroll-margin-top:70px"></div>' + receiptsCard();
+  return tiles
+    + moneyNeedsCard(plan, yourRates)
+    + card('Monthly plan','Budget vs. your average spend, line by line.', budgetHtml, '--emerald')
     + '<div style="height:22px"></div>'
-    + '' /* Bitcoin ladder + thesis live on the Ventures tab */
-    + (rentalCard?'<div style="height:22px"></div>'+rentalCard:'');
+    + moreDrawer('home', more, 'More on Money');
 }
 function drawMoneyCharts(){
   if(!window.Chart) return;
@@ -4677,7 +4852,7 @@ function dealCardHtml(r){
   function k(l,v){ return '<div class="dk"><div class="dk-l">'+l+'</div><div class="dk-v">'+v+'</div></div>'; }
   return '<div class="deal">'
     +'<div class="deal-h"><div><div class="deal-n">'+esc(r.Name)+'</div><div class="deal-s">'+esc([r.Sector,r.Location].filter(has).join(' · '))+'</div></div>'
-    +(has(r.Stage)?'<span class="tag '+stageTone(r.Stage)+'">'+esc(r.Stage)+'</span>':'')+'</div>'
+    +(has(r.Stage)?'<span class="tag '+stageTone(r.Stage)+'" style="flex:0 0 auto;white-space:nowrap">'+esc(r.Stage)+'</span>':'')+'</div>'
     +'<div class="deal-k">'+k('Price',money(r.Price))+k('SDE',has(r.SDE)?money(r.SDE):'—')+k('Multiple',mult||'—')+k('Cash in',money(r.CashNeeded))+k('~Net / mo',has(r.MonthlyNet)?money(r.MonthlyNet):'—')+'</div>'
     +(has(r.OwnerHrs)?'<div class="deal-o">👤 '+esc(r.OwnerHrs)+'</div>':'')
     +'<div class="deal-notes">'+linkify(sv.text)+'</div>'
@@ -4688,7 +4863,7 @@ function propCardHtml(r){
   var cf=num(r.CashFlowMo);
   return '<div class="deal">'
     +'<div class="deal-h"><div><div class="deal-n">'+(has(r.URL)?'<a href="'+esc(r.URL)+'" target="_blank" rel="noopener">'+esc(r.Address)+' ↗</a>':esc(r.Address))+'</div><div class="deal-s">'+esc([r.Area,r.Units].filter(has).join(' · '))+'</div></div>'
-    +(has(r.Stage)?'<span class="tag '+stageTone(r.Stage)+'">'+esc(r.Stage)+'</span>':'')+'</div>'
+    +(has(r.Stage)?'<span class="tag '+stageTone(r.Stage)+'" style="flex:0 0 auto;white-space:nowrap">'+esc(r.Stage)+'</span>':'')+'</div>'
     +'<div class="deal-k">'+k('List',money(r.Price))+k('Cash flow',isNaN(cf)?'—':'<span style="color:'+(cf>0?'var(--green)':'var(--red)')+'">'+money(cf)+'/mo</span>')+k('Cap',esc(r.CapRate||'—'))+k('Cash in',money(r.CashNeeded))+k('5-yr equity',esc(r.Appreciation5yr||'—'))+'</div>'
     +(has(r.Financing)?'<div class="deal-notes" style="margin-bottom:6px"><b>Financing:</b> '+esc(r.Financing)+'</div>':'')
     +'<div class="deal-notes">'+linkify(sv.text)+'</div>'
@@ -5112,8 +5287,9 @@ function maintenanceCard(){
       +'<button class="ebtn" onclick="maintMileage(\''+esc(vname).replace(/'/g,"\\'")+'\','+o.v.__row+','+(o.est||0)+')">Update mileage</button></div>'
       +known.map(row).join('')
       +(unknown.length?'<details class="bud-more" style="margin-top:6px"><summary>'+unknown.length+' items with no service record yet: tap ✓ when done to start tracking</summary>'+unknown.map(row).join('')+'</details>':'')+'</div>'; }).join('');
-  return card('Maintenance autopilot','Based on mileage and time since each service. Snap a service receipt and it logs itself, mileage included. Intervals are Toyota’s schedule for high-mileage use; check your manual.',
-    '<div class="editbar" style="margin-bottom:10px"><button class="ebtn pri" onclick="snapPick()">📷 Snap a service receipt</button></div>'+body, '--rose');
+  return card('Maintenance autopilot','Mileage and time since each service. Snap a service receipt and it logs itself.',
+    '<div class="editbar" style="margin-bottom:10px"><button class="ebtn pri" onclick="snapPick()">📷 Snap a service receipt</button></div>'+body
+    +'<p class="foot foot-dim foot-gap">Intervals are Toyota’s schedule for high-mileage use; check your manual.</p>', '--rose');
 }
 function maintAlerts(){
   var out=[]; maintVehicles().forEach(function(o){ o.items.forEach(function(i){ if(i.status==='over'||i.status==='soon')
@@ -5127,25 +5303,29 @@ function maintAlerts(){
 var PPL_ONCE=[['req_medical','FAA medical certificate','ppl_medical'],['req_written','Knowledge (written) test passed','written_status'],['req_solo','First solo',null],
   ['req_long_xc','Long solo cross-country: 150 nm, 3 full-stop landings, one leg 50 nm+',null],['req_towered','3 solo takeoffs & full-stop landings at a towered airport',null],
   ['req_night_xc','Night cross-country over 100 nm (dual)',null],['req_night_ldg','10 night takeoffs & full-stop landings',null]];
-function checkrideForecastHtml(){
+function ckForecast(){
   var f=kv('Flying'), t=logTotals(), rate=num(f.cfi_rate)||175, soloRate=num(f.solo_rate)||130, target=num(f.ppl_target_hours)||60;
   var cut=Date.now()-60*864e5, recent=arr('FlightLog').reduce(function(s,r){ var d=parseDate(r.Date); return s+(d&&d.getTime()>=cut?(num(r.Hours)||0):0); },0), perMo=recent/2;
   var left=Math.max(0,target-t.total), soloLeft=Math.max(0,10-t.solo), dualLeft=Math.max(0,left-soloLeft);
   var fixed=(/pass|done|complete/i.test(String(f.written_status||''))?0:175)+(num(f.dpe_fee)||1000);
-  var cost=dualLeft*rate+soloLeft*soloRate+fixed;
-  var months=perMo>0?left/perMo:null, eta=months!=null?new Date(Date.now()+months*30.4*864e5):null;
-  var minLeft=Math.max(0,40-t.total), minEta=perMo>0?new Date(Date.now()+minLeft/perMo*30.4*864e5):null;
-  var once=PPL_ONCE.map(function(o){ var done=truthy(f[o[0]])||(o[2]&&/pass|done|complete|current|valid|yes/i.test(String(f[o[2]]||'')))||(o[0]==='req_solo'&&t.solo>0);
-    return '<label class="once"><input type="checkbox"'+(done?' checked':'')+' onchange="setOnce(\''+o[0]+'\',this.checked)"> '+esc(o[1])+'</label>'; }).join('');
-  var mo=function(d){ return d?d.toLocaleDateString('en-US',{month:'short',year:'numeric'}):'—'; };
-  return '<div class="ck-fc"><div class="ck-stats">'
-      +'<div><div class="dk-l">Pace</div><div class="dk-v">'+perMo.toFixed(1)+' hrs/mo</div><div class="foot">last 60 days</div></div>'
-      +'<div><div class="dk-l">Checkride (realistic)</div><div class="dk-v">'+mo(eta)+'</div><div class="foot">at ~'+target+' hrs total</div></div>'
-      +'<div><div class="dk-l">FAA minimum</div><div class="dk-v">'+mo(minEta)+'</div><div class="foot">at 40 hrs</div></div>'
-      +'<div><div class="dk-l">Cost to finish</div><div class="dk-v">'+money(cost)+'</div><div class="foot">'+(dualLeft+soloLeft).toFixed(1)+' hrs × '+money(rate)+(soloRate!==rate?' ('+soloLeft.toFixed(1)+' solo × '+money(soloRate)+')':'')+' + tests '+money(fixed)+'</div></div></div>'
-    +'<div class="section-title" style="margin:14px 0 6px">One-time items</div><div class="once-list">'+once+'</div>'
-    +'<p class="foot foot-dim foot-gap-s">Assumes '+target+' hrs total (most students finish at 60–70), the plane at '+money(rate)+'/hr dual and '+money(soloRate)+'/hr solo (Jeremy’s instruction is free), examiner ~'+money(num(f.dpe_fee)||1000)+'. Change them in Flying: ppl_target_hours, solo_rate, dpe_fee. Keep your pace up: 2–3 flights a week is the cheapest way to finish.</p></div>';
+  var months=perMo>0?left/perMo:null, minLeft=Math.max(0,40-t.total);
+  return {f:f, t:t, rate:rate, soloRate:soloRate, target:target, perMo:perMo, soloLeft:soloLeft, dualLeft:dualLeft, fixed:fixed, cost:dualLeft*rate+soloLeft*soloRate+fixed,
+    eta:months!=null?new Date(Date.now()+months*30.4*864e5):null, minEta:perMo>0?new Date(Date.now()+minLeft/perMo*30.4*864e5):null};
 }
+/* front tiles: flight time, projected checkride (realistic + 40-hr minimum), cost to finish, pace */
+function checkrideForecastHtml(half){
+  var c=ckForecast(), mo=function(d){ return d?d.toLocaleDateString('en-US',{month:'short',year:'numeric'}):'—'; };
+  return '<div class="ck-fc"><div class="ck-stats"'+(half?' style="grid-template-columns:repeat(2,minmax(0,1fr))"':'')+'>'
+      +'<div><div class="dk-l">Flight time</div><div class="dk-v">'+c.t.total.toFixed(1)+' hrs</div><div class="foot">of 40 FAA minimum</div></div>'
+      +'<div><div class="dk-l">Checkride (realistic)</div><div class="dk-v">'+mo(c.eta)+'</div><div class="foot">at ~'+c.target+' hrs · FAA min (40) '+mo(c.minEta)+'</div></div>'
+      +'<div><div class="dk-l">Cost to finish</div><div class="dk-v">'+money(c.cost)+'</div><div class="foot">'+(c.dualLeft+c.soloLeft).toFixed(1)+' hrs × '+money(c.rate)+(c.soloRate!==c.rate?' ('+c.soloLeft.toFixed(1)+' solo × '+money(c.soloRate)+')':'')+' + tests '+money(c.fixed)+'</div></div>'
+      +'<div><div class="dk-l">Pace</div><div class="dk-v">'+c.perMo.toFixed(1)+' hrs/mo</div><div class="foot">last 60 days</div></div></div></div>';
+}
+function checkrideAssumptions(){ var c=ckForecast();
+  return '<p class="foot foot-dim foot-gap-s">Assumes '+c.target+' hrs total (most students finish at 60–70), the plane at '+money(c.rate)+'/hr dual and '+money(c.soloRate)+'/hr solo (Jeremy’s instruction is free), examiner ~'+money(num(c.f.dpe_fee)||1000)+'. Change them in Flying: ppl_target_hours, solo_rate, dpe_fee. Keep your pace up: 2–3 flights a week is the cheapest way to finish.</p>'; }
+function checkrideOnceHtml(){ var f=kv('Flying'), t=logTotals();
+  return '<div class="section-title" style="margin:4px 0 6px">One-time items</div><div class="once-list">'+PPL_ONCE.map(function(o){
+    return '<label class="once"><input type="checkbox"'+(pplOnceDone(o,f,t)?' checked':'')+' onchange="setOnce(\''+o[0]+'\',this.checked)"> '+esc(o[1])+'</label>'; }).join('')+'</div>'; }
 function setOnce(key, on){ var o={}; o[key]=on?'yes':''; var f=kv('Flying'); f[key]=o[key];
   apiWrite({action:'setkv', tab:'Flying', row:JSON.stringify(o)}).then(function(r){ if(!(r&&r.ok)) toast('Couldn’t save that.'); }); render(CURRENT); }
 
@@ -5174,7 +5354,7 @@ function wiCard(){
   var sel='<label class="wi-f wi-wide"><span>Deal</span><select onchange="wiSet(\'deal\',this.value)">'+ds.map(function(d){return '<option value="'+d.key+'"'+(d.key===w.deal?' selected':'')+'>'+esc(d.label)+'</option>';}).join('')+(ds.length?'':'<option>custom</option>')+'</select></label>';
   var form='<div class="wi-grid">'+sel+f('price','Price',w.price,1000,'$')+f('cash','Total cash to close',w.cash,1000,'$')+f('cf','Deal cash flow',w.cf,50,'$/mo')
     +f('btc','BTC you’d sell',w.btc,0.05,'BTC')+f('basis','Your cost per BTC',w.basis,1000,'$')+f('btcG','BTC growth',w.btcG,1,'%/yr')+f('appr','Property growth',w.appr,0.5,'%/yr')+'</div>';
-  return card('What-if planner','Sell some Bitcoin and buy this deal (partners cover the rest): what happens to your monthly cash and your net worth over 5 years, versus just holding the Bitcoin.',
+  return card('What-if planner','Sell some Bitcoin to buy a deal (partners cover the rest): monthly cash and 5-year net worth vs. holding.',
     form+'<div id="wiOut" style="margin-top:14px"></div><div style="height:220px;margin-top:10px"><canvas id="wiChart"></canvas></div>', '--indigo');
 }
 function wiRun(){
@@ -5253,9 +5433,10 @@ function callRotationCard(){
       +'<span class="v">'+(nextFor[p.__row]?'next '+esc(shortDay(nextFor[p.__row])):'')+(has(p.LastCalled)?' <span class="foot foot-dim foot-inline">· last '+esc(shortDay(p.LastCalled))+'</span>':'')+' '+editBtn('Calls',p.__row)+'</span></div>'; }).join('')
     :'<div class="empty">No one in the rotation yet.</div>';
   var cal=sch.map(function(x){ return '<div class="call-day"><span>'+esc(shortDay(x.date))+'</span><b>'+esc(x.p.Name)+'</b></div>'; }).join('');
-  return card('Drive-in call rotation','One call each work day (Mon–Thu) on the way to work, rotating through everyone in order. With '+ps.length+' people, each person gets a call about every '+(ps.length/4).toFixed(1).replace('.0','')+' weeks. Add or pause people with ✎ Edit (Active = no pauses someone).',
+  return card('Drive-in call rotation','One call each Mon–Thu on the drive in, in order'+(ps.length?': everyone about every '+(ps.length/4).toFixed(1).replace('.0','')+' weeks.':'.'),
     '<div class="editbar" style="margin-bottom:8px"><button class="ebtn pri" onclick="openEditor(\'Calls\')">＋ Add a person</button></div>'+list
-    +'<div class="section-title" style="margin:14px 0 6px">Next 3 weeks</div><div class="call-grid">'+cal+'</div>', '--gold');
+    +'<div class="section-title" style="margin:14px 0 6px">Next 3 weeks</div><div class="call-grid">'+cal+'</div>'
+    +'<p class="foot foot-dim foot-gap">Pause someone with ✎ Edit (Active = no).</p>', '--gold');
 }
 
 /* ============================================================
@@ -5416,12 +5597,18 @@ function taxPlaybookHtml(r){
   var t=kv('Tax'), items=taxPlaybook(r), open=items.filter(function(m){return !truthy(t['move_'+m.id]);});
   // combined: all deductions together step down through the brackets (22% then 12%), plus non-bracket extras (SE tax, capital gains)
   var total=taxSaveFor(r, open.reduce(function(s,m){return s+(m.cut||0);},0))+open.reduce(function(s,m){return s+(m.extra||0);},0);
-  var rows=items.map(function(m,i){ var done=truthy(t['move_'+m.id]);
-    return '<div class="pb-item'+(done?' done':'')+'"><label class="tm-chk"><input type="checkbox"'+(done?' checked':'')+' onchange="taxSaveKv(\'move_'+m.id+'\',this.checked?\'yes\':\'\')"></label>'
-      +'<div class="pb-body"><div class="pb-t"><span class="pb-n">'+(i+1)+'</span>'+esc(m.title)+'</div><div class="pb-w">'+esc(m.why)+'</div>'
-      +'<details><summary>How to do it</summary><ul>'+m.how.map(function(h){return '<li>'+esc(h)+'</li>';}).join('')+'</ul></details></div>'
-      +'<div class="pb-side">'+(m.save>=20?'<div class="pb-save">saves ~'+taxMoney(Math.round(m.save/10)*10)+'</div>':'<div class="pb-save pb-free">tax-free $</div>')+'<div class="pb-due">'+esc(m.due)+'</div></div></div>'; }).join('');
-  return '<div class="card pb-card"><div class="pb-head"><div><h2>Your year-end tax playbook</h2><div class="sub">Ranked by dollars saved. Do the top ones before December 31. Check them off as you go.</div></div>'
+  // Simplify (Oct 2026): each to-do is one line (title · saves · due); the why + how fold under it, and ticked ones
+  // drop into a "done" fold at the bottom. The row wraps: title (200px basis) + saves/due fit one line on a laptop, and on
+  // phones saves/due drop under the title instead of squeezing it; the why + how fold always takes its own line.
+  var row=function(m,i){ var done=truthy(t['move_'+m.id]);
+    return '<div class="pb-item'+(done?' done':'')+'" style="flex-wrap:wrap"><label class="tm-chk"><input type="checkbox"'+(done?' checked':'')+' onchange="taxSaveKv(\'move_'+m.id+'\',this.checked?\'yes\':\'\')"></label>'
+      +'<div class="pb-body" style="flex:1 1 200px"><div class="pb-t">'+(done?'':'<span class="pb-n">'+(i+1)+'</span>')+esc(m.title)+'</div></div>'
+      +'<div class="pb-side">'+(m.save>=20?'<div class="pb-save">saves ~'+taxMoney(Math.round(m.save/10)*10)+'</div>':'<div class="pb-save pb-free">tax-free $</div>')+'<div class="pb-due">'+esc(m.due)+'</div></div>'
+      +'<div class="pb-body" style="flex:1 1 100%;padding-left:34px;margin-top:-12px"><details><summary>Why + how</summary><div class="pb-w">'+esc(m.why)+'</div><ul>'+m.how.map(function(h){return '<li>'+esc(h)+'</li>';}).join('')+'</ul></details></div></div>'; };
+  var done=items.filter(function(m){return truthy(t['move_'+m.id]);});
+  var rows=open.map(row).join('')+(open.length?'':'<div class="pb-item"><div class="pb-body foot" style="color:var(--text-dim)">✓ All done for this year.</div></div>')
+    +(done.length?'<details class="bud-more" style="border-top:1px solid var(--card-border)"><summary>'+done.length+' done ✓</summary>'+done.map(row).join('')+'</details>':'');
+  return '<div class="card pb-card"><div class="pb-head"><div><h2>Your year-end tax playbook</h2><div class="sub">Ranked by dollars saved. Do the top ones by Dec 31.</div></div>'
     +'<div class="pb-total"><div class="pb-total-v">~'+taxMoney(Math.round(total/50)*50)+'</div><div class="pb-total-l">still on the table</div></div></div>'+rows+'</div>';
 }
 function renderTaxes(){
@@ -5487,19 +5674,25 @@ function renderTaxes(){
     ['Brad 403(b) pre-tax','pretax_403b'],['Roth IRA: Brad','roth_brad'],['Roth IRA: Chelsea','roth_chelsea'],['2025 total tax (for safe harbor)','prior_year_tax'],['2025 AGI','prior_year_agi'],['BTC cost basis per coin','btc_basis_per_coin']];
   var form='<div class="tax-form">'+fields.map(function(f){ return '<label><span>'+f[0]+'</span><input type="number" inputmode="decimal" value="'+esc(t[f[1]]==null?'':t[f[1]])+'" onchange="taxSaveKv(\''+f[1]+'\', this.value)"></label>'; }).join('')
     +'<label><span>Brad pays SE tax?</span><select onchange="taxSaveKv(\'brad_pays_se_tax\', this.value)"><option value="yes"'+(r.seca?' selected':'')+'>Yes (most ministers)</option><option value="no"'+(!r.seca?' selected':'')+'>No: Form 4361 exempt</option></select></label></div>';
-  var deadlines=[['Now','Fix the shortfall: W-4 bump or IRS payment'],['Dec 31, 2026','Church designates 2027 housing allowance · year-end giving (BTC gifts) · 403(b) deferrals'],
-    ['Jan 15, 2027','Q4 estimated payment (EFTPS / IRS Direct Pay)'],['Jan–Feb 2027','Collect W-2s, 1098s (both mortgages), 1099s, giving statements, rental records'],
-    ['Apr 15, 2027','File 2026 return (or extend) · 2026 Roth IRA deadline · Q1 2027 estimate']].map(function(d){ return L('<b>'+d[0]+'</b>', esc(d[1])); }).join('');
+  // deadlines: [label, date (null = now), what]; "Now" only while there's a real shortfall. One due within 30 days also shows up front.
+  var short=r.balance>500&&!(isFinite(r.safeHarbor)&&r.paid>=r.safeHarbor);
+  var dl=[['Now',null,'Fix the shortfall: W-4 bump or IRS payment'],['Dec 31, 2026','2026-12-31','Church designates 2027 housing allowance · year-end giving (BTC gifts) · 403(b) deferrals'],
+    ['Jan 15, 2027','2027-01-15','Q4 estimated payment (EFTPS / IRS Direct Pay)'],['Jan–Feb 2027','2027-01-31','Collect W-2s, 1098s (both mortgages), 1099s, giving statements, rental records'],
+    ['Apr 15, 2027','2027-04-15','File 2026 return (or extend) · 2026 Roth IRA deadline · Q1 2027 estimate']].filter(function(d){ return d[1]||short; });
+  var deadlines=dl.map(function(d){ return L('<b>'+d[0]+'</b>', esc(d[2])); }).join('');
+  var soon=dl.map(function(d){ return {d:d, n:d[1]?daysUntilDate(d[1]+'T00:00:00'):0}; }).filter(function(x){ return x.n!=null&&x.n>=0&&x.n<=30; })[0];
+  var soonBar=soon?'<div class="call-bar mail-bar" style="margin:0 0 18px"><div class="call-main">⏰&nbsp; <b>'+(soon.d[1]?esc(soon.d[0])+' · '+fmtDue(soon.n):'Now')+'</b> — '+esc(soon.d[2])+'</div></div>':'';
+  // CPA caveat stays on the first screen; the full estimate, housing check, Schedule E, inputs, deadlines and older notes go in the drawer
+  var more='<div style="margin-bottom:22px">'+diff+'</div>'
+    + '<div class="grid cols-2" style="margin-bottom:22px">'+card('2026 estimate, line by line','Married filing jointly · Nevada has no state income tax.', lines)+card('Housing allowance check','Section 107: how much of Brad’s housing allowance is tax-free.', housing)+'</div>'
+    + '<div class="grid cols-2" style="margin-bottom:22px">'+card('Lahontan rental (Schedule E)','What the IRS sees for the rental.', rental)+card('Your numbers','Change anything and the estimate updates. Saved to your sheet’s Tax tab.', form)+'</div>'
+    + '<div class="grid cols-2">'+card('Deadlines','', deadlines)+card('Other notes','Older moves and reminders.', movesHtml, '--accent')+'</div>';
   return tiles
+    + soonBar
     + taxPlaybookHtml(r)
-    + '<details class="tax-more"><summary>Details: the full estimate, housing allowance, rental and your numbers</summary>'
-    + '<div style="margin-top:16px">'+diff+'</div>'
-    + '<div class="grid cols-2" style="margin:22px 0">'+card('2026 estimate, line by line','Married filing jointly · Nevada has no state income tax.', lines)+card('Housing allowance check','Section 107: how much of Brad’s housing allowance is tax-free.', housing)+'</div>'
-    + '<div class="grid cols-2" style="margin-bottom:22px">'+card('Lahontan rental (Schedule E)','What the IRS sees for the rental.', rental)+card('Your numbers','Change anything and the estimate updates. Saved to the Tax tab in your Life OS sheet.', form)+'</div>'
-    + '<div class="grid cols-2" style="margin-bottom:22px">'+card('Deadlines','', deadlines)+card('Other notes','Older moves and reminders.', movesHtml, '--accent')+'</div>'
-    + '</details>'
-    + '<p class="foot foot-dim">Planning estimate using 2026 IRS numbers (brackets, $32,200 standard deduction, $40,400 SALT cap, 0.5% giving floor, $7,500 IRA / $24,500 403(b) limits). It isn’t tax advice. Minister taxes have special rules, so confirm the big items with a clergy-savvy CPA. '
-    + (has(kv('Config').budget_sheet_url)?'<a href="'+esc(kv('Config').budget_sheet_url)+'" target="_blank" rel="noopener">Open your budget sheet ↗</a>':'')+'</p>';
+    + '<p class="foot foot-dim" style="margin:0 0 22px">Planning estimate using 2026 IRS numbers (brackets, $32,200 standard deduction, $40,400 SALT cap, 0.5% giving floor, $7,500 IRA / $24,500 403(b) limits). It isn’t tax advice. Minister taxes have special rules, so confirm the big items with a clergy-savvy CPA. '
+    + (has(kv('Config').budget_sheet_url)?'<a href="'+esc(kv('Config').budget_sheet_url)+'" target="_blank" rel="noopener">Open your budget sheet ↗</a>':'')+'</p>'
+    + moreDrawer('taxes', more, 'More on Taxes');
 }
 function taxAlerts(){ try{ if(ROLE==='chelsea'||!Object.keys(kv('Tax')).length) return []; var r=taxCalc(), out=[];
   var safe=isFinite(r.safeHarbor)&&r.paid>=r.safeHarbor, dApr=Math.round((new Date('2027-04-15')-laNow())/864e5);
@@ -5514,6 +5707,9 @@ function analyzerBody(){
   else if(r&&!r.ok) h+='<div class="foot" style="margin-top:10px;color:var(--red)">'+esc(r.error||'Something went wrong.')+'</div>';
   else if(r) h+=analyzeResultHtml(r);
   return h; }
+/* Ventures, simplified (Oct 2026): up front = four capital numbers, the listing analyzer, the pipeline Brad is working (a quiet
+   line when it's empty), and the live deals (verified first; unverified fold away). The what-if planner, readiness, side income,
+   the BTC ladder and the buy boxes / capital plan sit in one "More on Ventures" drawer (moreDrawer). Nothing removed. */
 function renderVentures(){
   var v=kv('Ventures');
   var live=function(r){ return !/(pass|dead)/i.test(String(r.Stage||'')); };
@@ -5524,30 +5720,43 @@ function renderVentures(){
   var crypto=arr('Investments').filter(function(i){return /crypto|btc|bitcoin/i.test(String(i.Type)+' '+String(i.Name));}).reduce(function(s,i){return s+(num(i.Value)||0);},0);
   var reVal=arr('Investments').filter(function(i){return /real estate/i.test(String(i.Type));}).reduce(function(s,i){return s+(num(i.Value)||0);},0);
   var reDebt=arr('Debts').filter(function(d){return /mortgage|heloc/i.test(String(d.Type));}).reduce(function(s,d){return s+(num(d.Balance)||0);},0);
-  var equity=reVal-reDebt;
+  var equity=reVal-reDebt, spot=LIVE.btc;
+  // feet = progress toward the goals: cash vs the same buffer target as Money and Today (Tax kv cash_buffer_target), crypto and
+  // BTC vs the $150k / $250k marks of the readiness card and the ladder in the drawer
+  var bufT=num(kv('Tax').cash_buffer_target)||35000;
   var tiles='<div class="grid cols-4" style="margin-bottom:22px">'
-    + statTile('Liquid cash', money(cash), 'thin — build first')
-    + statTile('Crypto', money(crypto), 'acquisition fund (trim on ladder)')
+    + statTile('Liquid cash', money(cash), cash>=bufT?money(bufT)+' buffer built ✓':Math.round(cash/bufT*100)+'% of the '+money(bufT)+' target')
+    + statTile('Crypto', money(crypto), crypto>=150000?'$150k fund ready · trim on ladder':Math.round(crypto/150000*100)+'% of the $150k fund')
     + statTile('Home equity', money(equity), 'RE value − mortgages')
-    + '<div class="stat"><div class="label">Bitcoin (live)</div><div class="value mono" data-live="btc">…</div><div class="foot">watch vs. your $250k target</div></div>'
+    + '<div class="stat"><div class="label">Bitcoin (live)</div><div class="value mono" data-live="btc">…</div><div class="foot">'+(spot?(spot>=250000?'$250k rung reached ✓':'+'+Math.round((250000/spot-1)*100)+'% to the $250k rung'):'vs. your $250k rung')+'</div></div>'
     + '</div>';
-
+  var gap='<div style="height:22px"></div>', quiet=function(t){ return '<div class="foot" style="margin:0 0 22px;color:var(--text-dim)">'+t+'</div>'; };
+  var split=function(rows, html, what){ var ok=rows.filter(isVerifiedLive), un=rows.filter(function(r){ return !isVerifiedLive(r); });
+    return (ok.length?'<div class="deals">'+ok.map(html).join('')+'</div>':'<div class="foot foot-dim">No '+what+' verified live right now.</div>')
+      +(un.length?'<details class="bud-more" style="margin-top:10px"><summary>'+un.length+' more couldn’t be verified live (link may be dead)</summary><div class="deals">'+un.map(html).join('')+'</div></details>':''); };
+  var piped=arr('Properties').filter(inPipe).length+arr('Deals').filter(inPipe).length;
+  var how='<details class="bud-more" style="margin-top:6px"><summary>How this works</summary><p class="foot foot-dim" style="margin:0 0 6px">Same math as the daily search: cash flow at today’s rates on every financing path, a days-on-market-capped offer, distance from Carson, and your buy-box rules. “Save to my pipeline” keeps a listing as Watching; the daily search never overwrites pipeline rows, and moving one to Pass hides it.</p></details>';
   // reference: buy boxes + capital plan (the Funnel/Side-income groups already drive the funnel card, so they're not repeated)
   var refObj={}; Object.keys(v).forEach(function(k){ if(!/^(Funnel|Side income)\|/.test(k)) refObj[k]=v[k]; });
   var box=grpKv(refObj, '--indigo');
-  var dealsHtml = deals.length ? '<div class="deals">'+deals.map(dealCardHtml).join('')+'</div>' : '<div class="empty">No live deals right now — the Monday search adds verified listings automatically.</div>';
-  var propsHtml = props.length ? '<div class="deals">'+props.map(propCardHtml).join('')+'</div>' : '<div class="empty">Nothing cash-flows at today’s rates near Carson or in Winnemucca. The daily search keeps looking and adds anything that does.</div>';
+  var more=wiCard() + gap
+    + '<div class="grid cols-3" style="margin-bottom:22px">' + acquisitionReadinessCard() + btcLadderCard() + sideIncomeFunnelCard() + '</div>'
+    + (box?'<div class="section-title">Buy boxes &amp; capital plan</div><div class="grid cols-2">'+box+'</div>'
+         :card('Ventures','', emptyAct('No buy-box or capital plan yet.','Ventures'),'--indigo'));
+  // the deals that need Brad lead; the analyzer tool follows them (first only when there's nothing to look at)
+  var analyze=card('Analyze a listing','Paste any rental or business-for-sale link to run the numbers.', analyzerBody()
+        +(piped?'':'<div class="foot foot-dim" style="margin-top:10px">Your pipeline is empty. Tap “Save to my pipeline” on a listing worth working.</div>')+how, '--indigo') + gap,
+    bare=!piped&&!deals.length&&!props.length;
   return tiles
     + (EDIT?'<div class="editbar">'+kvEditBtn('Ventures')+addBtn('Deals','deal')+addBtn('Properties','property')+'</div>':'')
-    + card('Analyze a listing','Paste any rental or business-for-sale link. Same math as the daily search: cash flow at today’s rates on every financing path, a days-on-market-capped offer, distance from Carson, and your buy-box rules.', analyzerBody(), '--indigo') + '<div style="height:22px"></div>' + pipelineCard() + '<div style="height:22px"></div>' + wiCard() + '<div style="height:22px"></div>'
-    + card('Deal pipeline','Businesses for sale that fit your buy box — verified live, refreshed every Monday. Estimates: underwrite before trusting SDE.', dealsHtml, '--indigo')
-    + '<div style="height:22px"></div>'
-    + card('Real Estate Investments','Rentals that cash-flow at today’s rates (at list or a days-on-market-capped offer): 2–40 units within an hour of Carson, plus Winnemucca houses and multifamily that clear +$'+(num(kv('Config').wmc_min_cf)||300)+'/mo.', propsHtml, '--teal')
-    + '<div style="height:22px"></div>'
-    + '<div class="grid cols-2" style="margin-bottom:22px">' + acquisitionReadinessCard() + sideIncomeFunnelCard() + '</div>'
-    + '<div class="grid cols-2" style="margin-bottom:22px">' + btcScenarioCard() + btcLadderCard() + '</div>'
-    + (box?'<details class="refbox"><summary>Buy boxes &amp; capital plan <span>reference — tap to expand</span></summary><div class="grid cols-2" style="margin-top:16px">'+box+'</div></details>'
-         :card('Ventures','', emptyAct('No buy-box or capital plan yet.','Ventures'),'--indigo'));
+    + (bare?analyze:'')
+    + (piped?pipelineCard()+gap:'')
+    + (deals.length?card('Businesses for sale','Fit your buy box · refreshed every Monday · estimates: underwrite before trusting SDE.', split(deals, dealCardHtml, 'businesses'), '--indigo')+gap
+        :quiet('No live businesses for sale right now; the Monday search adds verified listings automatically.'))
+    + (props.length?card('Rentals that cash-flow','At today’s rates, at list or a capped offer: 2–40 units within an hour of Carson, or Winnemucca at +$'+(num(kv('Config').wmc_min_cf)||300)+'/mo.', split(props, propCardHtml, 'rentals'), '--teal')+gap
+        :quiet('Nothing cash-flows at today’s rates near Carson or in Winnemucca. The daily search keeps looking and adds anything that does.'))
+    + (bare?'':analyze)
+    + moreDrawer('ventures', more, 'More on Ventures');
 }
 
 /* ============================================================
@@ -5595,7 +5804,7 @@ function renderHobbies(){
       {label:'Cost',render:function(r){return esc(r.Cost||'');}},
       {label:'Notes',key:'Notes'}
     ];
-    huntHtml='<div style="height:22px"></div>'+card('Hunt planner','DIY / no-guide options, ranked by your priority. Guided-only entries flagged red.',
+    huntHtml='<div style="height:22px"></div>'+card('Hunt planner','DIY / no-guide options by priority; guided-only flagged red.',
       tableEl(hcols, hunts, {editTab:'Hunts'}), '--violet');
   }
 
@@ -5623,7 +5832,7 @@ function renderHobbies(){
     .filter(function(x){return x.d!=null;}).sort(function(a,b){return a.d-b.d;});
   var dlFuture=dl.filter(function(x){return x.d>=-3;});
   if(dlFuture.length){
-    deadlineCard='<div style="height:22px"></div>'+card('⏳ Application deadlines','Draw applications, soonest first — apply before these dates.',
+    deadlineCard='<div style="height:22px"></div>'+card('⏳ Application deadlines','Draw applications, soonest first.',
       dlFuture.map(function(x){ var soon=x.d<=30;
         return '<div class="kv-row"><span class="k">'+(soon?'⚠ ':'')+'<strong>'+esc(x.h.Species)+'</strong> · '+esc(x.h.State)+' <span class="foot foot-dim">'+esc(x.h.Method||'')+'</span></span>'
           +'<span class="v '+dueClass(x.d)+'">'+esc(x.h.Deadline)+(x.d>=0?' · '+fmtDue(x.d):' · closed')+'</span></div>';
@@ -5828,7 +6037,7 @@ function teslaWatchCard(){
   var next=dates.filter(function(x){return x.d!=null&&x.d>=0;}).sort(function(a,b){return a.d-b.d;})[0];
   var datesHtml=dates.map(function(x){ return '<div class="kv-row"><span class="k"><strong>'+esc(x.t)+'</strong><br><span style="color:var(--text-dim);font-size:12.5px">'+esc(x.s)+'</span></span><span class="v '+dueClass(x.d)+'">'+(x.d!=null?fmtDue(x.d):'')+'</span></div>'; }).join('');
   var firedN=TESLA_TRIGGERS.filter(function(t){return has(cfg['tesla_fired_'+t.id]);}).length, upd=cfg.tesla_watch_updated;
-  var sub=(firedN?firedN+' trigger'+(firedN===1?'':'s')+' fired':'No triggers fired')+(next?' · next: '+next.t.toLowerCase()+' '+fmtDue(next.d):'')+' · a danger means order early to lock in.';
+  var sub=(firedN?firedN+' trigger'+(firedN===1?'':'s')+' fired':'No triggers fired')+(next?' · next: '+next.t.toLowerCase()+' '+fmtDue(next.d):'');
   var foot='<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-top:8px">'
     +'<span class="foot foot-dim">Last updated '+(has(upd)?esc(prettyIso(String(upd)).slice(0,24)):'—')+' · '+statusTag(vehStatus(v))+'</span>'
     +'<span style="display:flex;gap:6px;flex-wrap:wrap"><button class="ebtn" onclick="teslaChecked()">Checked today, no change</button><button class="ebtn" onclick="navGo(\'vehicles\')">Open vehicle →</button></span></div>';
@@ -5838,6 +6047,13 @@ function teslaWatchCard(){
     +'<div><div class="tw-h" style="color:var(--sky)">Key dates</div>'+datesHtml+'</div></div>'+foot;
   return card('🔋 Tesla watch', sub, body, '--rose').replace('<div class="card"','<div class="card tw-card"');
 }
+/* Today shows the Tesla card up front only when it needs Brad: a trigger has fired, the order reminder is within 2 weeks,
+   or the order-by date is within 2 weeks (or passed). Otherwise it waits in the "More on Today" drawer. */
+function teslaWatchHot(){
+  var v=teslaVehicle(); if(!v) return false; var cfg=kv('Config');
+  if(TESLA_TRIGGERS.some(function(t){ return has(cfg['tesla_fired_'+t.id]); })) return true;
+  var rem=spec(v,'Reminder'), tgt=spec(v,'Target order'), r=has(rem)?daysUntilDate(rem):null, o=has(tgt)?daysUntilDate(tgt):null;
+  return (r!=null && r>=-7 && r<=14) || (o!=null && o<=14); }
 async function teslaSet(obj){ obj.tesla_watch_updated=ymd(laNow());
   var res=await apiWrite({action:'setkv',tab:'Config',row:JSON.stringify(obj)});
   if(res&&res.ok) await afterWrite(); else alert('Could not save — try again.'); }
@@ -5851,19 +6067,19 @@ var PAL_SEL=0, PAL_ITEMS=[];
 function palIndex(){
   var items=[];
   Object.keys(TABS).forEach(function(t){ if(ROLE==='chelsea' && !CHELSEA_TABS[t]) return; items.push({icon:domIcon(t),cat:'Go to',t:TABS[t].title,s:TABS[t].sub,tab:t}); });
-  function add(tab,cat,rows,label,sub){ rows.forEach(function(r){ var t=label(r); if(!t) return; items.push({icon:domIcon(tab),cat:cat,t:t,s:sub?sub(r):'',tab:tab}); }); }
-  add('home','Bill',arr('Bills'),function(r){return r.Vendor;},function(r){return (r.Category||'')+(has(r.Amount)?' · '+money(r.Amount):'');});
-  add('home','Contact',arr('Contacts'),function(r){return r.Name;},function(r){return r.Company||r.Category||'';});
-  add('home','Account',arr('Accounts'),function(r){return r.Name;},function(r){return r.Institution||'';});
-  add('home','Debt',arr('Debts'),function(r){return r.Name;},function(r){return r.Lender||'';});
-  add('home','Investment',arr('Investments'),function(r){return r.Name;},function(r){return has(r.Value)?money(r.Value):'';});
+  function add(tab,cat,rows,label,sub,sec){ rows.forEach(function(r){ var t=label(r); if(!t) return; items.push({icon:domIcon(tab),cat:cat,t:t,s:sub?sub(r):'',tab:tab,sec:sec}); }); }   // sec = section to open (it may sit in a More drawer)
+  add('home','Bill',arr('Bills'),function(r){return r.Vendor;},function(r){return (r.Category||'')+(has(r.Amount)?' · '+money(r.Amount):'');},'sec-bills');
+  add('home','Contact',arr('Contacts'),function(r){return r.Name;},function(r){return r.Company||r.Category||'';},'sec-bills');
+  add('home','Account',arr('Accounts'),function(r){return r.Name;},function(r){return r.Institution||'';},'sec-accts');
+  add('home','Debt',arr('Debts'),function(r){return r.Name;},function(r){return r.Lender||'';},'sec-accts');
+  add('home','Investment',arr('Investments'),function(r){return r.Name;},function(r){return has(r.Value)?money(r.Value):'';},'sec-accts');
   add('travel','Points',arr('Points'),function(r){return r.Program;},function(r){return has(r.Balance)?r.Balance+' pts':(r.Number||'');});
   add('travel','Trip',arr('Travel'),function(r){return r.Trip||r.Destination;},function(r){return r.Destination||'';});
   add('projects','Project',arr('Projects'),function(r){return r.Name;},function(r){return r.Area||r.Status||'';});
   add('vehicles','Vehicle',arr('Vehicles'),function(r){return r.Name;},function(r){return [r.Year,r.Make,r.Model].filter(has).join(' ');});
   add('hobbies','Hobby',arr('Hobbies'),function(r){return r.Name;},function(r){return r.Who||'';});
   add('hobbies','Hunt',arr('Hunts'),function(r){return (r.Species||'')+' — '+(r.State||'');},function(r){return r.Method||'';});
-  add('flying','Airport',arr('Airports'),function(r){return r.Icao;},function(r){return r.Name||'';});
+  add('flying','Airport',arr('Airports'),function(r){return r.Icao;},function(r){return r.Name||'';},'sec-airports');
   add('faith','Practice',arr('Habits'),function(r){return r.Practice;},function(r){return r.Cadence||'';});
   add('faith','Person',arr('Prayer'),function(r){return r.Name;},function(r){return r.For||'';});
   add('ventures','Deal',arr('Deals'),function(r){return r.Name;},function(r){return r.Sector||r.Stage||'';});
@@ -5968,7 +6184,8 @@ function palRender(){
   }).join('') : '<div class="palrow" style="color:var(--text-dim);cursor:default">No matches.</div>';
 }
 function palHighlight(){ var rows=$('palResults').children; for(var i=0;i<rows.length;i++){ rows[i].classList.toggle('sel', i===PAL_SEL); } }
-function palGo(i){ var x=PAL_ITEMS[i]; if(!x) return; closePalette(); navGo(x.tab); }
+function palGo(i){ var x=PAL_ITEMS[i]; if(!x) return; closePalette(); navGo(x.tab);
+  if(x.sec) setTimeout(function(){ var el=$(x.sec); if(el){ moreReveal(el); el.scrollIntoView({behavior:'smooth'}); } }, 80); }
 function palKey(e){
   if(e.key==='ArrowDown'){ e.preventDefault(); PAL_SEL=Math.min(PAL_ITEMS.length-1,PAL_SEL+1); palHighlight(); scrollSel(); }
   else if(e.key==='ArrowUp'){ e.preventDefault(); PAL_SEL=Math.max(0,PAL_SEL-1); palHighlight(); scrollSel(); }
@@ -6059,7 +6276,7 @@ function medicalHistoryCard(){
         return esc(a)+(r.Kind==='Illness'?(b?(b!==a?' – '+esc(b):''):' – <span style="color:var(--amber);font-weight:600">ongoing</span>'):''); }},
     {label:'What',wide:true,render:function(r){ var extra=[r.Symptoms,has(r.Treatment)?'Treatment: '+r.Treatment:'',r.Notes].filter(function(x){return has(x);}).map(function(x){return esc(x);}).join(' · ');
         return '<strong>'+esc(r.What||'')+'</strong>'+(has(r.Kind)?' <span class="chip">'+esc(r.Kind)+'</span>':'')+(extra?'<div class="foot" style="margin-top:4px;color:var(--text-muted)">'+extra+'</div>':''); }}];
-  return card('Medical history','Illnesses, injuries and visits — so you can remember what happened and when.',
+  return card('Medical history','Illnesses, injuries and visits.',
     '<div class="editbar" style="justify-content:flex-start;margin-bottom:12px"><button class="ebtn pri" onclick="logMedical()">＋ Log illness / visit</button></div>'
     + tableEl(cols, rows, {empty:'Nothing logged yet.', editTab:'Medical'}), '--pink');
 }
@@ -6142,32 +6359,54 @@ function recoveryCard(){
     + '<div class="stat"><div class="label">Resting HR</div><div class="value">'+(isNaN(L.rhr)?'—':Math.round(L.rhr)+' bpm')+'</div><div class="foot">'+cmp(L.rhr,R.avgRhr,true)+'</div></div>'
     + '<div class="stat"><div class="label">Sleep</div><div class="value">'+hm(L.sleep)+'</div><div class="foot">'+(isNaN(L.score)?'':'score '+L.score+'% · ')+'7-day avg '+hm(R.avgSleep)+'</div></div>'
     + '</div>';
-  return card('Recovery & sleep','From your WHOOP (via Cronometer). Green 67%+, yellow 34–66%, red under 34%.', tiles+'<p style="margin:0;font-size:13.5px">'+advice+'</p>', '--pink');
+  return card('Recovery & sleep','From WHOOP · green 67%+, red under 34%.', tiles+'<p style="margin:0;font-size:13.5px">'+advice+'</p>', '--pink');
 }
 function trainingTargetsCard(){
   var t=trainingWeek();
   var bars = goalBar('Zone 2 cardio → 150 min', t.z2/150*100, fmtMins(t.z2)+' this week at '+t.z2lo+'–'+t.z2hi+' bpm avg HR', '--sky')
     + goalBar('Strength sessions → 2', t.strength/2*100, t.strength+' this week', '--pink')
     + goalBar('Hard effort (VO₂ max) → 1', t.hard/1*100, t.hard+' this week (avg HR above '+t.z2hi+')', '--amber');
-  return card('This week vs. your longevity targets', 'Peter Attia’s framework: lots of easy Zone 2, 2+ strength days, one hard interval session. Auto-computed from Strava ('+t.sessions+' sessions, '+fmtMins(t.total)+').', bars+'<p class="foot foot-dim foot-gap-m">Zones estimated from max HR '+hrMax()+' (220 − age). Add <span class="mono">max_hr</span> to Health settings for a tested number.</p>', '--pink');
+  return card('This week vs. your longevity targets', 'From Strava: '+t.sessions+' session'+(t.sessions===1?'':'s')+', '+fmtMins(t.total)+' so far.', bars
+    +'<details class="bud-more"><summary>How this works</summary><p class="foot foot-dim" style="margin:0 0 4px">Peter Attia’s framework: lots of easy Zone 2, 2+ strength days, one hard interval session. Zones estimated from max HR '+hrMax()+' (220 − age). Add <span class="mono">max_hr</span> to Health settings for a tested number.</p></details>', '--pink');
 }
 function covToggle(name, open){ try{ var o=JSON.parse(localStorage.getItem('lifeos_cov')||'{"Medical":1}'); if(open) o[name]=1; else delete o[name]; localStorage.setItem('lifeos_cov', JSON.stringify(o)); }catch(e){} }
+/* Health "Today" card (Simplify, Oct 2026): today's session (Health kv weekly_shape, same as the Today tab's Training gauge,
+   else the weekly plan; eased when WHOOP says red), weight vs goal, and quiet nudges only when something needs Brad:
+   a stale Cronometer/WHOOP export, a weight not logged in a week, the next appointment. Replaces the four weight/protein/pace
+   tiles (protein + pace now sit in the Nutrition card, the weight trend line in the weight log). */
+function healthTodayCard(plan, cur, goal){
+  var h=kv('Health'), sk=sickNow(), RI=recoveryInfo(), rows=[], dn=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][laNow().getDay()];
+  function sd(s){ var m=String(s||'').match(/(\d{4})-(\d{2})-(\d{2})/); return m?MONTHS[+m[2]-1]+' '+(+m[3]):''; }
+  function ago(s){ var m=String(s||'').match(/\d{4}-\d{2}-\d{2}/); return m?Math.round((new Date(ymd(laNow()))-new Date(m[0]))/864e5):null; }
+  function line(ic, title, right, sub){ return '<div class="tax-move"><span class="chk chk-auto" style="margin-top:1px">'+ic+'</span><div class="tm-body"><div class="tm-t" style="display:flex;justify-content:space-between;gap:10px"><span>'+title+'</span>'
+    +(right?'<span class="mono" style="white-space:nowrap;font-weight:500;color:var(--text-muted)">'+right+'</span>':'')+'</div>'+(sub?'<div class="tm-s">'+sub+'</div>':'')+'</div></div>'; }
+  if(!sk){   // sick mode: the sick card above already says rest
+    var p=plan.filter(function(x){ return x[0]===dn; })[0], shape=has(h.weekly_shape), wo=todayWorkoutPlan(), w1=String(wo||'').toLowerCase().split(/[\s\/]+/)[0];
+    var agree=!!wo && p[1].toLowerCase().indexOf(w1)>=0;   // the sheet's plan and the written-out week name the same session → use the fuller wording
+    var t=agree?p[1]:(wo?wo.charAt(0).toUpperCase()+wo.slice(1):(shape?'No session on your plan':p[1])), sub=(agree||(!wo&&!shape))?p[2]:'', rest=/^rest|^no session/i.test(t);
+    if(RI && RI.age<=1 && RI.zone==='red' && !rest){ sub='Planned: '+t+'. Rest, walk, or very easy Zone 2 — prioritize sleep.'; t='Easy day — recovery '+RI.last.rec+'%'; }
+    rows.push(line('🏃', esc(t), dn, esc(sub)));
+  }
+  var wd=ago(h.weight_updated), ws=weightSeries(), d=ws.length>1?Math.round((ws[ws.length-1]-ws[0])*10)/10:null, togo=Math.max(0,Math.round(cur-goal));
+  rows.push(line('⚖️', 'Weight '+cur+' lb', togo?togo+' lb to '+goal:'at goal',
+    (wd==null?'Not logged yet — tap ＋ Log weight':(wd>=7?'<span style="color:var(--amber)">Last logged '+sd(h.weight_updated)+', '+wd+' days ago — tap ＋ Log weight</span>':'Logged '+(wd===0?'today':sd(h.weight_updated))))
+    +(d!=null&&d!==0?' · '+(d>0?'+':'−')+Math.abs(d)+' lb since first log':'')));
+  var nl=arr('Nutrition').map(function(r){ return String(r.Date||'').slice(0,10); }).filter(Boolean).sort().pop(), na=ago(nl), ra=RI?RI.age:null;
+  if((ra!=null&&ra>3) || (na!=null&&na>3)){   // the age shown is the stalest export's
+    var parts=[]; if(ra!=null) parts.push('WHOOP through '+sd(RI.last.d)); if(na!=null) parts.push('nutrition through '+sd(nl));
+    rows.push(line('🔄', 'Export from Cronometer', Math.max(ra==null?0:ra, na==null?0:na)+' days old', esc(parts.join(' · '))+' — Daily Nutrition + Biometrics CSVs into the Drive inbox.'
+      +'<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">'+cronoLink('Open Cronometer')+inboxLink('Drive inbox')+'</div>'));
+  }
+  if(has(h.next_appointment)) rows.push(line('📅', 'Next appointment', '', esc(prettyIso(h.next_appointment))));
+  return card('Today', '', rows.join(''), '--pink');
+}
 function renderHealth(){
-  var h=kv('Health'), log=arr('HealthLog');
-  var findCare=''; try{ if(typeof findCareCard==='function') findCare=findCareCard()+'<div style="height:22px"></div>'; }catch(e){ console.error('findCare', e); }
+  var h=kv('Health'), log=arr('HealthLog'), sk=sickNow(), RI=recoveryInfo(), recFront=RI&&RI.age<=3, gap='<div style="height:22px"></div>';
+  var findCare=''; try{ if(typeof findCareCard==='function') findCare=findCareCard()+gap; }catch(e){ console.error('findCare', e); }
   var cur=num(h.weight)||208, goal=num(h.weight_goal)||185, togo=Math.max(0,Math.round(cur-goal));
   var proteinLo=Math.round(goal*0.9), proteinHi=Math.round(goal*1.1);
 
-  var tiles='<div class="grid cols-4" style="margin-bottom:22px">'
-    + (function(){ var ws=weightSeries(); if(Math.min.apply(null,ws)===Math.max.apply(null,ws)) ws=[]; var t=statTile('Current weight', cur+' lb', (has(h.weight_updated)?('as of '+prettyIso(h.weight_updated)):'')
-        +(ws.length>1?' · '+(ws[ws.length-1]-ws[0]<=0?'':'+')+(Math.round((ws[ws.length-1]-ws[0])*10)/10)+' lb since first log':''));
-        return ws.length>1 ? t.replace(/<\/div>$/, sparkline(ws.slice(-30),'--pink')+'</div>') : t; })()
-    + statTile('Goal weight', goal+' lb', togo+' lb to go')
-    + statTile('Protein / day', proteinLo+'–'+proteinHi+' g', 'preserve & build muscle')
-    + statTile('Target pace', '~1 lb/wk', 'goal by ~'+new Date(Date.now()+Math.max(1,togo)*7*864e5).toLocaleDateString('en-US',{month:'short',year:'numeric'})+' at ~500 cal/day deficit')
-    + '</div>';
-
-  var rows=[['Resting HR',h.resting_hr],['Recovery',h.recovery_note],['Next appointment',h.next_appointment]]
+  var rows=[['Resting HR',h.resting_hr],['Recovery',h.recovery_note]]   // next appointment shows in the Today card
     .filter(function(r){return has(r[1]);});
   var infoHtml=(rows.length?rows.map(function(r){return '<div class="kv-row"><span class="k">'+esc(r[0])+'</span><span class="v">'+esc(r[1])+'</span></div>';}).join(''):emptyAct('No health metrics yet (resting HR, recovery, next appointment).','Health'));
 
@@ -6182,13 +6421,14 @@ function renderHealth(){
     ['Sun','Rest','full recovery + meal prep']
   ];
   var planHtml=plan.map(function(p){return '<div class="kv-row"><span class="k"><strong>'+p[0]+'</strong> · '+esc(p[1])+'</span><span class="v" style="color:var(--text-dim);font-weight:500;max-width:45%">'+esc(p[2])+'</span></div>';}).join('')
-    +'<p style="font-size:12.5px;color:var(--text-dim);margin:12px 0 0">Keep hard CrossFit and hard endurance on separate days, and keep ~80% of endurance in Zone 2 — that\'s what lets you build the run/bike engine while lifting heavy 3×/wk to hold muscle. Deficit + heavy lifting + high protein = lose fat, keep muscle.</p>';
+    +'<details class="bud-more"><summary>Why this plan</summary><p style="font-size:12.5px;color:var(--text-dim);margin:0 0 4px">Keep hard CrossFit and hard endurance on separate days, and keep ~80% of endurance in Zone 2 — that\'s what lets you build the run/bike engine while lifting heavy 3×/wk to hold muscle. Deficit + heavy lifting + high protein = lose fat, keep muscle.</p></details>';
 
-  var nutrition='<div class="kv-row"><span class="k">Calories</span><span class="v">~2,300–2,500 avg (≈500 deficit)</span></div>'
+  var nutrition='<div class="kv-row"><span class="k">Pace</span><span class="v">~1 lb/wk → '+goal+' lb by ~'+new Date(Date.now()+Math.max(1,togo)*7*864e5).toLocaleDateString('en-US',{month:'short',year:'numeric'})+'</span></div>'
+    +'<div class="kv-row"><span class="k">Calories</span><span class="v">~2,300–2,500 avg (≈500 deficit)</span></div>'
     +'<div class="kv-row"><span class="k">Protein</span><span class="v">'+proteinLo+'–'+proteinHi+' g/day (~1 g/lb goal wt)</span></div>'
     +'<div class="kv-row"><span class="k">Carbs</span><span class="v">Cycle: more on long bike/run + metcon days, less on rest/lift days</span></div>'
     +'<div class="kv-row"><span class="k">Fats</span><span class="v">~70–85 g/day</span></div>'
-    +'<p style="font-size:12.5px;color:var(--text-muted);margin:12px 0 0">Anchor every meal on 40–50g protein (eggs, Greek yogurt, chicken, beef, whey). Fuel the long Sat bike and Mon run with carbs before/during; pull carbs on Wed/Sun. A modest ~500 cal/day deficit (not aggressive) protects strength and recovery — at '+cur+'→'+goal+' that\'s ~'+Math.max(1,Math.round((cur-goal)/4.3))+' months. Weigh daily, track the 7-day average, adjust ~200 cal if the average stalls 2 weeks.</p>';
+    +'<details class="bud-more"><summary>How to hit it</summary><p style="font-size:12.5px;color:var(--text-muted);margin:0 0 4px">Anchor every meal on 40–50g protein (eggs, Greek yogurt, chicken, beef, whey). Fuel the long Sat bike and Mon run with carbs before/during; pull carbs on Wed/Sun. A modest ~500 cal/day deficit (not aggressive) protects strength and recovery — at '+cur+'→'+goal+' that\'s ~'+Math.max(1,Math.round((cur-goal)/4.3))+' months. Weigh daily, track the 7-day average, adjust ~200 cal if the average stalls 2 weeks.</p></details>';
 
   var nw=nutritionWeek();
   nutrition = (nw
@@ -6219,27 +6459,33 @@ function renderHealth(){
     {label:'Avg HR',num:true,key:'AvgHR'},{label:'Elev',num:true,key:'Elevation'}];
   function woTs(r){ var m=String(r.Date||'').match(/(\d{4})-(\d{2})-(\d{2})/); return m?new Date(+m[1],+m[2]-1,+m[3]).getTime():0; }
   var woRecent = workouts.slice().sort(function(a,b){return woTs(b)-woTs(a);}).slice(0,15);   // newest first, by actual date
-  var woCard = stravaOn ? '<div style="height:22px"></div>'+card('Recent workouts','Auto-synced from Strava — most recent first.', tableEl(woCols, woRecent, {}), '--pink') : '';
+  var woCard = stravaOn ? card('Recent workouts','From Strava, newest first.', tableEl(woCols, woRecent, {}), '--pink')+gap : '';
 
   var logCols=[{label:'Date',key:'Date'},{label:'Metric',key:'Metric'},{label:'Value',num:true,key:'Value'},{label:'Notes',key:'Notes'}];
-  return '<div class="editbar" style="gap:8px">'+(EDIT?kvEditBtn('Health'):'')+'<button class="ebtn pri" onclick="quickLogWeight()">＋ Log weight</button></div>'
-    + (sickNow()?sickPlanCard()+'<div style="height:22px"></div>':'')
-    + tiles
-    + (recoveryInfo()?recoveryCard()+'<div style="height:22px"></div>':'')
-    + trainingTargetsCard() + '<div style="height:22px"></div>'
+  var ws=weightSeries(); if(Math.min.apply(null,ws)===Math.max.apply(null,ws)) ws=[];   // weight trend line (was on the old Current weight tile)
+  // Up front (Simplify, Oct 2026): sick mode (+ Find care while sick) → Today → recovery & sleep while the WHOOP data is fresh →
+  // this week vs targets (paused while sick). Everything else lives in "More on Health" — nothing removed.
+  var more=(recFront||!RI?'':recoveryCard()+gap)
+    + (sk?trainingTargetsCard()+gap:'')
     + '<div class="grid cols-2">'
     + card('Training plan','Hybrid: CompTrain strength + Zone-2 endurance.', planHtml, '--pink')
     + card('Nutrition — lose fat, keep muscle', 'Targets for '+cur+' → '+goal+' lb.', nutrition, '--pink')
-    + '</div><div style="height:22px"></div>'
-    + (rows.length
-        ? '<div class="grid cols-2">' + card('Health admin','Recovery, resting HR and appointments.', infoHtml, '--pink') + card('Connections','Auto-sync + logging.', connect, '--pink') + '</div>'
-        : card('Connections','Auto-sync + logging.', connect, '--pink'))
+    + '</div>' + gap
     + woCard
-    + '<div style="height:22px"></div>'
-    + findCare
-    + '<div class="grid cols-2">' + medicalHistoryCard() + coverageCard() + '</div>'
-    + '<div style="height:22px"></div>'
-    + card('Weight & metrics log','', tableEl(logCols, log.slice().sort(function(a,b){ return String(b.Date).localeCompare(String(a.Date)); }), {empty:'Log weight & metrics with ✎ Edit.',editTab:'HealthLog'}), '--pink');
+    + (sk?'':findCare)
+    + '<div class="grid cols-2">' + medicalHistoryCard() + coverageCard() + '</div>' + gap
+    + (rows.length
+        ? '<div class="grid cols-2">' + card('Health admin','Resting HR and recovery notes.', infoHtml, '--pink') + card('Connections','Auto-sync + logging.', connect, '--pink') + '</div>'
+        : card('Connections','Auto-sync + logging.', connect, '--pink'))
+    + gap
+    + card('Weight & metrics log','', (ws.length>1?'<div style="display:flex;align-items:center;gap:12px;margin:0 0 12px"><span class="foot" style="margin:0;white-space:nowrap">Weight trend</span><div style="flex:1;max-width:260px;margin-top:-8px">'+sparkline(ws.slice(-30),'--pink')+'</div></div>':'')
+        + tableEl(logCols, log.slice().sort(function(a,b){ return String(b.Date).localeCompare(String(a.Date)); }), {empty:'Log weight & metrics with ✎ Edit.',editTab:'HealthLog'}), '--pink');
+  return (EDIT?'<div class="editbar" style="gap:8px">'+kvEditBtn('Health')+'</div>':'')   // ＋ Log weight sits in the page header
+    + (sk?sickPlanCard()+gap+findCare:'')
+    + healthTodayCard(plan, cur, goal) + gap
+    + (recFront?recoveryCard()+gap:'')
+    + (sk?'':trainingTargetsCard()+gap)
+    + moreDrawer('health', more, 'More on Health');
 }
 
 /* ============================================================
@@ -6270,7 +6516,7 @@ function todaysReading(){ var n=laNow(), y=n.getFullYear(), days=((y%4===0&&y%10
   var ot=biblePortion(BIBLE_OT, day, days), nt=biblePortion(BIBLE_NT, day, days);
   return {ot:ot, nt:nt, day:day, days:days, url:'https://www.biblegateway.com/passage/?search='+encodeURIComponent(ot+'; '+nt)+'&version=ESV'}; }
 function readingCard(){ var r=todaysReading();
-  return card('Today’s reading','Bible in a year — day '+r.day+' of '+r.days+'. Old and New Testament every day.',
+  return card('Today’s reading','Bible in a year · day '+r.day+' of '+r.days+'.',
     '<div class="kv-row"><span class="k">Old Testament</span><span class="v">'+esc(r.ot)+'</span></div>'
     +'<div class="kv-row"><span class="k">New Testament</span><span class="v">'+esc(r.nt)+'</span></div>'
     +'<div style="margin-top:12px"><a class="ebtn pri" style="text-decoration:none" href="'+r.url+'" target="_blank" rel="noopener">Open today’s passages ↗</a></div>', '--gold'); }
@@ -6282,9 +6528,9 @@ function renderFaith(){
   var openLoops=prayer.filter(function(p){return String(p.Status||'').toLowerCase()!=='closed'&&String(p.Status||'').toLowerCase()!=='answered';}).length;
 
   var tiles='<div class="grid cols-4" style="margin-bottom:22px">'
-    + statTile('Practices today', doneToday+' / '+(habits.length||0), 'kept so far today')
-    + statTile('Best streak', bestStreak+(bestStreak===1?' day':' days'), 'longest active run')
-    + statTile('People on the list', prayer.length||'—', openLoops+' need follow-up')
+    + statTile('Practices today', doneToday+' / '+(habits.length||0), 'kept today')
+    + statTile('Best streak', bestStreak+(bestStreak===1?' day':' days'), 'longest active')
+    + statTile('People on the list', prayer.length||'—', openLoops?openLoops+' to follow up':'all followed up')
     + statTile('Decisions logged', journal.length||'—', 'in the journal')
     + '</div>';
 
@@ -6301,7 +6547,7 @@ function renderFaith(){
       +editBtn('Habits',h.__row)+'</span></div>';
   }).join('') : '<div class="empty">Add rhythms of your rule of life — daily prayer, scripture, sabbath, exercise — then tap ✓ to build a streak.</div>';
   var habitCard = (EDIT?'<div class="editbar">'+addBtn('Habits','practice')+'</div>':'')
-    + card('Rule of life','Your rhythms. Tap ✓ each day to keep the streak.', habitBody, '--gold');
+    + card('Rule of life','Tap ✓ to keep the streak.', habitBody, '--gold');
 
   // People / prayer list
   var prCols=[
@@ -6316,7 +6562,7 @@ function renderFaith(){
   // Gentle nudge: open loops not contacted in >30 days
   var reach=prayer.filter(function(p){var s=String(p.Status||'').toLowerCase(); if(s==='closed'||s==='answered') return false; var d=has(p.LastContact)?daysBetween(p.LastContact,new Date()):999; return d==null||d>30;});
   var reachNote=reach.length?'<div class="foot" style="margin:0 0 10px;color:var(--amber)">🤝 Reach out soon: '+reach.slice(0,5).map(function(p){return esc(p.Name);}).join(', ')+(reach.length>5?' +'+(reach.length-5)+' more':'')+'</div>':'';
-  var prayerCard=card('People & prayer','Who you\'re praying for and following up with.', reachNote+tableEl(prCols, prayer, {empty:'Add people to pray for and stay in touch with.',editTab:'Prayer'}), '--gold');
+  var prayerCard=card('People & prayer','Praying for and following up.', reachNote+tableEl(prCols, prayer, {empty:'Add people to pray for and stay in touch with.',editTab:'Prayer'}), '--gold');
 
   // Decision journal
   var jCols=[
@@ -6325,10 +6571,9 @@ function renderFaith(){
     {label:'Revisit',render:function(r){var d=daysUntilDate(r.Revisit);return has(r.Revisit)?'<span class="'+(d!=null?dueClass(d):'')+'">'+esc(r.Revisit)+'</span>':'';}},
     {label:'Outcome',render:function(r){return esc(r.Outcome||'');}}
   ];
-  var journalCard=card('Decision journal','Big calls, why you made them, and when to revisit — so you can learn from your own judgment.', tableEl(jCols, journal.slice().reverse(), {empty:'Log a decision, your reasoning, and a date to revisit it.',editTab:'Journal'}), '--gold');
+  var journalCard=card('Decision journal','Big calls, why, and when to revisit.', tableEl(jCols, journal.slice().reverse(), {empty:'Log a decision, your reasoning, and a date to revisit it.',editTab:'Journal'}), '--gold');
 
-  return '<div class="editbar">'+(EDIT?'':'<span style="font-size:12.5px;color:var(--text-dim)">Tip: turn on ✎ Edit to add practices, people, or decisions.</span>')+'</div>'
-    + tiles
+  return tiles
     + '<div class="grid cols-2" style="margin-bottom:22px">' + habitCard + readingCard() + '</div>'
     + prayerCard
     + '<div style="height:22px"></div>'
@@ -6338,6 +6583,13 @@ function renderFaith(){
 /* ============================================================
    TRAVEL
    ============================================================ */
+/* points & miles valued at typical redemption rates (¢ per point) → {list:[{prog,bal,cpp,val}] biggest first, total} */
+var POINT_CPP=[[/capital one/i,1.4],[/chase|ultimate rewards/i,1.5],[/amex|membership rewards/i,1.5],[/southwest|rapid rewards/i,1.35],
+  [/united/i,1.3],[/alaska|atmos|hawaiian/i,1.3],[/delta|skymiles/i,1.1],[/flying blue/i,1.2],[/marriott|bonvoy/i,0.7],[/hilton/i,0.5]];
+function travelWallet(){
+  function cpp(prog){ for(var i=0;i<POINT_CPP.length;i++){ if(POINT_CPP[i][0].test(String(prog||''))) return POINT_CPP[i][1]; } return 1.0; }
+  var list=arr('Points').map(function(p){var bal=num(p.Balance); if(isNaN(bal)||bal<=0) return null; var c=cpp(p.Program); return {prog:p.Program, bal:bal, cpp:c, val:bal*c/100};}).filter(Boolean).sort(function(a,b){return b.val-a.val;});
+  return {list:list, total:list.reduce(function(s,x){return s+x.val;},0)}; }
 function renderTravel(){
   var trips=arr('Travel'), checklist=arr('TravelChecklist'), points=arr('Points');
   var upcoming=trips.filter(function(t){return String(t.Status||'').toLowerCase()!=='past';});
@@ -6346,7 +6598,7 @@ function renderTravel(){
     var cl=checklist.filter(function(c){return String(c.Trip||'').trim()===String(t.Trip||'').trim();});
     var clHtml=cl.length?'<div class="section-title" style="margin-top:12px">Checklist</div>'+cl.map(function(c){return '<div class="kv-row"><span class="k">'+(truthy(c.Done)?'✓ ':'○ ')+esc(c.Item)+'</span></div>';}).join(''):'';
     return '<div class="card" style="border-top:3px solid var(--cyan)"><div style="display:flex;justify-content:space-between;gap:10px"><h2>'+esc(t.Trip||t.Destination)+'</h2>'+(has(t.Status)?'<span class="tag '+String(t.Status).toLowerCase()+'">'+esc(t.Status)+'</span>':'')+'</div>'
-      +'<div class="sub">'+esc(t.Destination||'')+(has(t.StartDate)?' · '+esc(t.StartDate)+(has(t.EndDate)?' – '+esc(t.EndDate):''):'')+'</div>'
+      +'<div class="sub">'+esc(t.Destination||'')+(has(t.StartDate)?' · '+esc(prettyIso(String(t.StartDate)))+(has(t.EndDate)?' – '+esc(prettyIso(String(t.EndDate))):''):'')+'</div>'
       +(has(t.Purpose)?'<div class="kv-row"><span class="k">Purpose</span><span class="v">'+esc(t.Purpose)+'</span></div>':'')
       +(has(t.Who)?'<div class="kv-row"><span class="k">Who</span><span class="v">'+esc(t.Who)+'</span></div>':'')
       +clHtml
@@ -6356,19 +6608,13 @@ function renderTravel(){
   var out=(upcoming.length?addBtn('Travel','trip'):'')+(EDIT?'<div class="editbar" style="margin-top:-4px"><button class="ebtn pri" onclick="openEditor(\'TravelChecklist\')">＋ Add checklist item</button></div>':'');
   out += upcoming.length?'<div class="section-title">Upcoming</div><div class="grid cols-2">'+upcoming.map(tripCard).join('')+'</div>'
     : card('Travel','', emptyAct('No upcoming trips.','Travel','trip'),'--cyan');
-  // Points → estimated cash value ("travel wallet")
-  var CPP=[[/capital one/i,1.4],[/chase|ultimate rewards/i,1.5],[/amex|membership rewards/i,1.5],[/southwest|rapid rewards/i,1.35],
-    [/united/i,1.3],[/alaska|atmos|hawaiian/i,1.3],[/delta|skymiles/i,1.1],[/flying blue/i,1.2],[/marriott|bonvoy/i,0.7],[/hilton/i,0.5]];
-  function cpp(prog){ for(var i=0;i<CPP.length;i++){ if(CPP[i][0].test(String(prog||''))) return CPP[i][1]; } return 1.0; }
-  var valued=points.map(function(p){var bal=num(p.Balance); if(isNaN(bal)||bal<=0) return null; var c=cpp(p.Program); return {prog:p.Program, bal:bal, cpp:c, val:bal*c/100};}).filter(Boolean).sort(function(a,b){return b.val-a.val;});
-  var walletTotal=valued.reduce(function(s,x){return s+x.val;},0);
-  var walletCard='';
-  if(valued.length){
+  // Points → estimated cash value ("travel wallet"); the total also leads Home & Life as the "Points value" tile, so no tiles here
+  var w=travelWallet(), walletCard='';
+  if(w.list.length){
     walletCard=card('Travel wallet — estimated value',
-      'Your points & miles valued at typical redemption rates (cents per point). Real value swings with how you redeem.',
-      '<div class="grid cols-2" style="margin-bottom:16px">'+statTile('Total value', money(walletTotal), valued.length+' programs with a balance')
-        +statTile('Biggest', valued.length?esc(valued[0].prog):'—', valued.length?money(valued[0].val):'')+'</div>'
-      + valued.map(function(v){return '<div class="kv-row"><span class="k">'+esc(v.prog)+' <span class="foot foot-dim">'+v.bal.toLocaleString()+' pts @ '+v.cpp+'¢</span></span><span class="v mono">'+money(v.val)+'</span></div>';}).join(''),'--cyan')
+      'Points & miles at typical redemption rates (¢ per point); real value depends on how you redeem.',
+      w.list.map(function(v){return '<div class="kv-row"><span class="k">'+esc(v.prog)+' <span class="foot foot-dim">'+v.bal.toLocaleString()+' pts @ '+v.cpp+'¢</span></span><span class="v mono">'+money(v.val)+'</span></div>';}).join('')
+      +'<div class="kv-row" style="border-bottom:none"><span class="k"><b>Total</b> <span class="foot foot-dim foot-inline">'+w.list.length+' programs</span></span><span class="v mono"><b>'+money(w.total)+'</b></span></div>','--cyan')
       +'<div style="height:22px"></div>';
   }
   out+='<div style="height:22px"></div>'+walletCard+pointsPlanCard(points)+'<div style="height:22px"></div>'+card('Points & miles','', tableEl(pointsCols, points, {editTab:'Points'}), '--cyan');
@@ -6570,7 +6816,7 @@ function mailList(list, kind, max, uiKey, noun){
 function mailCard(id, title, sub, body){ return card(title, sub, body).replace('<div class="card"', '<div class="card" id="'+id+'"'); }
 function mailTile(label, value, foot, target){
   return '<div class="stat link" onclick="mailJump(\''+target+'\')"><div class="label">'+esc(label)+'</div><div class="value">'+value+'</div>'+(foot?'<div class="foot">'+esc(foot)+'</div>':'')+'</div>'; }
-function mailJump(id){ var c=$(id); if(!c) return; if(c.classList.contains('folded')) foldToggle(c,false);
+function mailJump(id){ var c=$(id); if(!c) return; moreReveal(c); if(c.classList.contains('folded')) foldToggle(c,false);
   c.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion:reduce)').matches?'auto':'smooth', block:'start'}); }
 /* search box: re-render as he types, keep focus and caret */
 var mailQT=null;
@@ -6705,11 +6951,12 @@ function renderMail(){
   var fyiCard=mailCard('mlFyi','FYI','Receipts and routine notices, filed under Life OS/FYI. Last 7 days.',
     fyi.length?'<details class="ml-fold"'+(MAIL.ui.fyi?' open':'')+' ontoggle="MAIL.ui.fyi=this.open"><summary>'+fyi.length+' email'+(fyi.length===1?'':'s')+' this week</summary>'+mailList(fyi,'fyi',40,'fyiAll','emails')+'</details>'
       :'<div class="empty">No FYI mail this week.</div>');
-  var grp=function(t, note, list, kind, key){ return list.length?'<div class="ml-grp-h">'+t+' · '+list.length+'<span>'+note+'</span></div>'+mailList(list, kind, 6, key, 'emails'):''; };
-  var weedCard=mailCard('mlWeed','Weeded out','Last 7 days. Unimportant mail is filed away; spam and junk go to each inbox’s Spam folder. Tap Not junk and Life OS remembers that sender.',
-    (unimp.length||junk.length)?grp('Unimportant (filed away)', 'real senders you don’t need', unimp, 'unimp', 'unimp')+grp('Spam / Junk', 'scams and garbage', junk, 'weed', 'weed')
+  // Weeded out starts compact (Simplify, Oct 2026): one line per group with its count; tap to see the emails (open state kept in MAIL.ui)
+  var grp=function(t, note, list, kind, key){ return list.length?'<details class="ml-fold"'+(MAIL.ui[key+'Open']?' open':'')+' ontoggle="MAIL.ui.'+key+'Open=this.open"><summary><b>'+list.length+'</b> '+t+' <span style="color:var(--text-dim)">· '+note+'</span></summary>'+mailList(list, kind, 6, key, 'emails')+'</details>':''; };
+  var weedCard=mailCard('mlWeed','Weeded out','Last 7 days — filed away or sent to Spam. Not junk rescues a sender.',
+    (unimp.length||junk.length)?grp('unimportant, filed away', 'real senders you don’t need', unimp, 'unimp', 'unimp')+grp('spam / junk', 'scams and garbage', junk, 'weed', 'weed')
       :'<div class="empty">Nothing weeded out this week.</div>');
-  var connect=mailConnectCard(d, accts);
+  var connect=mailConnectCard(d, accts), cold=!none && !!ck.newest && Date.now()-ck.newest>864e5;   // agents quiet a day+: status + re-run command up front
   if(MAIL.q){   // searching: one list across every category (this week's loaded mail, done items included)
     var ws=MAIL.q.toLowerCase().split(/\s+/).filter(Boolean), kindOf={reply:'reply', important:'imp', fyi:'fyi', unimportant:'unimp', junk:'weed', spam:'weed'};
     var hits=items.filter(function(x){ var h=[x.From, x.FromEmail, x.Subject, x.Summary, x.Snippet, x.Account].join(' ').toLowerCase(); return ws.every(function(w){ return h.indexOf(w)>=0; }); })
@@ -6718,8 +6965,8 @@ function renderMail(){
       hits.length?'<div class="ml-list">'+hits.slice(0,60).map(function(x){ return mailRow(x, kindOf[x.Category]||'fyi'); }).join('')+'</div>':'<div class="empty">Nothing matches. Older mail isn’t loaded here — search it in Mail or Gmail.</div>')+'</div>';
   }
   return tiles+meta+mailOutbox(d)
-    +'<div class="ml-stack">'+(none?connect:'')+(reply.length||none?replyCard:'')+(imp.length||none?impCard:'')+fyiCard+weedCard+(none?mailTeachCard(d):'')+'</div>'
-    +(none?'':'<div class="grid cols-2" style="margin-bottom:22px">'+mailTeachCard(d)+connect+'</div>');
+    +'<div class="ml-stack">'+(none||cold?connect:'')+(reply.length||none?replyCard:'')+(imp.length||none?impCard:'')+fyiCard+weedCard+(none?mailTeachCard(d):'')+'</div>'
+    +(none?'':moreDrawer('mail', cold?mailTeachCard(d):'<div class="grid cols-2">'+mailTeachCard(d)+connect+'</div>', 'More on Mail'));   // Teach + Connect: set-up, one tap away (up front until an inbox is connected)
 }
 /* queued sends (reply / compose) and Gmail moves the agents haven't picked up yet */
 function mailQP(q){ try{ return JSON.parse(q.Payload||'{}')||{}; }catch(e){ return {}; } }
@@ -7055,7 +7302,7 @@ if('serviceWorker' in navigator){
   });
 }
 </script>
-<script src="care.js?v=3"></script>
+<script src="care.js?v=4"></script>
 <script src="par.js?v=5"></script>
 </body>
 </html>

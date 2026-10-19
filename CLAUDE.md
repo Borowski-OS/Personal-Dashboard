@@ -18,7 +18,7 @@
   Config `wmc_min_cf` (Brad: +$300/mo; wmcMinCf_) to be listed, alerted or called GO; only verified-live listings.
 - This repo is PUBLIC. Never commit data.js, Code.js or other backend files, .clasprc.json, passwords, or personal financial data.
 - Brad doesn't code: work autonomously, explain in plain English, and only ask for things only he can do.
-- Who's flying (Flying tab, below go/no-go): live map of the planes Brad, Chelsea and friends fly. Data from FlightAware
+- Who's flying (Flying tab, up front below go/no-go and the TAF card; never inside the More drawer — atShut() stops polling in a closed one): live map of the planes Brad, Chelsea and friends fly. Data from FlightAware
   AeroAPI (Personal plan) via the Cloudflare Worker in `relay/` (Brad's Cloudflare account; key is a Worker secret; KV-cached;
   $15/month cap, Brad-approved; fresh on look, slow while idle). Free ADS-B feeds block Cloudflare, so don't switch back. URL in `AT_RELAY` or Config `aircraft_relay_url`.
   Planes from Flying kv `tracked_aircraft` ("N51207 = Brad & Chelsea; N6058A = …"), else `AT_DEFAULT_TAILS`.
@@ -51,7 +51,7 @@
   only to CHELSEA_WRITE_ tabs. Page: ROLE='chelsea' shows Home (renderChelseaHome) + Home & Life; hides AI, edit, alerts, snap. Keep filtering server-side.
 - What-if planner (Ventures): wiCard/wiRun — sell X BTC (15% LTCG on gain over cost basis), your share vs partners, equity + cash flow over 5 yrs vs holding the BTC. Inputs remembered in localStorage `lifeos_whatif`.
 - Drive-in call rotation: Calls tab (Name, Relation, Phone, Order, Active, LastCalled, Notes). One person per Mon–Thu from Config `call_rotation_start`
-  (2026-09-30), cycling by Order (Active=no pauses). Today shows callBar (📞 Call / ✓ Called); Home & Life shows callRotationCard (next 3 weeks).
+  (2026-09-30), cycling by Order (Active=no pauses). Today shows callBar (📞 Call / ✓ Called); Home & Life shows this week's calls (lifeCallLine) up front and callRotationCard (next 3 weeks) in its More drawer, folded by default.
   Alerts.js callAlert_ sends a 7 AM Mon–Thu phone alert with a tap-to-call button. Page callFor() and backend callFor_() must stay in sync.
 - Jeremy's instruction is free; N3207A rents at $175/hr dual or solo (Flying kv cfi_rate=175, solo_rate=175, cfi_phone set).
 - Home values: Investments rows "Prospect House" / "Lahontan House" carry Claude's comp-based appraisals (AsOf "(Claude appraisal)"), set by hand —
@@ -69,8 +69,8 @@
   taxCalc(): 2026 MFJ federal (TAX26 constants: brackets, $32,200 std, $40,400 SALT, 0.5% charity floor, IRA $7,500, 403(b) $24,500, SS base $184,500),
   clergy rules — Sec.107 housing exclusion = min(designated, actual, FRV incl. furnishings+utilities); minister pay incl. full allowance is SE income
   (Tax kv brad_pays_se_tax=no for Form 4361); rental Sch E with land-split depreciation + passive-loss phase-out; itemized vs standard; QBI; safe harbor.
-  Page = 3 tiles + taxPlaybook(r) (ranked year-end to-dos with $ saved: each item has cut = taxable-income reduction and/or extra = SE/cap-gains savings; total combines cuts through the brackets) + everything else in a "Details" <details>. Checkboxes in Tax kv move_<id>.
-  taxMoves() = older notes (inside Details); taxAlerts() feed Today. Planning estimate, not advice — keep the CPA caveat.
+  Page = 3 tiles + taxPlaybook(r) (ranked year-end to-dos with $ saved: each item has cut = taxable-income reduction and/or extra = SE/cap-gains savings; total combines cuts through the brackets) + everything else in the "More on Taxes" drawer. Checkboxes in Tax kv move_<id>.
+  taxMoves() = older notes (in the drawer); taxAlerts() feed Today. Planning estimate, not advice — keep the CPA caveat.
 - AI orb: canvas.ai-sphere elements (launcher #aiHive + chat welcome) share one rAF loop drawing a ~1,200-point Fibonacci particle sphere
   (3D rotation + flowing radius), Apple-setup style; only visible canvases animate. Tax kv rental_ledger (JSON rows) drives the Schedule E card. Chelsea's flight training + business share of the Maule are deductible on her ground-instruction Sch C (CPA-approved: improves skills in her existing aviation field); Tax kv chelsea_aviation_yr is subtracted from chelsea_sc_net.
 - Planes down: Flying kv `aircraft_down` ("N51207, N3207A"), `aircraft_down_note`, `aircraft_down_since` → Flying banner, bookBar hidden, and Alerts.js trainerDown_
@@ -102,7 +102,8 @@
   chelsea_salary / chelsea_salary_prev, chelsea_bonus_mo / chelsea_bonus_mo_prev, raise_effective, cleaners_mo, chelsea_pretax_pct,
   cash_buffer_target; check-offs raise_move_<id>. It computes take-home from taxCalc's marginal rate + FICA and runs a waterfall:
   tithe 10% → cleaners → two Roth IRAs → cash buffer (to target) → HELOC → extra principal/acquisition fund. taxCalc's chelsea_wages
-  is the 2026 W-2 estimate (raise months included) and must be refreshed from her paystub. No figures in this file.
+  is the 2026 W-2 estimate (raise months included) and must be refreshed from her paystub (with chelsea_withholding_yr; the last
+  paystub read-out is in Tax kv raise_note, dated by chelsea_paystub_asof). No figures in this file.
 - Income & Roth IRA eligibility panel (Money tab, rothEligibilityCard; from the Oct 6 2026 tax handoff): MAGI ≈ Brad (base + bonus −
   usable housing − 403(b)) + Chelsea wages + side net, vs TAX26.rothLo/rothHi. Inputs are Tax kv: brad_comp, brad_salary_2027, brad_bonus,
   pretax_403b (2026 actual) / plan_403b (2027), housing_usable_plan, side_net_est, chelsea_* (shared with the raise card). Sliders preview
@@ -114,7 +115,8 @@
   `fetchTownWx`/`TOWNS`, calendar, recovery, training, rhythm ring — no air-quality chip by Brad's choice), then Top 3 | Daily rhythm |
   `.deck-pulse` trend tiles (net worth, cash buffer vs Tax kv `cash_buffer_target` default 35k, weight, workouts, 90-day flight hours).
   Theme tokens live in the "Pro redesign" :root plus the "Refinement" and "Command deck" CSS blocks at the end of <style>; keep new
-  greys on that token scale. Brad wants a heads-up + PDF mockup before any further layout change.
+  greys on that token scale. Brad wants a heads-up + PDF mockup before any further layout change. (Oct 19 2026 Simplify: Brad said
+  "you have all my permissions, don't ask me any questions" — done without asking; a before/after PDF was sent afterwards.)
 - Find care (Oct 7 2026, Health tab, top card): `care.js` = plan cost rules (AHP Renown Platinum HMO 2026, public plan info, each row cites the
   source doc + page) + a picker of needs (sick now, ER, PCP, specialist, lab, imaging, PT, chiro, mental health, Rx, surgery, hospital, dental, vision)
   + in-network provider search. The provider index (parsed from the Renown HMO Provider Directory 10/26 edition) is PRIVATE by Brad's choice: it is
@@ -194,9 +196,17 @@
   Phone alerts (Mail.js mailAlert*): new open Needs-reply (or urgent Important) mail from the last 24 h → one batched notify_ per sync (sender name +
   scrubbed subject; MAIL_ALERTED ring), quiet 9 PM–6 AM with an hourly digest after; Config mail_alerts=off disables; the email fallback
   ("🔔 Life OS · …") is filed FYI/done and never alerts.
-- Default folds (Oct 2026): FOLD_DEFAULT lists reference cards that start folded on Brad's view (vendor contacts, buy-boxes,
-  capital plan, codes/utilities/insurance look-ups, hunt point tables, points table, Mail's Teach/Connect). Opening one stores 0
-  in lifeos_folds so it stays open on that device. Chelsea's view never default-folds.
+- Default folds (Oct 2026): FOLD_DEFAULT lists reference cards that start folded on Brad's view — Ventures: buy-box / RE buy-box /
+  capital plan; Home & Life: codes & IDs, utilities & accounts, insurance & claims, points & miles, hunt point tables (Nevada,
+  Wyoming), points game plan, hunt planner, drive-in call rotation; Flying: flight log, checkride requirements, performance &
+  loading. Opening one stores 0 in lifeos_folds so it stays open on that device. Chelsea's view never default-folds.
+- More drawers (Simplify, Oct 2026; Brad: "cluttered — simplify"): each tab leads with what needs Brad; secondary cards sit in one
+  closed `<details class="more-drawer">` at the bottom, built by moreDrawer(key, html, label) ("More on Money", "More on Flying"…;
+  nothing was removed). Opened/closed by a tap is remembered per device in localStorage `lifeos_more`; a drawer opened by code
+  (navGo's TAB_SECTION deep links incl. #bills, Today alerts, Find care ↓, ⌘K search, the page map's More chip) goes through
+  moreReveal(el) and is a peek for that visit only (MORE_PEEK, reset by navGo) — never stored. Chelsea's view always shows it
+  open and never writes lifeos_more. pageMap() skips drawer contents, adds a "More" chip that opens it, carries a hand-made
+  row's moreReveal jumps (Money: Raise & Roth plan / Accounts / Bills & contacts) and is off on Today and Mail.
 - The voice assistant formerly called Pam is now named **Atlas** (Oct 12 2026). Code identifiers (pamFrame, PAM_URL, ~/Pam on the Mac) keep the old name on purpose.
   Cloud first (Oct 12 2026): the panel reads Config kv `atlas_url` (the always-on cloud Atlas; several allowed, best first, bare host names get
   https://), probes every host's /api/health at once (CORS, then no-cors so a cloud host without CORS headers still counts; 6 s) and loads the
