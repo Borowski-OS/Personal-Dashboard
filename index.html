@@ -2780,13 +2780,36 @@ async function markActionDone(rownum){
   var a=arr('NextActions').filter(function(r){return String(r.__row)===String(rownum);})[0]; if(!a) return;
   saveRowNow('NextActions', rownum, {Action:a.Action,Tab:a.Tab||'',Due:a.Due||'',Done:'TRUE'});
 }
+/* tap a next step → a detail sheet: what it is, which area, when it's due, and the actions (mark done / do it now / open the area) */
+var BIG3=[];
+function openStep(i){
+  var s=BIG3[i]; if(!s) return;
+  var d=DOMAIN[s.tab]||DOMAIN.overview, area=TAB_ALIAS[s.tab]||s.tab, canOpen=s.tab&&area!=='overview'&&TABS[area];
+  var due=s.d!=null?'<span class="'+dueClass(s.d)+'">'+fmtDue(s.d)+'</span>':'<span style="color:var(--text-dim)">no due date</span>';
+  var from=s.row?'On your to-do list (added by you).':'Built automatically from your '+esc(d[0])+' data — it goes away when the thing is done.';
+  var acts='';
+  if(s.row) acts+='<button class="ebtn pri" onclick="closeModal();markActionDone('+s.row+')">✓ Mark done</button>';
+  if(s.act) acts+='<button class="ebtn pri" onclick="closeModal();'+s.act+'">Do it now</button>';
+  if(canOpen) acts+='<button class="ebtn" onclick="closeModal();navGo(\''+s.tab+'\')">Open '+esc(TABS[area].title)+' →</button>';
+  acts+='<button class="ebtn" onclick="closeModal()">Close</button>';
+  $('modalSheet').innerHTML='<button class="mclose" onclick="closeModal()" aria-label="Close">×</button>'
+    +'<div class="mhead"><div><h2>'+esc(s.t)+'</h2><div class="sub">'+esc(d[0])+' · next step</div></div></div>'
+    +'<div class="msec"><div class="h">Details</div><div class="mgrid">'
+    +'<div class="kv-row"><span class="k">Area</span><span class="v">'+domChip(s.tab)+'</span></div>'
+    +'<div class="kv-row"><span class="k">Due</span><span class="v">'+due+'</span></div>'
+    +'<div class="kv-row" style="display:block"><span class="k" style="display:block;margin-bottom:4px">Where from</span><span class="v" style="display:block;white-space:normal;text-align:left;font-weight:400;font-size:13.5px;color:var(--text-muted)">'+from+'</span></div></div></div>'
+    +'<div class="editbar" style="justify-content:flex-start;gap:8px;flex-wrap:wrap;margin-top:14px">'+acts+'</div>';
+  $('modal').classList.remove('hidden');
+}
 function big3Card(){
   var steps=smartSteps().filter(function(s){ return !/^Keep your /.test(s.t); });   // habits live in Daily rhythm
   if(!steps.length) return card('Today’s top 3','','<div class="empty">All clear. Add a to-do with ＋ Quick add.</div>','--gold');
+  BIG3=steps;
   function item(s,i,big){
+    var si=steps.indexOf(s);
     var box = s.row ? '<button class="chk" title="Mark done" onclick="event.stopPropagation();this.disabled=true;this.textContent=\'✓\';markActionDone('+s.row+')"></button>' : '<span class="chk chk-auto" title="Auto-built from your data">•</span>';
     return '<div class="'+(big?'mit':'mit-sm')+'">'+box+(big?'<span class="mit-n">'+(i+1)+'</span>':'')
-      +'<button type="button" class="mit-t mit-go"'+(big?'':' title="'+esc(s.t)+'"')+' onclick="'+(s.act?s.act:'navGo(\''+s.tab+'\')')+'"><span class="mit-tx">'+esc(s.t)+'</span></button><span class="mit-r">'+domChip(s.tab)+(s.d!=null?' <span class="'+dueClass(s.d)+'">'+fmtDue(s.d)+'</span>':'')+'</span></div>'; }
+      +'<button type="button" class="mit-t mit-go"'+(big?'':' title="'+esc(s.t)+'"')+' onclick="openStep('+si+')"><span class="mit-tx">'+esc(s.t)+'</span></button><span class="mit-r">'+domChip(s.tab)+(s.d!=null?' <span class="'+dueClass(s.d)+'">'+fmtDue(s.d)+'</span>':'')+'</span></div>'; }
   var top=steps.slice(0,3).map(function(s,i){return item(s,i,true);}).join('');
   var rest=steps.slice(3);
   var more=rest.length?'<details class="mit-more"><summary>'+rest.length+' more on your list</summary>'+rest.map(function(s,i){return item(s,i,false);}).join('')+'</details>':'';
@@ -2994,6 +3017,7 @@ function renderLife(){
     + secDivider('Travel & points','sec-travel') + renderTravel();
   return lifeCallLine() + lifeNeedsCard() + lifeTiles()
     + '<div id="sec-projects" style="scroll-margin-top:70px"></div>' + renderProjects() + '<div style="height:22px"></div>'
+    + '<div id="sec-books" style="scroll-margin-top:70px"></div>' + renderBooks() + '<div style="height:22px"></div>'
     + moreDrawer('life', more, 'More on Home & Life');
 }
 /* this week's drive-in calls (Mon–Thu; Fri–Sun shows next week) in one bar, with Call / ✓ Called for today. Brad's rotation only. */
@@ -6279,6 +6303,41 @@ function medicalHistoryCard(){
   return card('Medical history','Illnesses, injuries and visits.',
     '<div class="editbar" style="justify-content:flex-start;margin-bottom:12px"><button class="ebtn pri" onclick="logMedical()">＋ Log illness / visit</button></div>'
     + tableEl(cols, rows, {empty:'Nothing logged yet.', editTab:'Medical'}), '--pink');
+}
+/* ---------- Books to read (Life tab). Each book is one Config key book_01, book_02… holding JSON {Priority,Title,Author,Why,Source,Status,Buy_link,Free_link,Notes}.
+   (The backend only accepts known sheet tabs, so a real 'Books' tab needs a backend change; Config keys work today.) Lowest Priority number = read first. ---------- */
+function booksList(){ var c=kv('Config'), out=[];
+  Object.keys(c).forEach(function(k){ if(!/^book_\d+$/.test(k)||!has(c[k])) return; try{ var b=JSON.parse(c[k]); if(b&&has(b.Title)){ b._key=k; out.push(b); } }catch(e){} });
+  return out.sort(function(a,b){ var pa=parseFloat(a.Priority), pb=parseFloat(b.Priority); if(isNaN(pa)) pa=9999; if(isNaN(pb)) pb=9999; return pa-pb || String(a.Title).localeCompare(String(b.Title)); }); }
+function bookSave(b){ var key=b._key, o={}; Object.keys(b).forEach(function(k){ if(k!=='_key') o[k]=b[k]; });
+  var r={}; r[key]=JSON.stringify(o); return apiWrite({action:'setkv',tab:'Config',row:JSON.stringify(r)}); }
+async function bookSet(key,field,val){ var b=booksList().filter(function(x){return x._key===key;})[0]; if(!b) return; b[field]=val; await bookSave(b); await reload(); }
+async function bookAdd(){ var t=prompt('Book title?'); if(!t) return; var a=prompt('Author?','')||''; var list=booksList(), n=0;
+  Object.keys(kv('Config')).forEach(function(k){ var m=/^book_(\d+)$/.exec(k); if(m) n=Math.max(n,+m[1]); });
+  var top=list.reduce(function(m,x){ var p=parseFloat(x.Priority); return isNaN(p)?m:Math.max(m,p); },0);
+  await bookSave({_key:'book_'+String(n+1).padStart(2,'0'),Priority:top+1,Title:t,Author:a,Why:'',Source:'Brad',Status:'To read',Buy_link:'https://www.amazon.com/s?k='+encodeURIComponent(t+' '+a),Free_link:'https://www.overdrive.com/search?q='+encodeURIComponent(t+' '+a),Notes:''}); await reload(); }
+async function bookRemove(key,title){ if(!confirm('Remove "'+title+'" from the list?')) return; var r={}; r[key]=''; await apiWrite({action:'setkv',tab:'Config',row:JSON.stringify(r)}); await reload(); }
+function renderBooks(){
+  var list=booksList(), showDone=false;
+  var open=list.filter(function(b){ return !/^done$/i.test(String(b.Status||'')); }), done=list.filter(function(b){ return /^done$/i.test(String(b.Status||'')); });
+  var lnk=function(u,label){ return /^https?:\/\//.test(String(u||''))?'<a class="ebtn" href="'+esc(u)+'" target="_blank" rel="noopener" style="text-decoration:none">'+label+'</a>':''; };
+  var row=function(b){
+    var ed=EDIT?'<div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center"><label style="font-size:12px;color:var(--text-muted)">Order <input type="number" step="1" value="'+esc(b.Priority)+'" style="width:60px;padding:5px 7px;border-radius:8px;border:1px solid var(--card-border-2);background:#111419;color:var(--text)" onchange="bookSet(\''+b._key+'\',\'Priority\',this.value)"></label>'
+      +'<select onchange="bookSet(\''+b._key+'\',\'Status\',this.value)" style="padding:5px 7px;border-radius:8px;border:1px solid var(--card-border-2);background:#111419;color:var(--text)">'+['To read','Reading','Done'].map(function(s){ return '<option'+(String(b.Status||'To read').toLowerCase()===s.toLowerCase()?' selected':'')+'>'+s+'</option>'; }).join('')+'</select>'
+      +'<button class="ebtn" onclick="bookRemove(\''+b._key+'\',\''+esc(String(b.Title).replace(/\'/g,'')).replace(/"/g,'')+'\')">Remove</button></div>':'';
+    return '<div class="kv-row" style="display:block;padding:12px 0;border-top:1px solid var(--card-border)">'
+      +'<div style="display:flex;gap:10px;align-items:baseline;flex-wrap:wrap"><span style="color:var(--gold);font-weight:700;min-width:22px">'+esc(b.Priority)+'</span>'
+      +'<strong>'+esc(b.Title)+'</strong><span style="color:var(--text-muted)">'+esc(b.Author||'')+'</span>'
+      +(/^reading$/i.test(String(b.Status||''))?'<span class="subpill" style="margin-left:auto">Reading</span>':'')+'</div>'
+      +(has(b.Why)?'<div style="font-size:13px;margin:6px 0 0 32px">'+esc(b.Why)+'</div>':'')
+      +(has(b.Source)?'<div style="font-size:12px;color:var(--text-muted);margin:4px 0 0 32px">From: '+esc(b.Source)+'</div>':'')
+      +'<div style="display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 0 32px">'+lnk(b.Buy_link,'🛒 Buy')+lnk(b.Free_link,'📚 Free / library')+'</div>'
+      +(has(b.Notes)?'<div style="font-size:12px;color:var(--text-muted);margin:6px 0 0 32px">'+esc(b.Notes)+'</div>':'')
+      +(ed?'<div style="margin-left:32px">'+ed+'</div>':'')+'</div>'; };
+  var body=(EDIT?'<div class="editbar"><button class="ebtn pri" onclick="bookAdd()">＋ Add a book</button></div>':'')
+    +(open.length?open.map(row).join(''):'<div class="empty">No books on the list. Tap ✎ (edit) to add one.</div>')
+    +(done.length?'<details class="bud-more" style="margin-top:10px"><summary>'+done.length+' finished</summary>'+done.map(row).join('')+'</details>':'');
+  return card('📖 Books to read','Ranked by what helps most (lowest number first). Tap ✎ at the top to reorder.',body,'--violet');
 }
 /* ---------- Drive inbox (ForeFlight + Cronometer CSV drop) and nutrition from Cronometer ---------- */
 function inboxUrl(){ var u=String(kv('Config').inbox_url||''); return /^https:\/\/drive\.google\.com\//.test(u)?u:'https://drive.google.com/drive/search?q=%22Life%20OS%20Inbox%22'; }
