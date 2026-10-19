@@ -6623,9 +6623,10 @@ function renderTravel(){
 }
 
 /* ============================================================
-   MAIL — every inbox in one list. A small Life OS Mail agent ships new mail to the backend brain (Mail.js): the Mac agent
-   (mac/ in this repo; reads every account in Apple Mail every 10 min while the Mac is awake — the primary route, set up with the
-   one-line Terminal command `macSetup`) or, as the fallback, a Google agent inside each Gmail (every 5–10 min). The brain
+   MAIL — every inbox in one list. A small Life OS Mail agent ships new mail to the backend brain (Mail.js): Atlas's cloud agent
+   (Atlas server src/mailagent.ts; IMAP with each inbox's app password, every 5 min, always on — the primary route since Oct 19 2026;
+   it speaks the Mac agent's v3 contract, so its rows read Source 'mac'), the old Mac agent (mac/ in this repo; Apple Mail, only while
+   the Mac is awake) or a Google agent inside each Gmail. The brain
    sorts it with Claude (reply / important / fyi / unimportant / junk — "Spam / Junk"; legacy 'spam' rows read as junk), learns from
    Teach ▾ and from who Brad writes to, writes replies in his voice, and queues sends for the agent. Replies always go out
    from the inbox the thread arrived in. Page actions (POST, Brad only): mail, mailact, maildraft, mailsend, mailcompose;
@@ -6763,7 +6764,7 @@ function mailRoutes(r){ if(!r) return []; var out=[], st=String(r.Stop||''), fre
   if(fresh(r.MacSync)) out.push('mac'); if(fresh(r.GoogleSync)) out.push('google');
   if(!out.length && (r.LastSync||r.Installed)) out.push(r.Kind==='mac'?'mac':r.Kind==='forwarded'?'fwd':'google');
   return out.filter(function(k){ return st!=='all' && st!==k; }); }
-function mailRouteTxt(rt){ return rt.length?'via '+rt.map(function(k){ return k==='mac'?'your Mac':k==='fwd'?'forwarding':'Google'; }).join(' + '):''; }
+function mailRouteTxt(rt){ return rt.length?'via '+rt.map(function(k){ return k==='mac'?'Atlas (always on)':k==='fwd'?'forwarding':'Google'; }).join(' + '):''; }
 function mailAcctRow(a){ a=String(a||'').toLowerCase(); var x=mailAccounts().filter(function(y){ return y.a===a; })[0]; return x?x.row:null; }
 /* where a saved (unsent) NEW email lands: 'mac' = opens as a draft in Apple Mail, 'google' = Gmail Drafts, 'both' = whichever agent checks first */
 function mailWhere(a){ var rt=mailRoutes(mailAcctRow(a)); return rt.indexOf('mac')<0?'google':rt.indexOf('google')<0?'mac':'both'; }
@@ -6771,7 +6772,7 @@ function mailMacMix(){ var rts=mailAccounts().filter(function(a){ return a.on; }
   return {any:rts.some(function(rt){ return rt.indexOf('mac')>=0; }), all:!!rts.length && rts.every(function(rt){ return rt.length===1 && rt[0]==='mac'; })}; }
 function mailShort(a){ a=String(a||'').toLowerCase(); var x=mailAccounts().filter(function(y){ return y.a===a; })[0]; return x?x.n:mailNick(a); }
 function mailGEta(a){ return /@gmail\.com$/i.test(String(a||''))?10:5; }   // the Google agent: consumer Gmail every 10 min, Workspace every 5
-function mailEta(a){ return mailRoutes(mailAcctRow(a)).indexOf('mac')>=0?10:mailGEta(a); }   // the Mac checks every 10 min
+function mailEta(a){ return mailRoutes(mailAcctRow(a)).indexOf('mac')>=0?5:mailGEta(a); }   // Atlas checks every 5 min
 function mailChip(x){ return '<span class="ml-acct" title="'+esc(String(x.Account||'')+(x.Via?' (through '+x.Via+')':''))+'">'+esc(mailShort(x.Account))+'</span>'; }
 function mailLink(x){ var u=String(x.Link||''); if(/^https:\/\/mail\.google\.com\//.test(u) || /^message:\/\/%3C[^\s"'<>]+%3E$/i.test(u)) return u;   // message:// = opens in Apple Mail (Mac items from non-Gmail inboxes)
   return x.Source!=='mac' && /^[0-9a-f]{6,}$/i.test(String(x.ThreadId||''))?'https://mail.google.com/mail/u/?authuser='+encodeURIComponent(x.Via||x.Account||'')+'#all/'+x.ThreadId:''; }
@@ -6794,7 +6795,7 @@ function mailRow(x, kind){
   var st=String(x.Status||'').toLowerCase(), link=mailLink(x), em=x.FromEmail||mailAddr(x.From), tags='';
   var weed=kind==='weed'||kind==='unimp';   // Weeded out: Spam / Junk rows, Unimportant rows
   if(Number(x.Priority)===1 && !weed && st!=='sent' && !mailStale(x)) tags+='<span class="tag blocked">Urgent</span>';
-  tags+=({drafted:'<span class="tag planning">'+(x.Source==='mac'?'Draft open in Mail':'Draft in Gmail')+'</span>', sending:'<span class="tag planning">Sending…</span>', sent:'<span class="tag active">Sent ✓</span>', error:'<span class="tag blocked">Didn’t send</span>'})[st]||'';
+  tags+=({drafted:'<span class="tag planning">'+(x.Source==='mac'?'Draft in Drafts':'Draft in Gmail')+'</span>', sending:'<span class="tag planning">Sending…</span>', sent:'<span class="tag active">Sent ✓</span>', error:'<span class="tag blocked">Didn’t send</span>'})[st]||'';
   var acts=(kind==='reply' && st!=='sent' && st!=='sending')?'<button class="ebtn pri" onclick="mailDraftOpen(this)">'+(has(x.Draft)?'Edit reply':'Draft reply')+'</button>':'';
   if(weed) acts+='<button class="ebtn" onclick="mailNotJunk(this)">Not junk</button>';
   if(link) acts+='<a class="ebtn" href="'+esc(link)+'"'+(/^message:/.test(link)?' title="Opens in Mail on your Mac"':' target="_blank" rel="noopener"')+'>Open ↗</a>';
@@ -6983,9 +6984,9 @@ function mailOutbox(d){
   if(!sends.length) return '';   // moves alone are mentioned in the brief bar, not a card of their own
   var rows=sends.map(function(q){ var p=mailQP(q);
     var it=p.itemId?mailById(p.itemId):null, acct=q.Account||(it&&it.Account)||'', er=q.Status==='error'?mailQErr(q):'';
-    var where=it?(it.Source==='mac'?'mac':'google'):mailWhere(q.Via||acct), eta=it?(it.Source==='mac'?10:mailGEta(q.Via||acct)):mailEta(q.Via||acct);   // a reply goes to the agent that read the email
+    var where=it?(it.Source==='mac'?'mac':'google'):mailWhere(q.Via||acct), eta=it?(it.Source==='mac'?5:mailGEta(q.Via||acct)):mailEta(q.Via||acct);   // a reply goes to the agent that read the email
     var what=q.Type==='reply'?'Reply to '+(it?mailName(it.From):'a thread')+(it&&has(it.Subject)?' — '+it.Subject:''):'To '+(p.to||'?')+(has(p.subject)?' — '+p.subject:'');
-    var st=q.Status==='error'?'didn’t go out'+(er?': '+er:''):q.Status==='taken'?'going out now':(p.send?'sends':where==='mac'?'opens as a draft in Mail':where==='both'?'saves as a draft (Gmail or Mail on your Mac)':'saves to Gmail Drafts')+' within ~'+eta+' min';
+    var st=q.Status==='error'?'didn’t go out'+(er?': '+er:''):q.Status==='taken'?'going out now':(p.send?'sends':where==='mac'?'saves to Drafts':where==='both'?'saves to Drafts':'saves to Gmail Drafts')+' within ~'+eta+' min';
     return '<div class="ml-ob"><span class="k">'+esc(what)+' <span class="ml-acct">'+esc(mailShort(acct))+'</span></span><span class="v'+(q.Status==='error'?' bad':'')+'">'+esc(st)+'</span></div>'; }).join('');
   return '<div class="ml-stack">'+card('Outbox','Waiting for each inbox’s next check.', rows+(moves?'<div class="foot" style="margin-top:8px;color:var(--text-dim)">'+moves+' inbox change'+(moves===1?'':'s')+' from your teaching (labels / folders) '+(moves===1?'is':'are')+' queued too.</div>':''))+'</div>';
 }
@@ -6999,7 +7000,7 @@ function mailTeachCard(d){
     +'<div class="ml-mode" role="group" aria-label="Unimportant mail handling"><span class="ml-mode-l">Unimportant</span><button type="button" class="ml-seg'+(mode==='learn'?' on':'')+'" aria-pressed="'+(mode==='learn')+'" onclick="mailMode(\'learn\')">Archive only</button>'
     +'<button type="button" class="ml-seg'+(mode==='auto'?' on':'')+'" aria-pressed="'+(mode==='auto')+'" onclick="mailMode(\'auto\')">Archive, then Trash after 14 days</button></div>'
     +'<div class="ml-note">Spam / Junk goes straight to each inbox’s Spam folder (Gmail empties it after 30 days). Mail from people you know, or a thread you wrote in, is never sent there — at most it’s Unimportant, and it’s never trashed.'
-    +(mx.any?' '+(mx.all?'Your Mac never trashes anything — unimportant mail it sorts stays in Life OS/Unimportant, so the Trash setting only matters for inboxes connected through Google.':'Inboxes your Mac sorts keep unimportant mail in Life OS/Unimportant — the Mac never trashes anything.'):'')+'</div>'
+    +(mx.any?' '+(mx.all?'Atlas never trashes anything — unimportant mail it sorts stays in Life OS/Unimportant, so the Trash setting only matters for inboxes connected through Google.':'Inboxes Atlas sorts keep unimportant mail in Life OS/Unimportant — Atlas never trashes anything.'):'')+'</div>'
     +'<div class="eactions ml-eact"><span class="esaved" id="mlProfMsg" role="status"></span><span class="foot" style="color:var(--text-dim);flex:1 1 200px">'+esc(learned)+'</span><button class="ebtn pri" onclick="mailSaveProfile()">Save</button></div>');
 }
 /* Connect card. Primary: the Mac — one Terminal command (`macSetup`, carries the agent key) connects every account in Apple Mail.
@@ -7012,9 +7013,9 @@ function mailConnectCard(d, accts){
     if(a.on){ var last=mailT(r.LastSync), late=last && Date.now()-last>90*6e4, rt=mailRoutes(r), viaMac=rt.indexOf('mac')>=0;
       s='<span class="ml-st '+(late?'dim':'ok')+'">✓ '+(last?'checked '+esc(mailAgo(r.LastSync)):'connected')+'</span>'+(rt.length?'<span class="ml-st dim">'+esc(mailRouteTxt(rt))+'</span>':'')
         +(has(r.Items)?'<span class="ml-st dim">'+esc(Number(r.Items)||0)+' sorted</span>':'')
-        +(late?'<span class="ml-st warn">'+(viaMac?'Your Mac hasn’t checked in a while — it checks only while the Mac is awake. If it stays quiet, paste the Mac command again.'
+        +(late?'<span class="ml-st warn">'+(viaMac?'Atlas hasn’t checked this inbox in a while — in the Atlas menu, open Mail in the cloud and check its app password.'
           :'Hasn’t checked in a while — open the connect link again from this account.')+'</span>':'')
-        +(rt.length===2?'<span class="ml-st warn">Connected both ways (Mac + Google), so an email can show up twice. <button type="button" class="ml-link" data-acct="'+esc(a.a)+'" onclick="mailStopGoogle(this)">Use only the Mac</button></span>':'')
+        +(rt.length===2?'<span class="ml-st warn">Connected both ways (Atlas + Google), so an email can show up twice. <button type="button" class="ml-link" data-acct="'+esc(a.a)+'" onclick="mailStopGoogle(this)">Use only Atlas</button></span>':'')
         +(r.Stop==='google'||r.Stop==='mac'?'<span class="ml-st dim">'+(r.Stop==='google'?'Google':'Mac')+' connection switched off</span>':'')
         +(viaMac && has(r.MacVersion) && Number(r.MacVersion)<3?'<span class="ml-st warn">'+(Number(r.MacVersion)<2?'Your Mac needs a quick update for Unimportant (until then it files that mail in Life OS/Junk)':'Your Mac needs one last manual update (it checks every 5 minutes and updates itself after this)')+': copy the Mac command and run it once in Terminal.'
           +(mac?' <button type="button" class="ml-link" onclick="mailCopyMac()">Copy the Mac command</button>':'')+'</span>':''); }
@@ -7024,7 +7025,11 @@ function mailConnectCard(d, accts){
   var skip=(d.accounts||[]).filter(function(r){ return r.Kind==='skipped' && has(r.Account); }).map(function(r){ return String(r.Account); });   // in Apple Mail, but not Brad's inboxes
   rows+=skip.length?'<div class="ml-note">Also in Apple Mail, left alone: <b>'+esc(skip.join(', '))+'</b>. Life OS sorts only your inboxes — to sort '+(skip.length===1?'it':'one of these')+' too, ask Claude to add it to <b>mail_accounts</b>.</div>':'';
   var allOn=accts.length && accts.every(function(a){ return a.on; }), n=accts.length, macOnly=accts.filter(function(a){ return a.mac||a.fwd; }).map(function(a){ return a.n; });
-  var macPart='<div class="ml-sec-h">Easiest: connect '+(n>1?'all '+(n===4?'four':n)+' at once':'it')+' from your Mac</div>'
+  var atlasPart='<div class="ml-sec-h">Connect through Atlas (always on, no Mac needed)</div>'
+    +'<ol class="al-steps ml-steps"><li>Make an app password for the inbox: Cox at <b>Yahoo → Account security → App passwords</b>; a Gmail at <b>myaccount.google.com/apppasswords</b>.</li>'
+    +'<li>Open the Atlas menu → <b>Mail in the cloud</b>, type the address and the app password, and tap <b>Connect</b>.</li>'
+    +'<li>Done — Atlas checks that inbox every 5 minutes and sends your replies, even when every computer is off.</li></ol>';
+  var macPart='<details class="ml-fold ml-alt"><summary>Old way: from your Mac (only while it’s awake)</summary><div class="ml-sec-h">Connect '+(n>1?'all '+(n===4?'four':n)+' at once':'it')+' from your Mac</div>'
     +'<ol class="al-steps ml-steps">'
     +'<li>On your Mac, open <b>Terminal</b> — or ask Claude on your Mac to do it for you.</li>'
     +'<li>Paste this command and press Return:'+(mac
@@ -7032,7 +7037,7 @@ function mailConnectCard(d, accts){
       :'<div class="empty">'+(has(d.macSetupError)?esc(d.macSetupError)+'.':'The Mac command isn’t ready yet — it appears here once the Life OS Mail update is on the server.')+'</div>')+'</li>'
     +'<li>When your Mac asks to let it control <b>Mail</b>, click <b>OK</b>.</li>'
     +'<li>Done — every inbox in Apple Mail is sorted every 10 minutes while the Mac is awake.</li></ol>'
-    +'<div class="ml-note">It uses the accounts already signed in to Apple Mail, so there’s nothing to sign in to. Replies still go out from the inbox each email came to.</div>';
+    +'<div class="ml-note">It uses the accounts already signed in to Apple Mail, so there’s nothing to sign in to. Replies still go out from the inbox each email came to.</div></details>';
   var link=url?'<div class="ml-linkbox"><button class="ebtn" id="mlCopyLink" onclick="mailCopyLink()">Copy connect link</button></div>'   // copy only: opening it here would connect whichever Google account this browser picks
     :'<div class="empty">The connect link isn’t ready yet — it appears here once the Life OS Mail helper is deployed.</div>';
   var goog='<details class="ml-fold ml-alt"'+(MAIL.ui.goog?' open':'')+' ontoggle="MAIL.ui.goog=this.open"><summary>Alternative: connect a Gmail through Google (works when the Mac is asleep)</summary>'
@@ -7044,8 +7049,8 @@ function mailConnectCard(d, accts){
     +'<li>“Google hasn’t verified this app” → tap <b>Advanced</b> → <b>Go to Life OS Mail</b> → <b>Allow</b>.</li>'
     +'<li>You’ll see <b>Connected</b>. Close the window and repeat for the next Gmail.</li></ol>'
     +'<div class="ml-note"><b>Church inbox says “This app is blocked”?</b> Your church’s Google admin has to allow it: ask them to trust Life OS Mail (Admin console → Security → API controls → mark it Trusted).</div></details>';
-  return mailCard('mlConnect','Connect your inboxes', allOn?'All your inboxes are connected.':'Easiest from your Mac: one command connects every inbox in Apple Mail.',
-    rows+(allOn?'<details class="ml-fold" style="margin-top:8px"'+(MAIL.ui.reconn?' open':'')+' ontoggle="MAIL.ui.reconn=this.open"><summary>How to reconnect an inbox</summary>'+macPart+goog+'</details>':macPart+goog));
+  return mailCard('mlConnect','Connect your inboxes', allOn?'All your inboxes are connected.':'Atlas checks every inbox in the cloud: add each inbox’s app password in the Atlas menu (Mail in the cloud).',
+    rows+(allOn?'<details class="ml-fold" style="margin-top:8px"'+(MAIL.ui.reconn?' open':'')+' ontoggle="MAIL.ui.reconn=this.open"><summary>How to reconnect an inbox</summary>'+atlasPart+macPart+goog+'</details>':atlasPart+macPart+goog));
 }
 async function mailCopyText(u, ok, ask){ if(!u) return; try{ await navigator.clipboard.writeText(u); toast(ok); }catch(e){ window.prompt(ask, u); } }
 function mailCopyLink(){ return mailCopyText(MAIL.data&&MAIL.data.installUrl, 'Copied — paste it into a private window', 'Copy this link, then open it in a private window:'); }
@@ -7072,7 +7077,7 @@ async function mailSaveProfile(){
 async function mailMode(m){
   var d=MAIL.data; if(!d || (d.mode==='auto')===(m==='auto')) return;
   var mx=mailMacMix();
-  if(m==='auto' && !window.confirm('Move unimportant mail to Gmail Trash after 14 days? Gmail keeps Trash for 30 more days, so you can still rescue anything. (Spam / Junk already goes to the Spam folder. Mail from people you know is never trashed.)'+(mx.any?'\n\nInboxes your Mac sorts keep unimportant mail in Life OS/Unimportant — the Mac never trashes anything.':''))) return;
+  if(m==='auto' && !window.confirm('Move unimportant mail to Gmail Trash after 14 days? Gmail keeps Trash for 30 more days, so you can still rescue anything. (Spam / Junk already goes to the Spam folder. Mail from people you know is never trashed.)'+(mx.any?'\n\nInboxes Atlas sorts keep unimportant mail in Life OS/Unimportant — Atlas never trashes anything.':''))) return;
   var was=d.mode; d.mode=m; render('mail');
   var r=await mailMut('setkv',{tab:'Config', row:JSON.stringify({mail_mode:m})});
   if(!(r&&r.ok)){ d.mode=was; render('mail'); toast('Couldn’t change that — '+mailErr(r)); }
@@ -7197,13 +7202,13 @@ async function mailSendReply(send){
   var r=await mailMut('mailsend',{id:id, body:body, send:send?'1':'0', replyAll:($('mlAll')&&$('mlAll').checked)?'1':'0'});
   s.busy=false; var live=mailLive(s); if(live) mailBusy(false, ids);
   if(!(r&&r.ok)){ if(live) mailMsg('mlMsg','Didn’t go through ('+mailErr(r)+'). Try again.','bad'); else toast('Your reply didn’t go through ('+mailErr(r)+') — open it and try again.'); return; }
-  var acct=r.account||(x&&x.Account)||'', mac=!!(x&&x.Source==='mac'), eta=mac?10:mailGEta(r.via||(x&&x.Via)||acct);
+  var acct=r.account||(x&&x.Account)||'', mac=!!(x&&x.Source==='mac'), eta=mac?5:mailGEta(r.via||(x&&x.Via)||acct);
   if(x){ x.Status=r.status||(send?'sending':'drafted'); x.Draft=body; }
   delete MAIL.drafts[id];
   if(MAIL.data && r.qid){ MAIL.data.pending=(MAIL.data.pending||[]).filter(function(q){ return q.Qid!==r.qid; })
     .concat([{Qid:r.qid, Account:acct, Via:r.via||(x&&x.Via)||'', Type:'reply', Payload:JSON.stringify({itemId:id, send:!!send}), Status:'queued', Created:new Date().toISOString()}]); }
   var done=send?'Queued — goes out within ~'+eta+' minutes from your '+mailShort(acct)+' inbox.'
-    :mac?'Saved — it’ll open as a draft in Mail on your Mac within ~'+eta+' minutes (while the Mac is awake), ready to send.':'Saved — it’ll be in your '+mailShort(acct)+' Gmail Drafts within ~'+eta+' minutes.';
+    :mac?'Saved — it’ll be in your '+mailShort(acct)+' Drafts folder within ~'+eta+' minutes, ready to send.':'Saved — it’ll be in your '+mailShort(acct)+' Gmail Drafts within ~'+eta+' minutes.';
   if(live){ mailLock(['mlBody','mlAsk','mlRw','mlAll']);
     $('mlActs').innerHTML='<span class="esaved ok" role="status">'+esc(done)+'</span><span class="spacer"></span>'
       +(MAIL.tri&&MAIL.triResume?'<button class="ebtn" onclick="mailTriEnd()">Close</button><button class="ebtn pri" onclick="MAIL.tri.i++;MAIL.tri.done++;MAIL.modal={kind:\'triage\'};mailTriShow()">Next email →</button>':'<button class="ebtn pri" onclick="closeModal()">Done</button>'); }
@@ -7285,7 +7290,7 @@ async function mailComposeSend(send){
   var who=String(r.account||''), eta=mailEta(r.via||who), name=who?mailShort(who):'the right', where=mailWhere(r.via||who);
   if(MAIL.data && r.qid){ MAIL.data.pending=(MAIL.data.pending||[]).filter(function(q){ return q.Qid!==r.qid; })
     .concat([{Qid:r.qid, Account:who, Via:r.via||'', Type:'compose', Payload:JSON.stringify({to:to, subject:subject, send:!!send}), Status:'queued', Created:new Date().toISOString()}]); }
-  var done=(send?'Queued — goes out within ~'+eta+' minutes from your '+name+' inbox':where==='mac'?'Saved — it’ll open as a draft in Mail on your Mac within ~'+eta+' minutes, from your '+name+' inbox'
+  var done=(send?'Queued — goes out within ~'+eta+' minutes from your '+name+' inbox':where==='mac'?'Saved — it’ll be in your '+name+' Drafts folder within ~'+eta+' minutes'
     :where==='both'?'Saved — it’ll be a draft from your '+name+' inbox within ~'+eta+' minutes (in Gmail Drafts, or open in Mail on your Mac)':'Saved — it’ll be in your '+name+' Gmail Drafts within ~'+eta+' minutes')
     +(has(r.accountWhy)?' ('+r.accountWhy+')':'')+'.'+(r.connected===false?' That inbox isn’t connected yet, so it waits until it is.':'');
   if(MAIL.cmp===c) MAIL.cmp=null;

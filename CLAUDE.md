@@ -207,6 +207,11 @@
   moreReveal(el) and is a peek for that visit only (MORE_PEEK, reset by navGo) — never stored. Chelsea's view always shows it
   open and never writes lifeos_more. pageMap() skips drawer contents, adds a "More" chip that opens it, carries a hand-made
   row's moreReveal jumps (Money: Raise & Roth plan / Accounts / Bills & contacts) and is off on Today and Mail.
+- Life OS Mail cloud agent (Oct 19 2026): Atlas's server (src/mailagent.ts in the Atlas project) is now the primary mail agent — IMAP/SMTP
+  with each inbox's app password (Cox = Yahoo app password; Gmail inboxes = Google app passwords, imap.gmail.com), every 5 min, always on.
+  It uses the Mac agent's mailsync contract, key and v3 rescue rules (source 'mac', agentVersion 3), so MailAccounts still says Kind/MacSync
+  and the page labels that route "Atlas (always on)". Brad adds/changes inbox passwords in the Atlas menu → Mail in the cloud. The Mac agent
+  can stay installed as a backup (both sorting the same mail is harmless) or be removed with the --uninstall command.
 - The voice assistant formerly called Pam is now named **Atlas** (Oct 12 2026). Code identifiers (pamFrame, PAM_URL, ~/Pam on the Mac) keep the old name on purpose.
   Cloud first (Oct 12 2026): the panel reads Config kv `atlas_url` (the always-on cloud Atlas; several allowed, best first, bare host names get
   https://), probes every host's /api/health at once (CORS, then no-cors so a cloud host without CORS headers still counts; 6 s) and loads the
