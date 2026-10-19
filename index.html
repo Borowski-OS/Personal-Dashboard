@@ -1263,6 +1263,19 @@
   .card.folded > :not(h2) { display:none !important; }
   .card.folded { padding-top:14px !important; padding-bottom:14px !important; }
   .card.folded > h2 { margin-bottom:0; }
+  /* ================= "More" drawer (simplified tabs) ================= */
+  .more-drawer { margin:6px 0 22px; }
+  .more-drawer > summary { list-style:none; display:flex; align-items:center; gap:10px; cursor:pointer; user-select:none; padding:14px 18px; border-radius:14px;
+    background:var(--card-bg, rgba(255,255,255,.03)); border:1px dashed var(--card-border); color:var(--text-dim); font-weight:600; font-size:14px; }
+  .more-drawer > summary::-webkit-details-marker { display:none; }
+  .more-drawer > summary:hover { color:var(--text); border-style:solid; }
+  .more-drawer > summary:focus-visible { outline:2px solid rgba(var(--accent-rgb),.6); outline-offset:3px; }
+  .more-drawer .md-t { color:var(--text); }
+  .more-drawer .md-n { font-weight:500; font-size:12.5px; }
+  .more-drawer > summary svg { margin-left:auto; width:18px; height:18px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; transition:transform .2s; }
+  .more-drawer[open] > summary svg { transform:rotate(180deg); }
+  .more-drawer[open] > summary { margin-bottom:18px; }
+  .more-body > .grid:last-child, .more-body > .card:last-child { margin-bottom:0; }
   .pm-fold { cursor:pointer; font-family:inherit; margin-left:6px; border-style:dashed; }
   @media print { .fold-btn { display:none; } .card.folded > :not(h2) { display:block !important; } }
   /* ================= Phone polish: compact page header, 44px touch targets ================= */
@@ -1989,7 +2002,7 @@ function navGo(tab){
   if(tab==='mail') mailOnOpen();
   render(tab);
   window.scrollTo(0,0);
-  if(sec){ setTimeout(function(){ var el=$(sec); if(el) el.scrollIntoView({behavior:'smooth'}); }, 60); }
+  if(sec){ setTimeout(function(){ var el=$(sec); if(el){ moreReveal(el); el.scrollIntoView({behavior:'smooth'}); } }, 60); }
 }
 window.addEventListener('hashchange', function(){ var t=(location.hash||'').replace('#',''); t=TAB_ALIAS[t]||t; if(TABS[t]&&t!==CURRENT) navGo(t); });
 
@@ -2059,6 +2072,18 @@ function cardFolds(tab){
 function foldToggle(card, force){ var st=foldState(), key=card.getAttribute('data-fold'); var on=force!=null?force:!card.classList.contains('folded');
   card.classList.toggle('folded', on); if(on) st[key]=1; else if(card.getAttribute('data-fold-def')) st[key]=0; else delete st[key]; foldSave(st);
   var h=card.querySelector(':scope > h2'); if(h) h.setAttribute('aria-expanded', on?'false':'true'); }
+/* Simplify (Oct 2026, Brad: "cluttered — simplify"): each tab leads with what needs him now; reference / secondary cards
+   live in one "More" drawer at the bottom (closed by default, remembered per device in localStorage lifeos_more).
+   Nothing is removed — every card is one tap away. Chelsea's view always shows the drawer open. */
+var MORE_LS='lifeos_more';
+function moreState(){ try{ return JSON.parse(localStorage.getItem(MORE_LS)||'{}')||{}; }catch(e){ return {}; } }
+function moreSave(d){ var st=moreState(); st[d.getAttribute('data-more')]=d.open?1:0; try{ localStorage.setItem(MORE_LS, JSON.stringify(st)); }catch(e){} if(d.open && window.dispatchEvent) setTimeout(function(){ window.dispatchEvent(new Event('resize')); }, 30); }
+function moreDrawer(key, html, label){
+  if(!html || !String(html).replace(/<[^>]*>/g,'').trim()) return '';
+  var n=(String(html).match(/class="card[" ]/g)||[]).length, open=ROLE==='chelsea' || moreState()[key]===1;
+  return '<details class="more-drawer" data-more="'+esc(key)+'"'+(open?' open':'')+' ontoggle="moreSave(this)"><summary><span class="md-t">'+esc(label||'More')+'</span>'
+    +(n?'<span class="md-n">'+n+' more</span>':'')+'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></summary><div class="more-body">'+html+'</div></details>'; }
+function moreReveal(el){ for(var d=el&&el.closest&&el.closest('details.more-drawer'); d; d=d.parentElement&&d.parentElement.closest('details.more-drawer')){ if(!d.open){ d.open=true; moreSave(d); } } }
 function foldAll(on){ [].slice.call($('panels').querySelectorAll('.card.foldable')).forEach(function(c){ foldToggle(c, on); }); var b=document.querySelector('.pm-fold'); if(b) b.textContent=on?'Expand all':'Collapse all'; }
 document.addEventListener('click', function(e){ var h=e.target.closest('.card.foldable > h2'); if(!h) return; if(e.target.closest('a, input, select, textarea, .ebtn:not(.fold-btn)')) return; foldToggle(h.parentElement); });
 document.addEventListener('keydown', function(e){ if((e.key==='Enter'||e.key===' ') && e.target.matches && e.target.matches('.card.foldable > h2')){ e.preventDefault(); foldToggle(e.target.parentElement); } });
@@ -2074,7 +2099,8 @@ function pageMap(){
   // a hand-made subnav with 4+ named sections wins (its labels are better than anything inferred)
   var named=old?[].slice.call(old.querySelectorAll('a')).map(function(a){ var m=(a.getAttribute('onclick')||'').match(/getElementById\('([^']+)'\)/); var el=m&&document.getElementById(m[1]); return el?{el:el, t:a.textContent.trim()}:null; }).filter(Boolean):[];
   if(named.length>=4){ targets=named; divs=[]; }
-  var cards=[].slice.call(p.querySelectorAll('.card')).filter(function(c){ return c.querySelector(':scope > h2') && !c.closest('.card .card'); });
+  var cards=[].slice.call(p.querySelectorAll('.card')).filter(function(c){ return c.querySelector(':scope > h2') && !c.closest('.card .card') && !c.closest('.more-drawer'); });
+  divs=divs.filter(function(d){ return !d.closest('.more-drawer'); });
   function label(t){ t=String(t||'').replace(/^[^A-Za-z0-9₿$]+/,'').replace(/[—:(].*$/,'').trim(); return t.length>26?t.slice(0,25)+'…':t; }
   if(targets.length){ /* named sections */ }
   else if(divs.length>=2){
@@ -2084,6 +2110,7 @@ function pageMap(){
   } else {
     cards.forEach(function(c){ var t=label(c.querySelector('h2').textContent); if(t) targets.push({el:c, t:t}); });
   }
+  var drw=p.querySelector('.more-drawer'); if(drw) targets.push({el:drw, t:'More'});
   if(targets.length<3) return;
   targets.forEach(function(x,i){ if(!x.el.id) x.el.id='pm-'+i; x.el.style.scrollMarginTop='72px'; });
   var bar=document.createElement('nav'); bar.className='pagemap'; bar.setAttribute('aria-label','On this page');
