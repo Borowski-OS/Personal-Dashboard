@@ -1501,6 +1501,17 @@
   @media (max-width:640px){ body:not(.role-chelsea) { padding-bottom:calc(146px + env(safe-area-inset-bottom)); } }
   /* Round 13: the pop-up sheet takes focus when it opens (so keys land inside it); no ring around the whole sheet itself */
   #modal .sheet:focus { outline:none; }
+  /* Round 13: tablets (iPad portrait, 641–899px) — the top tab strip showed only Today + a clipped "Ma…"; the rest were hidden off to the side
+     with no hint. Brad's view goes icon-only there (names stay for screen readers and show on hover), so every tab fits. Chelsea's two tabs keep their names. */
+  @media (min-width:641px) and (max-width:899px){
+    body:not(.role-chelsea) #topNav .nav-title, body:not(.role-chelsea) #topNav .nav-right .pk { display:none; }
+    body:not(.role-chelsea) .nav-tabs { margin-left:10px; }
+    body:not(.role-chelsea) .nav-tab { padding:0 9px; }
+    body:not(.role-chelsea) .nav-tab .nt { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
+    body:not(.role-chelsea) .nav-tab svg.ni { width:19px; height:19px; }
+    body:not(.role-chelsea) #topNav .nav-right { gap:4px; }
+    body:not(.role-chelsea) #topNav .refresh-btn { padding:6px 8px; }
+  }
 </style>
 </head>
 <body>
@@ -6235,6 +6246,7 @@ document.addEventListener('keydown', function(e){
   else if(e.key==='e'||e.key==='E'){ e.preventDefault(); toggleEdit(); }
 });
 window.addEventListener('keydown', function(e){ if(e.key==='Escape') closeModal(); });
+[].forEach.call(document.querySelectorAll('#navTabs .nav-tab'), function(t){ var l=t.querySelector('.nt'); if(l&&!t.title) t.title=l.textContent; });   // hover names for the icon-only tablet tab strip
 /* modal focus: every opener just un-hides #modal, so watch it once here — on open, name the dialog after its first heading, remember
    where focus was and move it inside; Tab / Shift+Tab stay inside while open; on close, focus goes back to the button that opened it. */
 (function(){ var m=$('modal'), sh=$('modalSheet'), back=null, FOC='a[href],button:not([disabled]),input:not([disabled]):not([type=hidden]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
