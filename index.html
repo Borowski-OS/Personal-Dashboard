@@ -1499,6 +1499,8 @@
   div[style*="space-between"] > span.mono, .tm-t > span.mono, div[style*="text-align:right"] > div.mono { white-space:nowrap; }
   /* Round 12: phones — enough bottom room that the last row on every tab scrolls clear of the AI orb (Chelsea has no orb) */
   @media (max-width:640px){ body:not(.role-chelsea) { padding-bottom:calc(146px + env(safe-area-inset-bottom)); } }
+  /* Round 13: the pop-up sheet takes focus when it opens (so keys land inside it); no ring around the whole sheet itself */
+  #modal .sheet:focus { outline:none; }
 </style>
 </head>
 <body>
@@ -1529,9 +1531,9 @@
 
 <!-- Command palette (⌘K / Ctrl-K) -->
 <div id="palette" class="hidden" onclick="if(event.target===this)closePalette()">
-  <div class="palbox">
-    <input id="palInput" type="text" placeholder="Search anything — tabs, bills, contacts, points, hunts…" autocomplete="off" spellcheck="false" oninput="palRender()" onkeydown="palKey(event)">
-    <div id="palResults"></div>
+  <div class="palbox" role="dialog" aria-modal="true" aria-label="Search">
+    <input id="palInput" type="text" placeholder="Search anything — tabs, bills, contacts, points, hunts…" autocomplete="off" spellcheck="false" oninput="palRender()" onkeydown="palKey(event)" role="combobox" aria-expanded="true" aria-controls="palResults" aria-autocomplete="list" aria-label="Search Life OS">
+    <div id="palResults" role="listbox" aria-label="Results"></div>
   </div>
 </div>
 
@@ -1574,7 +1576,7 @@
   </div>
 </div>
 
-<div id="modal" class="hidden" onclick="if(event.target===this)closeModal()"><div class="sheet" id="modalSheet"></div></div>
+<div id="modal" class="hidden" onclick="if(event.target===this)closeModal()"><div class="sheet" id="modalSheet" role="dialog" aria-modal="true" tabindex="-1"></div></div>
 <div id="printArea"></div>
 
 <main id="app" class="hidden">
@@ -6110,8 +6112,9 @@ function palIndex(){
   add('ventures','Property',arr('Properties'),function(r){return r.Address;},function(r){return r.Area||r.Stage||'';});
   return items;
 }
-function openPalette(){ $('palette').classList.remove('hidden'); var i=$('palInput'); i.value=''; PAL_SEL=0; palRender(); setTimeout(function(){i.focus();},30); }
-function closePalette(){ $('palette').classList.add('hidden'); }
+var PAL_BACK=null;
+function openPalette(){ if($('palette').classList.contains('hidden')) PAL_BACK=document.activeElement; $('palette').classList.remove('hidden'); var i=$('palInput'); i.value=''; PAL_SEL=0; palRender(); setTimeout(function(){i.focus();},30); }
+function closePalette(){ var was=!$('palette').classList.contains('hidden'); $('palette').classList.add('hidden'); if(was&&PAL_BACK&&PAL_BACK.isConnected&&PAL_BACK.focus&&!$('palette').contains(PAL_BACK)) PAL_BACK.focus({preventScroll:true}); PAL_BACK=null; }
 
 
 /* ---------- AI orb: Apple-style particle sphere (hundreds of tiny flowing blue dots, rotating in 3D) ---------- */
@@ -6204,10 +6207,12 @@ function palRender(){
   var res = q? all.filter(function(x){return (x.t+' '+x.s+' '+x.cat).toLowerCase().indexOf(q)>=0;}) : all.filter(function(x){return x.cat==='Go to';});
   res=res.slice(0,40); PAL_ITEMS=res; if(PAL_SEL>=res.length) PAL_SEL=0;
   $('palResults').innerHTML = res.length? res.map(function(x,i){
-    return '<div class="palrow'+(i===PAL_SEL?' sel':'')+'" onclick="palGo('+i+')" onmouseover="PAL_SEL='+i+';palHighlight()"><span class="pi">'+x.icon+'</span><span class="pt">'+esc(x.t)+(x.s?' <span class="ps">'+esc(x.s)+'</span>':'')+'</span><span class="pcat">'+esc(x.cat)+'</span></div>';
-  }).join('') : '<div class="palrow" style="color:var(--text-dim);cursor:default">No matches.</div>';
+    return '<div class="palrow'+(i===PAL_SEL?' sel':'')+'" id="palOpt'+i+'" role="option" aria-selected="'+(i===PAL_SEL)+'" onclick="palGo('+i+')" onmouseover="PAL_SEL='+i+';palHighlight()"><span class="pi">'+x.icon+'</span><span class="pt">'+esc(x.t)+(x.s?' <span class="ps">'+esc(x.s)+'</span>':'')+'</span><span class="pcat">'+esc(x.cat)+'</span></div>';
+  }).join('') : '<div class="palrow" role="option" aria-disabled="true" style="color:var(--text-dim);cursor:default">No matches.</div>';
+  palHighlight();
 }
-function palHighlight(){ var rows=$('palResults').children; for(var i=0;i<rows.length;i++){ rows[i].classList.toggle('sel', i===PAL_SEL); } }
+function palHighlight(){ var rows=$('palResults').children, on=PAL_ITEMS.length?'palOpt'+PAL_SEL:''; for(var i=0;i<rows.length;i++){ rows[i].classList.toggle('sel', i===PAL_SEL); if(rows[i].id) rows[i].setAttribute('aria-selected', i===PAL_SEL?'true':'false'); }
+  var inp=$('palInput'); if(on) inp.setAttribute('aria-activedescendant',on); else inp.removeAttribute('aria-activedescendant'); }
 function palGo(i){ var x=PAL_ITEMS[i]; if(!x) return; closePalette(); navGo(x.tab);
   if(x.sec) setTimeout(function(){ var el=$(x.sec); if(el){ moreReveal(el); el.scrollIntoView({behavior:'smooth'}); } }, 80); }
 function palKey(e){
@@ -6230,6 +6235,21 @@ document.addEventListener('keydown', function(e){
   else if(e.key==='e'||e.key==='E'){ e.preventDefault(); toggleEdit(); }
 });
 window.addEventListener('keydown', function(e){ if(e.key==='Escape') closeModal(); });
+/* modal focus: every opener just un-hides #modal, so watch it once here — on open, name the dialog after its first heading, remember
+   where focus was and move it inside; Tab / Shift+Tab stay inside while open; on close, focus goes back to the button that opened it. */
+(function(){ var m=$('modal'), sh=$('modalSheet'), back=null, FOC='a[href],button:not([disabled]),input:not([disabled]):not([type=hidden]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
+  function vis(el){ return el.offsetWidth||el.offsetHeight||el.getClientRects().length; }
+  function items(){ return [].slice.call(sh.querySelectorAll(FOC)).filter(vis); }
+  new MutationObserver(function(){ var open=!m.classList.contains('hidden');
+    if(open && !m._on){ m._on=1; back=document.activeElement;
+      var h=sh.querySelector('h2,h3'); if(h){ if(!h.id) h.id='modalTitle'; sh.setAttribute('aria-labelledby',h.id); } else sh.removeAttribute('aria-labelledby');
+      setTimeout(function(){ if(m.classList.contains('hidden')||sh.contains(document.activeElement)) return;
+        var f=items().filter(function(el){ return !el.classList.contains('mclose'); })[0]; (f&&!/^(INPUT|TEXTAREA|SELECT)$/.test(f.tagName)&&matchMedia('(pointer:coarse)').matches?sh:(f||sh)).focus({preventScroll:true}); },30); }
+    else if(!open && m._on){ m._on=0; if(back&&back.isConnected&&back.focus) back.focus({preventScroll:true}); back=null; }
+  }).observe(m,{attributes:true,attributeFilter:['class']});
+  m.addEventListener('keydown',function(e){ if(e.key!=='Tab'||m.classList.contains('hidden')) return; var f=items(); if(!f.length){ e.preventDefault(); sh.focus(); return; }
+    var a=f[0], z=f[f.length-1]; if(e.shiftKey&&(document.activeElement===a||document.activeElement===sh)){ e.preventDefault(); z.focus(); } else if(!e.shiftKey&&document.activeElement===z){ e.preventDefault(); a.focus(); } });
+})();
 
 function decodeVin(vin){
   var box=$('vinBox'); if(!box) return;
