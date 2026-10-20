@@ -2275,9 +2275,9 @@ function saveRowNow(tab, rownum, full){
     toast('Couldn’t save that — check your connection and tap again.');
   });
 }
-function toast(msg){ var t=document.createElement('div'); t.textContent=msg;
-  t.style.cssText='position:fixed;left:50%;transform:translateX(-50%);bottom:calc(90px + env(safe-area-inset-bottom));z-index:3000;background:#2b343b;color:#fff;padding:10px 14px;border-radius:12px;font-size:13px;box-shadow:0 6px 20px rgba(0,0,0,.4);max-width:90vw';
-  document.body.appendChild(t); setTimeout(function(){ t.remove(); },3500); }
+function toast(msg,ms){ var t=document.createElement('div'); t.textContent=msg;
+  t.style.cssText='white-space:pre-line;position:fixed;left:50%;transform:translateX(-50%);bottom:calc(90px + env(safe-area-inset-bottom));z-index:3000;background:#2b343b;color:#fff;padding:10px 14px;border-radius:12px;font-size:13px;box-shadow:0 6px 20px rgba(0,0,0,.4);max-width:90vw';
+  document.body.appendChild(t); setTimeout(function(){ t.remove(); },ms||3500); }
 async function afterWrite(){
   var api=localStorage.getItem(LS_API), pw=sessionStorage.getItem(SS_PW);
   try{ var res=await jsonp(api+'?pw='+pw); if(res&&res.ok){ DATA=dropPrivate(res.data); $('stamp').textContent=fmtStamp(res.updated); } }catch(e){}
@@ -2420,7 +2420,7 @@ function smartSteps(){
   // stale balances (manual from Monarch/Empower) — nudge after 2 weeks
   var asofs=arr('Accounts').map(function(x){return parseDate(x.AsOf);}).filter(Boolean).sort(function(a,b){return b-a;});
   if(asofs.length){ var age=Math.floor((Date.now()-asofs[0].getTime())/864e5);
-    if(age>=14) out.push({t:'Refresh account balances — last updated '+asofs[0].toLocaleDateString('en-US',{month:'short',day:'numeric',timeZone:'UTC'})+' ('+age+' days). Send Claude a Monarch screenshot.', tab:'home', d:null, sort:55}); }
+    if(age>=14) out.push({t:'Refresh account balances — last updated '+asofs[0].toLocaleDateString('en-US',{month:'short',day:'numeric',timeZone:'UTC'})+' ('+age+' days). Export Balances + Transactions from Monarch, then tap ⟳ Sync inbox.', tab:'home', d:null, sort:55}); }
   // estate essentials Chelsea would need
   var bm=binderMissing(); if(bm.length>=3) out.push({t:'Emergency binder: '+bm.length+' essentials missing — start with '+bm.slice(0,2).join(' + ').toLowerCase(), tab:'family', d:null, sort:60});
   // de-dupe by first 24 chars
@@ -2773,7 +2773,7 @@ function todayHero(){
     qTxt='<div class="hero-q">“'+esc(q.Quote)+'” <span>— '+esc(q.Author||'Unknown')+'</span></div>'; }
   var timeTxt=n.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
   return '<div class="deck-strip"><div><div class="hero-date">'+esc(dateTxt)+' · '+timeTxt+'</div><h1 class="hero-h">'+greet+', '+esc(name)+'.</h1></div>'
-    +'<div class="hero-actions"><button class="ebtn pri" onclick="quickAdd()">＋ Quick add</button><button class="ebtn" onclick="snapPick()">📷 Snap &amp; file</button><button class="ebtn" onclick="printReview()">Weekly review</button>'+inboxLink()+'<button class="ebtn b-only" id="syncInboxBtn" onclick="syncInboxNow(this)" title="Import the ForeFlight / Cronometer files sitting in the Drive inbox right now (the nightly sync also does this at ~4 AM)">⟳ Sync inbox</button>'+cronoLink()+'</div></div>'
+    +'<div class="hero-actions"><button class="ebtn pri" onclick="quickAdd()">＋ Quick add</button><button class="ebtn" onclick="snapPick()">📷 Snap &amp; file</button><button class="ebtn" onclick="printReview()">Weekly review</button>'+inboxLink()+'<button class="ebtn b-only" id="syncInboxBtn" onclick="syncInboxNow(this)" title="Import your newest Monarch exports (Balances + Transactions CSVs in Downloads) and the ForeFlight / Cronometer files in the Drive inbox">⟳ Sync inbox</button>'+cronoLink()+'</div></div>'
     +'<div class="bchips deck-gauges">'+chips.join('')+'</div>'+(qTxt?'<div class="deck-q">'+qTxt+'</div>':'');
 }
 async function markActionDone(rownum){
@@ -4643,7 +4643,7 @@ function moneyNeedsCard(plan, yourRates){
   if(!isNaN(mk)&&mk>0&&mk<refi) rows.push(line(dot, 'Refi window: 30-yr mortgages at '+esc(cfg.market_mortgage_30yr)+'%', '', 'Under your '+refi+'% alert line'+(yourRates?' · you: '+yourRates:'')+'. Worth a lender quote.'));
   var asofs=arr('Accounts').map(function(x){return parseDate(x.AsOf);}).filter(Boolean).sort(function(a,b){return b-a;});
   if(asofs.length){ var age=Math.floor((Date.now()-asofs[0].getTime())/864e5);
-    if(age>=14) rows.push(line(dot, 'Refresh account balances', age+' days old', 'Last updated '+asofs[0].toLocaleDateString('en-US',{month:'short',day:'numeric',timeZone:'UTC'})+'. Send Claude a Monarch screenshot.')); }
+    if(age>=14) rows.push(line(dot, 'Refresh account balances', age+' days old', 'Last updated '+asofs[0].toLocaleDateString('en-US',{month:'short',day:'numeric',timeZone:'UTC'})+'. Export Balances + Transactions from Monarch, then tap ⟳ Sync inbox.')); }
   if(plan) plan.steps.forEach(function(s){ if(s.done||s.opts.auto!=null||s.opts.dim||s.id==='paystub'||(s.id==='roth'&&rothOn)) return;   // Roth panel lists the two Roths separately
     steps.push(line(box('raise_move_'+s.id), s.title, s.amt!=null?(s.amt>=0?'+':'−')+money(Math.abs(s.amt))+'/mo':'')); });
   if(rothOn) rothMoves().forEach(function(m){ if(m[0]==='move_403b'||m[0]==='move_housing'||truthy(t[m[0]])) return; steps.push(line(box(m[0]), m[1], '')); });
@@ -6342,15 +6342,29 @@ function renderBooks(){
 /* ---------- Drive inbox (ForeFlight + Cronometer CSV drop) and nutrition from Cronometer ---------- */
 function inboxUrl(){ var u=String(kv('Config').inbox_url||''); return /^https:\/\/drive\.google\.com\//.test(u)?u:'https://drive.google.com/drive/search?q=%22Life%20OS%20Inbox%22'; }
 function cronoLink(label){ return '<a class="ebtn" href="https://cronometer.com/#account" target="_blank" rel="noopener" style="text-decoration:none">'+(label||'Cronometer export')+'</a>'; }
-/* "Sync inbox now": asks the Apps Script (action=syncinbox → importInbox_) to import whatever is in the Drive inbox, then reloads the data. */
+/* "Sync inbox now": (1) Atlas (Brad's cloud assistant, on the tailnet) imports the newest Monarch Balances_/Transactions_ CSVs
+   from the Mac's Downloads → Accounts, Investments, Debts and budget actuals; (2) the Apps Script (action=syncinbox → importInbox_)
+   imports ForeFlight / Cronometer files from the Drive inbox. A live backend without syncinbox is fine: the 4 AM sync covers those. */
+var ATLAS_URL='https://atlas.taila89b12.ts.net';
 async function syncInboxNow(btn){ if(!btn||btn.disabled) return; btn.disabled=true; var label=btn.textContent; btn.textContent='Syncing inbox…';
+  var lines=[], changed=0, failed=false;
+  try{ var ctl=new AbortController(); var tm=setTimeout(function(){ ctl.abort(); }, 240000);
+    var r=await fetch(ATLAS_URL+'/api/lifeos/sync-inbox',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({pw:sessionStorage.getItem(SS_PW)}),signal:ctl.signal});
+    clearTimeout(tm); var j=await r.json();
+    (j.files||[]).forEach(function(f){ var what=f.kind==='Balances'?'Balances':'Transactions';
+      if(f.skipped){ lines.push(what+': '+f.skipped); if(/^failed/.test(f.skipped)) failed=true; }
+      else { changed+=f.updated; lines.push(what+': '+f.rows.toLocaleString()+' rows read, '+f.updated+' updated. '+(f.detail||[]).join('. ')); } });
+    if(!(j.files||[]).length) lines.push(j.message||j.error||'No Monarch exports found.');
+    if(!j.ok&&!(j.files||[]).length) failed=true;
+  }catch(e){ failed=true; lines.push('Monarch: couldn’t reach Atlas'+(e&&e.name==='AbortError'?' (timed out)':' — is Tailscale on for this device?')); }
   try{ var res=await apiWrite({action:'syncinbox'});
-    if(res&&res.ok){ var n=(res.imported||[]).length, names=(res.imported||[]).map(function(x){return typeof x==='string'?x:(x.name||'');}).filter(Boolean);
-      btn.textContent=n?('Imported '+n+' file'+(n===1?'':'s')+' ✓'):'Inbox empty ✓'; btn.title=names.join(', ')||btn.title;
-      if(n){ await reload(); var b2=document.getElementById('syncInboxBtn'); if(b2){ b2.textContent='Imported '+n+' file'+(n===1?'':'s')+' ✓'; b2.disabled=true; setTimeout(function(){ b2.disabled=false; b2.textContent=label; }, 6000); return; } }
-    } else { btn.textContent=(res&&/unknown|action/i.test(String(res.error||''))?'Backend needs the syncinbox action':'Sync failed — try again'); }
-  }catch(e){ btn.textContent='Sync failed — try again'; }
-  setTimeout(function(){ btn.disabled=false; btn.textContent=label; }, 6000); }
+    if(res&&res.ok){ var n=(res.imported||[]).length; changed+=n; if(n) lines.push('Drive inbox: imported '+(res.imported||[]).map(function(x){return typeof x==='string'?x:(x.name||'');}).filter(Boolean).join(', ')); }
+  }catch(e){}
+  if(changed) await reload();
+  var b2=document.getElementById('syncInboxBtn')||btn;
+  b2.textContent=failed?'Sync had a problem':(changed?'Updated '+changed+' row'+(changed===1?'':'s')+' ✓':'Already up to date ✓'); b2.disabled=true;
+  if(lines.length) toast(lines.join('\n'), 12000);
+  setTimeout(function(){ b2.disabled=false; b2.textContent=label; }, 8000); }
 function inboxLink(label){ return '<a class="ebtn" href="'+inboxUrl()+'" target="_blank" rel="noopener" style="text-decoration:none">'+(label||'Drive inbox')+'</a>'; }
 function nutritionWeek(){
   var today=ymd(laNow()), cut=ymd(new Date(laNow().getTime()-7*864e5));
