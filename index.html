@@ -2433,7 +2433,7 @@ function smartSteps(){
   // stale balances (manual from Monarch/Empower) — nudge after 2 weeks
   var asofs=arr('Accounts').map(function(x){return parseDate(x.AsOf);}).filter(Boolean).sort(function(a,b){return b-a;});
   if(asofs.length){ var age=Math.floor((Date.now()-asofs[0].getTime())/864e5);
-    if(age>=14) out.push({t:'Refresh account balances — last updated '+asofs[0].toLocaleDateString('en-US',{month:'short',day:'numeric',timeZone:'UTC'})+' ('+age+' days). Export Balances + Transactions from Monarch, then tap ⟳ Sync inbox.', tab:'home', d:null, sort:55}); }
+    if(age>=14) out.push({t:'Refresh account balances — last updated '+asofs[0].toLocaleDateString('en-US',{month:'short',day:'numeric',timeZone:'UTC'})+' ('+age+' days). Atlas refreshes these from Monarch every 4 hours, so the link may be off: check Atlas menu → Monarch, then tap ⟳ Sync inbox.', tab:'home', d:null, sort:55}); }
   // estate essentials Chelsea would need
   var bm=binderMissing(); if(bm.length>=3) out.push({t:'Emergency binder: '+bm.length+' essentials missing — start with '+bm.slice(0,2).join(' + ').toLowerCase(), tab:'family', d:null, sort:60});
   // de-dupe by first 24 chars
@@ -2786,7 +2786,7 @@ function todayHero(){
     qTxt='<div class="hero-q">“'+esc(q.Quote)+'” <span>— '+esc(q.Author||'Unknown')+'</span></div>'; }
   var timeTxt=n.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
   return '<div class="deck-strip"><div><div class="hero-date">'+esc(dateTxt)+' · '+timeTxt+'</div><h1 class="hero-h">'+greet+', '+esc(name)+'.</h1></div>'
-    +'<div class="hero-actions"><button class="ebtn pri" onclick="quickAdd()">＋ Quick add</button><button class="ebtn" onclick="snapPick()">📷 Snap &amp; file</button><button class="ebtn" onclick="printReview()">Weekly review</button>'+inboxLink()+'<button class="ebtn b-only" id="syncInboxBtn" onclick="syncInboxNow(this)" title="Import your newest Monarch exports (Balances + Transactions CSVs in Downloads) and the ForeFlight / Cronometer files in the Drive inbox">⟳ Sync inbox</button>'+cronoLink()+'</div></div>'
+    +'<div class="hero-actions"><button class="ebtn pri" onclick="quickAdd()">＋ Quick add</button><button class="ebtn" onclick="snapPick()">📷 Snap &amp; file</button><button class="ebtn" onclick="printReview()">Weekly review</button>'+inboxLink()+'<button class="ebtn b-only" id="syncInboxBtn" onclick="syncInboxNow(this)" title="Refresh balances and spending from Monarch now (Atlas also does it every 4 hours) and import the ForeFlight / Cronometer files in the Drive inbox">⟳ Sync inbox</button>'+cronoLink()+'</div></div>'
     +'<div class="bchips deck-gauges">'+chips.join('')+'</div>'+(qTxt?'<div class="deck-q">'+qTxt+'</div>':'');
 }
 async function markActionDone(rownum){
@@ -4496,8 +4496,8 @@ function budgetPlanHtml(){
   var grandAct=cats.reduce(function(s,c){var a=num(c.MonthlyActual);return s+(isNaN(a)?0:a);},0);
   var head='<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px"><span class="foot">'+(grandAct?'Avg spend / Planned':'Planned total')+'</span><span class="mono" style="font-size:18px;font-weight:700">'+(grandAct?money(grandAct)+' / ':'')+money(grand)+'/mo</span></div>';
   var note = anyActual
-    ? '<p class="foot foot-dim foot-gap">Avg = your average monthly spend on that line (from your transactions). Red = running over budget. Re-upload a Monarch CSV anytime and I\'ll refresh these.</p>'
-    : '<p class="foot foot-dim foot-gap">Showing your plan. Send me a Monarch CSV export and each line gets an average-spend and trend vs budget.</p>';
+    ? '<p class="foot foot-dim foot-gap">Avg = your average monthly spend on that line (last 6 full months in Monarch). Red = running over budget. Atlas refreshes the averages from Monarch every 4 hours; your budget targets here are never changed.</p>'
+    : '<p class="foot foot-dim foot-gap">Showing your plan. Connect Monarch in the Atlas menu and each line gets an average-spend and trend vs budget.</p>';
   var ov=budgetOverruns(), ovTot=ov.reduce(function(s,o){return s+o.over;},0);
   var alert=ov.length?'<div class="bud-alert"><b>'+ov.length+' lines over plan · +'+money(ovTot)+'/mo.</b> Biggest: '+ov.slice(0,4).map(function(o){return esc(o.cat)+' +'+money(o.over);}).join(' · ')+'</div>':'';
   var bnote=String(kv('Config').budget_note||''); if(bnote) alert+='<div class="foot" style="margin:-4px 0 12px;color:var(--text-dim)">'+esc(bnote)+'</div>';
@@ -4656,7 +4656,7 @@ function moneyNeedsCard(plan, yourRates){
   if(!isNaN(mk)&&mk>0&&mk<refi) rows.push(line(dot, 'Refi window: 30-yr mortgages at '+esc(cfg.market_mortgage_30yr)+'%', '', 'Under your '+refi+'% alert line'+(yourRates?' · you: '+yourRates:'')+'. Worth a lender quote.'));
   var asofs=arr('Accounts').map(function(x){return parseDate(x.AsOf);}).filter(Boolean).sort(function(a,b){return b-a;});
   if(asofs.length){ var age=Math.floor((Date.now()-asofs[0].getTime())/864e5);
-    if(age>=14) rows.push(line(dot, 'Refresh account balances', age+' days old', 'Last updated '+asofs[0].toLocaleDateString('en-US',{month:'short',day:'numeric',timeZone:'UTC'})+'. Export Balances + Transactions from Monarch, then tap ⟳ Sync inbox.')); }
+    if(age>=14) rows.push(line(dot, 'Refresh account balances', age+' days old', 'Last updated '+asofs[0].toLocaleDateString('en-US',{month:'short',day:'numeric',timeZone:'UTC'})+'. Atlas refreshes these from Monarch every 4 hours, so the link may be off: check Atlas menu → Monarch, then tap ⟳ Sync inbox.')); }
   if(plan) plan.steps.forEach(function(s){ if(s.done||s.opts.auto!=null||s.opts.dim||s.id==='paystub'||(s.id==='roth'&&rothOn)) return;   // Roth panel lists the two Roths separately
     steps.push(line(box('raise_move_'+s.id), s.title, s.amt!=null?(s.amt>=0?'+':'−')+money(Math.abs(s.amt))+'/mo':'')); });
   if(rothOn) rothMoves().forEach(function(m){ if(m[0]==='move_403b'||m[0]==='move_housing'||truthy(t[m[0]])) return; steps.push(line(box(m[0]), m[1], '')); });
@@ -6374,8 +6374,8 @@ function renderBooks(){
 /* ---------- Drive inbox (ForeFlight + Cronometer CSV drop) and nutrition from Cronometer ---------- */
 function inboxUrl(){ var u=String(kv('Config').inbox_url||''); return /^https:\/\/drive\.google\.com\//.test(u)?u:'https://drive.google.com/drive/search?q=%22Life%20OS%20Inbox%22'; }
 function cronoLink(label){ return '<a class="ebtn" href="https://cronometer.com/#account" target="_blank" rel="noopener" style="text-decoration:none">'+(label||'Cronometer export')+'</a>'; }
-/* "Sync inbox now": (1) Atlas (Brad's cloud assistant, on the tailnet) imports the newest Monarch Balances_/Transactions_ CSVs
-   from the Mac's Downloads → Accounts, Investments, Debts and budget actuals; (2) the Apps Script (action=syncinbox → importInbox_)
+/* "Sync inbox now": (1) Atlas (Brad's cloud assistant, on the tailnet) pulls live balances and spending from Monarch (or, if Monarch
+   isn't connected to Atlas, the newest Balances_/Transactions_ CSVs in the Mac's Downloads) → Accounts, Investments, Debts and budget actuals; (2) the Apps Script (action=syncinbox → importInbox_)
    imports ForeFlight / Cronometer files from the Drive inbox. A live backend without syncinbox is fine: the 4 AM sync covers those. */
 var ATLAS_URL='https://atlas.taila89b12.ts.net';
 async function syncInboxNow(btn){ if(!btn||btn.disabled) return; btn.disabled=true; var label=btn.textContent; btn.textContent='Syncing inbox…';
