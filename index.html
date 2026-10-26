@@ -1516,6 +1516,16 @@
   }
   /* Round 14: the Atlas panel takes focus when it opens (so Tab lands inside it); no ring around the whole panel */
   #aiPanel:focus { outline:none; }
+  /* Round 15: phones — pop-up sheets. The × sat alone on its own line and long titles ran 23px over six lines; the × now sits top-right beside
+     the title, titles are a phone size, and the sheet's action buttons get a 44px thumb target */
+  @media (max-width:640px){
+    #modal .sheet > .mclose { float:right; margin:-6px -6px 8px 12px; z-index:1; }
+    #modal h2 { font-size:19px; line-height:1.3; letter-spacing:-.2px; }
+    #modal .editbar .ebtn { min-height:44px; padding-left:14px; padding-right:14px; }
+    /* a value beside the title (car sheets: "$22,000 · KBB est.") squeezed the title to ~50px, one syllable per line — the value now goes under it */
+    #modal .mhead { flex-direction:column; gap:6px; }
+    #modal .mval { text-align:left; white-space:normal; }
+  }
 </style>
 </head>
 <body>
@@ -1661,6 +1671,8 @@ function has(v){ return v!=null && String(v).trim()!==''; }
 /* ---- dates ---- */
 var MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 function parseDate(v){ if(v==null||v==='') return null; var d=new Date(v); return isNaN(d.getTime())?null:d; }
+/* Round 15: sheet dates arrive as ISO timestamps ("2026-09-12T07:00:00.000Z") — show them as "Sep 12, 2026"; anything else ("Sep 2026") stays as typed */
+function asOfTxt(v){ var s=String(v==null?'':v); if(!/^\d{4}-\d{2}-\d{2}T/.test(s)) return s; var d=parseDate(s); return d?d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric',timeZone:'America/Los_Angeles'}):s; }
 /* days until next occurrence of a monthly due-day (1-31) */
 function daysUntilDueDay(day){ day=parseInt(day,10); if(isNaN(day)||day<1||day>31) return null;
   var now=new Date(); var t=new Date(now.getFullYear(),now.getMonth(),day);
@@ -2239,7 +2251,7 @@ function openEditor(tab,rownum){
   var row=rownum?(arr(tab).filter(function(r){return String(r.__row)===String(rownum);})[0]||{}):{};
   var fields=def.cols.map(function(c){return '<div class="efield"><label>'+esc(c)+'</label>'+fieldInput(c,row[c])+'</div>';}).join('');
   var title=(rownum?'Edit ':'Add ')+tab.replace(/([a-z])([A-Z])/g,'$1 $2');
-  $('modalSheet').innerHTML='<button class="mclose" onclick="closeModal()">×</button>'
+  $('modalSheet').innerHTML='<button class="mclose" onclick="closeModal()" aria-label="Close">×</button>'
     +'<div class="mhead"><h2>'+esc(title)+'</h2></div><div id="eform">'+fields+'</div>'
     +'<div class="eactions">'+(rownum?'<button class="ebtn danger" onclick="deleteRecord(\''+tab+'\','+rownum+')">Delete</button>':'')
     +'<span class="spacer"></span><span class="esaved" id="esaved"></span>'
@@ -2263,7 +2275,7 @@ function openKvEditor(tab){
   var obj=kv(tab), keys=Object.keys(obj);
   var rows=keys.map(function(k,i){return '<div class="efield"><label>'+esc(k)+'</label><input id="kv_'+i+'" data-k="'+esc(k)+'" type="text" value="'+esc(String(obj[k]))+'"></div>';}).join('');
   var blanks=''; for(var j=0;j<3;j++){ blanks+='<div style="display:flex;gap:8px;margin-bottom:10px"><input id="nk_'+j+'" type="text" placeholder="New field name" style="flex:1;padding:9px 11px;border-radius:8px;border:1px solid var(--card-border-2);background:#111419;color:var(--text);font-family:inherit"><input id="nv_'+j+'" type="text" placeholder="Value" style="flex:1;padding:9px 11px;border-radius:8px;border:1px solid var(--card-border-2);background:#111419;color:var(--text);font-family:inherit"></div>'; }
-  $('modalSheet').innerHTML='<button class="mclose" onclick="closeModal()">×</button><div class="mhead"><h2>Edit '+esc(tab)+'</h2></div>'
+  $('modalSheet').innerHTML='<button class="mclose" onclick="closeModal()" aria-label="Close">×</button><div class="mhead"><h2>Edit '+esc(tab)+'</h2></div>'
     +'<div id="eform">'+rows+'<div class="section-title" style="margin-top:14px">Add new fields</div>'+blanks+'</div>'
     +'<div class="eactions"><span class="spacer"></span><span class="esaved" id="esaved"></span>'
     +'<button class="ebtn" onclick="closeModal()">Cancel</button>'
@@ -4093,7 +4105,7 @@ function atNamesOpen(){
   var planes=atPlanes();
   var rows=planes.map(function(p,i){ var st=AT.state[p.tail]||{}, fl=st.fl, model=p.model||(fl&&(AT_TYPES[fl.type]||fl.type))||'';
     return '<div class="efield"><label>'+esc(p.tail)+(model?' · '+esc(model):'')+'</label><input id="atn_'+i+'" data-t="'+esc(p.tail)+'" type="text" value="'+esc(p.who)+'" placeholder="Who flies it"></div>'; }).join('');
-  $('modalSheet').innerHTML='<button class="mclose" onclick="closeModal()">×</button><div class="mhead"><h2>Who flies these</h2></div>'
+  $('modalSheet').innerHTML='<button class="mclose" onclick="closeModal()" aria-label="Close">×</button><div class="mhead"><h2>Who flies these</h2></div>'
     +'<div id="eform">'+rows
     +'<div class="efield"><label>Add a plane (tail number)</label><input id="atn_new" type="text" placeholder="N12345 = Name" autocapitalize="characters"></div></div>'
     +'<div class="eactions"><span class="spacer"></span><span class="esaved" id="esaved"></span>'
@@ -5163,7 +5175,7 @@ function openAlerts(){
       +'<li>Tap <b>Send test alert</b> below. It should reach your phone within a few seconds.</li></ol>'
       +'<div class="eactions"><span class="spacer"></span><span class="esaved" id="alMsg"></span><button class="ebtn pri" onclick="sendTestAlert()">Send test alert</button></div>'
     : '<p>First, make your private alert channel:</p><div class="eactions"><span class="spacer"></span><span class="esaved" id="alMsg"></span><button class="ebtn pri" onclick="sendTestAlert()">Create my alert channel</button></div>';
-  $('modalSheet').innerHTML='<button class="mclose" onclick="closeModal()">×</button><div class="mhead"><h2>Phone alerts</h2></div>'
+  $('modalSheet').innerHTML='<button class="mclose" onclick="closeModal()" aria-label="Close">×</button><div class="mhead"><h2>Phone alerts</h2></div>'
     +'<p class="foot" style="color:var(--text-muted);font-size:14px">A few alerts that matter, sent to your phone through the free ntfy app:</p>'
     +'<ul class="al-list"><li><b>6 PM:</b> a good flying window tomorrow that fits your calendar, with one tap to add the lesson or text Jeremy</li>'
     +'<li><b>Any time:</b> the forecast turning bad before a lesson on your calendar</li><li><b>8 AM:</b> a bill that isn’t on autopay is due in 3 days</li><li><b>~5 AM:</b> the daily search finds a new rental that cash-flows</li></ul>'
@@ -5210,7 +5222,7 @@ function renderChelseaHome(){
     +maintenanceCard();
 }
 function openChelseaSetup(){
-  $('modalSheet').innerHTML='<button class="mclose" onclick="closeModal()">×</button><div class="mhead"><h2>Chelsea’s view</h2></div>'
+  $('modalSheet').innerHTML='<button class="mclose" onclick="closeModal()" aria-label="Close">×</button><div class="mhead"><h2>Chelsea’s view</h2></div>'
     +'<p style="color:var(--text-muted);font-size:14px">Chelsea signs in at the same address with her own password and sees a simple shared view: the calendar, bills coming due, trips, home projects (she can check tasks off), and car maintenance. '
     +'She <b>doesn’t</b> see money balances, investments, ventures, health, flying, faith or the AI assistant. That data never leaves the server on her password.</p>'
     +'<div id="chStatus" class="foot" style="margin:10px 0;color:var(--text-dim)">Checking…</div>'
@@ -5258,7 +5270,7 @@ async function snapFile(file){
   }catch(e){ snapModal('<div style="color:var(--red)">Couldn’t send that. Check your connection and try again.</div>'); }
 }
 function snapModal(body){
-  $('modalSheet').innerHTML='<button class="mclose" onclick="closeModal()">×</button><div class="mhead"><h2>Snap &amp; file</h2></div>'
+  $('modalSheet').innerHTML='<button class="mclose" onclick="closeModal()" aria-label="Close">×</button><div class="mhead"><h2>Snap &amp; file</h2></div>'
     +'<p class="foot" style="color:var(--text-dim);margin-top:0">Receipts → Receipts · oil changes & repairs → the car’s service log (and its mileage) · doctor bills & insurance statements → medical history.</p>'+body;
   $('modal').classList.remove('hidden');
 }
@@ -5928,7 +5940,7 @@ function openVehicle(idx){
     + mkv(air?'Serial / N-number':'VIN', v.VIN) + mkv('Owner', v.Owner);
 
   var ownership = mkv('Purchase date', v.PurchaseDate) + mkv('Purchase price', has(v.PurchasePrice)?money(v.PurchasePrice):'')
-    + mkv('Current est. value', has(v.Value)?money(v.Value)+(has(v.ValueAsOf)?' (as of '+v.ValueAsOf+')':''):'')
+    + mkv('Current est. value', has(v.Value)?money(v.Value)+(has(v.ValueAsOf)?' (as of '+asOfTxt(v.ValueAsOf)+')':''):'')
     + mkv('Loan', loanTxt) + mkv('Title location', v.TitleLocation);
 
   var reg = air
@@ -5951,10 +5963,10 @@ function openVehicle(idx){
     if(g) specsSection='<div class="msec"><div class="h">Specifications</div><div class="mgrid">'+g+'</div></div>';
   }
 
-  var html='<button class="mclose" onclick="closeModal()">×</button>'
+  var html='<button class="mclose" onclick="closeModal()" aria-label="Close">×</button>'
     + '<button class="ebtn pri" style="position:absolute;top:16px;right:56px;z-index:2" onclick="openEditor(\'Vehicles\','+v.__row+')">✎ Edit</button>'
     + '<div class="mhead"><div><h2>'+esc(vehName(v))+'</h2><div class="sub">'+esc(air?'Aircraft':(has(v.Owner)?v.Owner+'’s vehicle':'Vehicle'))+'</div></div>'
-    + '<div class="mval"><div class="big">'+(has(v.Value)?money(v.Value):'—')+'</div><div class="sm">'+(has(v.ValueAsOf)?'KBB est. · '+esc(v.ValueAsOf):'estimated value')+'</div></div></div>'
+    + '<div class="mval"><div class="big">'+(has(v.Value)?money(v.Value):'—')+'</div><div class="sm">'+(has(v.ValueAsOf)?'KBB est. · '+esc(asOfTxt(v.ValueAsOf)):'estimated value')+'</div></div></div>'
     + '<div class="msec"><div class="h">Identity</div><div class="mgrid">'+identity+'</div></div>'
     + '<div class="msec"><div class="h">Ownership &amp; value</div><div class="mgrid">'+ownership+'</div></div>'
     + '<div class="msec"><div class="h">'+(air?'Insurance':'Registration &amp; insurance')+'</div><div class="mgrid">'+reg+'</div></div>'
@@ -6036,7 +6048,7 @@ function openPotentialVehicle(v){
         +'<span class="rh-t">'+esc(t.Task)+(has(t.Notes)?'<span class="rh-c">'+esc(t.Notes)+'</span>':'')+'</span>'
         +'<span class="'+(dn?'':dueClass(d))+'" style="font-size:13px;white-space:nowrap;color:var(--text-dim)">'+(dn?'done':(d!=null?fmtDue(d):esc(t.Due||'')))+'</span></div>'; }).join('')
     : '<div class="empty" style="padding:6px 0">No checklist yet — add ProjectTasks rows with Project = '+esc(v.Name||'')+'.</div>';
-  var html='<button class="mclose" onclick="closeModal()">×</button>'
+  var html='<button class="mclose" onclick="closeModal()" aria-label="Close">×</button>'
     + '<button class="ebtn pri" style="position:absolute;top:16px;right:56px;z-index:2" onclick="openEditor(\'Vehicles\','+v.__row+')">✎ Edit</button>'
     + '<div class="mhead"><div><h2>'+esc(vehName(v))+'</h2><div class="sub">'+esc((has(v.Trim)?v.Trim+' · ':'')+'potential vehicle')+'</div></div>'
     + '<div class="mval"><div class="big">'+(has(pay)?'~'+money(pay):'—')+'</div><div class="sm">'+(has(pay)?'est. per month':'est. payment')+'</div></div></div>'
