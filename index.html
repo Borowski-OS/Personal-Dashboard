@@ -1499,6 +1499,8 @@
   div[style*="space-between"] > span.mono, .tm-t > span.mono, div[style*="text-align:right"] > div.mono { white-space:nowrap; }
   /* Round 12: phones — enough bottom room that the last row on every tab scrolls clear of the AI orb (Chelsea has no orb) */
   @media (max-width:640px){ body:not(.role-chelsea) { padding-bottom:calc(146px + env(safe-area-inset-bottom)); } }
+  /* Round 14: tablets and desktops — the orb sits over the content column too (fold buttons on the last card), so the last row needs room to clear it */
+  @media (min-width:641px){ body:not(.role-chelsea) { padding-bottom:calc(104px + env(safe-area-inset-bottom)); } }
   /* Round 13: the pop-up sheet takes focus when it opens (so keys land inside it); no ring around the whole sheet itself */
   #modal .sheet:focus { outline:none; }
   /* Round 13: tablets (iPad portrait, 641–899px) — the top tab strip showed only Today + a clipped "Ma…"; the rest were hidden off to the side
