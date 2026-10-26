@@ -1512,6 +1512,8 @@
     body:not(.role-chelsea) #topNav .nav-right { gap:4px; }
     body:not(.role-chelsea) #topNav .refresh-btn { padding:6px 8px; }
   }
+  /* Round 14: the Atlas panel takes focus when it opens (so Tab lands inside it); no ring around the whole panel */
+  #aiPanel:focus { outline:none; }
 </style>
 </head>
 <body>
@@ -1550,13 +1552,13 @@
 
 <!-- Floating AI assistant -->
 <button id="aiFab" class="hidden" onclick="openAI()" title="Ask Life OS (⌘J)" aria-label="Ask Life OS AI"><canvas id="aiHive" class="ai-sphere"></canvas></button>
-<div id="aiPanel" class="hidden" role="dialog" aria-label="Atlas">
+<div id="aiPanel" class="hidden" role="dialog" aria-label="Atlas" tabindex="-1">
   <div class="aiHead">
     <span class="ai-orb sm"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5l1.9 5.6 5.6 1.9-5.6 1.9L12 17.5l-1.9-5.6L4.5 10l5.6-1.9z"/></svg></span>
     <div class="aiTitle"><strong>Atlas</strong><span id="pamSub">Talks, codes and runs your projects</span></div>
-    <button class="ai-ic" onclick="pamOpenTab()" title="Open Atlas full screen"><svg viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-8 8M10 6H5v13h13v-5"/></svg></button>
-    <button class="ai-ic ai-exp" onclick="aiExpand()" title="Expand"><svg viewBox="0 0 24 24"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg></button>
-    <button class="ai-ic" onclick="closeAI()" title="Close (Esc)"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    <button class="ai-ic" onclick="pamOpenTab()" title="Open Atlas full screen" aria-label="Open Atlas full screen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h6v6M20 4l-8 8M10 6H5v13h13v-5"/></svg></button>
+    <button class="ai-ic ai-exp" onclick="aiExpand()" title="Expand" aria-label="Expand" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg></button>
+    <button class="ai-ic" onclick="closeAI()" title="Close (Esc)" aria-label="Close Atlas"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
   </div>
   <div id="aiBody" class="aiBody pam-body">
     <div id="pamOffline" class="ai-hello hidden">
@@ -6194,8 +6196,10 @@ function pamPick(hosts){ return new Promise(function(res){
   hosts.forEach(function(u,i){ pamProbe(u).then(function(ok){ st[i]=ok; check(); }); });
 }); }
 function pamSub(u){ $('pamSub').textContent='Talks, codes and runs your projects'+(u?(u===PAM_URL?' · from your Mac':' · in the cloud'):''); }
+var AI_RET=null;                                               // where focus goes back to when Atlas closes
 function openAI(){
-  $('aiPanel').classList.remove('hidden'); $('aiFab').classList.add('hidden'); document.body.classList.add('ai-open');
+  if($('aiPanel').classList.contains('hidden')){ var ae=document.activeElement; AI_RET=(ae&&ae!==document.body&&!$('aiPanel').contains(ae))?ae:null; }
+  $('aiPanel').classList.remove('hidden'); try{ $('aiPanel').focus({preventScroll:true}); }catch(e){} $('aiFab').classList.add('hidden'); document.body.classList.add('ai-open');
   var off=$('pamOffline'), fr=$('pamFrame'), hosts=pamHosts();
   off.classList.add('hidden'); fr.classList.remove('hidden');
   pamPick(hosts).then(function(u){
@@ -6208,8 +6212,9 @@ function openAI(){
     fr.classList.add('hidden'); off.classList.remove('hidden'); if(window.aiHiveWake) aiHiveWake();
   });
 }
-function closeAI(){ $('aiPanel').classList.add('hidden'); $('aiFab').classList.remove('hidden'); document.body.classList.remove('ai-open'); if(window.aiHiveWake) aiHiveWake(); }
-function aiExpand(){ $('aiPanel').classList.toggle('big'); }
+function closeAI(){ $('aiPanel').classList.add('hidden'); $('aiFab').classList.remove('hidden'); document.body.classList.remove('ai-open'); if(window.aiHiveWake) aiHiveWake();
+  var r=(AI_RET&&document.contains(AI_RET)&&AI_RET.offsetParent!==null)?AI_RET:$('aiFab'); AI_RET=null; try{ r.focus({preventScroll:true}); }catch(e){} }
+function aiExpand(){ var big=$('aiPanel').classList.toggle('big'); var b=document.querySelector('#aiPanel .ai-exp'); if(b){ b.setAttribute('aria-pressed',big?'true':'false'); b.title=big?'Shrink':'Expand'; b.setAttribute('aria-label',b.title); } }
 function pamOpenTab(){ window.open((PAM_ACTIVE||pamHosts()[0]||ATLAS_CLOUD_URL)+'/','_blank','noopener'); }
 document.addEventListener('keydown',function(e){ if((e.metaKey||e.ctrlKey)&&(e.key==='j'||e.key==='J')){ if(ROLE==='chelsea'||!DATA) return; e.preventDefault(); $('aiPanel').classList.contains('hidden')?openAI():closeAI(); } if(e.key==='Escape'&&!$('aiPanel').classList.contains('hidden')) closeAI(); });
 function palRender(){
