@@ -10,21 +10,17 @@ from Cloudflare's servers, which is why this uses FlightAware.)
 
 ## Cost control
 
-Fresh when you look, slow while idle:
-- Opening or returning to the Flying tab sends `fresh=1`: flight status is never more than 2 min old.
-- While the tab just sits open: parked planes are re-checked about hourly, planes in the air (or due
-  out within the hour) every 15 min, and positions for planes in the air every 15 min.
-- Quiet window: no FlightAware calls 11 PM–5 AM Pacific (`QUIET_START`/`QUIET_END`).
-- If the month's spending runs ahead of an even pace, the 20-min idle check stretches toward 60 min
-  (looking at the tab is still always fresh).
-- Answers are shared through Workers KV (`STATE`), so several open screens cost the same as one.
-- Monthly spending cap `MONTHLY_CAP_USD` (wrangler.toml): $5 (cut from $15 on Oct 27, 2026);
-  the first $5 is FlightAware's free Personal credit. Past the cap it only serves what it already has.
-  The page shows "$x of $5 used this month".
-- Nothing is looked up unless the Flying tab is open and visible somewhere.
+- Planes in the air: status + position at most every 5 min (`AIR_TTL_SEC` = 270). Planes on the ground: status at most
+  every 15 min (`IDLE_TTL_SEC` = 840). Positions are only ever fetched for planes in the air.
+- Overnight quiet window (`QUIET_START`/`QUIET_END`, 11 PM–5 AM Pacific): grounded planes are not checked; planes in the air still are.
+- Planning target `MONTHLY_TARGET_USD` = $100: when the projected month passes it, the answer carries `budget.warn=true`
+  (Freedom Air's server logs it and pings the phone once a day). Nothing stops.
+- `MONTHLY_CAP_USD` = $200 is only a runaway backstop; past it the Worker serves what it already has.
+- Answers are shared through Workers KV (`STATE`). Freedom Air's page only reads a published data.json, so open tabs cost nothing.
+  (The Life OS Flying tab sends `fresh=1` when opened, which forces a 2-min-old answer.)
 
-Rough cost: ~2¢ per look, ~6¢ per hour the tab sits open with nobody flying, plus ~$0.60/hour per
-plane in the air.
+Pricing used (per call, from the Worker): status $0.005, position $0.01, airport $0.015, track $0.01.
+Roughly $0.18 per plane-hour in the air (12 polls x $0.015) and $0.02 per plane-hour on the ground.
 
 ## Deploy / update
 

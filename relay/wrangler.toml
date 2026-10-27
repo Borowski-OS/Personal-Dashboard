@@ -9,8 +9,11 @@ binding = "STATE"
 id = "e26eb15c70f2439d91a7d440cacb4784"
 
 [vars]
-MONTHLY_CAP_USD = "5"    # cut from $15 to $5 on Oct 27 2026 (first $5 is FlightAware's free credit)
-QUIET_START = "23:00"    # overnight quiet window, Pacific: no FlightAware calls between these times
+MONTHLY_CAP_USD = "200"  # HARD runaway backstop only; never expected to be reached (Brad needs it running all the time)
+MONTHLY_TARGET_USD = "100"   # planning target: when the projected month passes this the response says warn=true (nothing stops)
+AIR_TTL_SEC = "270"      # planes in the air: status + position every 5 min
+IDLE_TTL_SEC = "840"     # planes on the ground: status every 15 min
+QUIET_START = "23:00"    # overnight quiet window, Pacific: planes on the ground are not checked; planes in the air still are
 QUIET_END = "05:00"      # (set both the same to turn it off)
 QUIET_TZ = "America/Los_Angeles"
 

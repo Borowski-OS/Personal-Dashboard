@@ -13,19 +13,20 @@
 //   - position for planes in the air at most every 60 s
 //   - a parked plane's last reported spot is looked up once per finished flight (airport location as fallback)
 //   - answers are shared through KV, so several open screens cost the same as one
-//   - a monthly spending cap (MONTHLY_CAP_USD); past it the Worker only serves what it already has
+//   - a monthly hard cap (MONTHLY_CAP_USD); past it the Worker only serves what it already has
 //   - nothing runs unless the Flying tab is open somewhere
-//   - overnight quiet window (QUIET_START..QUIET_END Pacific): no FlightAware calls, stored answers only
-//   - planes in the air: status + position every 15 min; parked planes: status about once an hour
+//   - planes in the air: status + position every 5 min; planes on the ground: status every 15 min
+//   - overnight quiet window (QUIET_START..QUIET_END Pacific): planes on the ground are not checked; planes in the air still are
+//   - MONTHLY_CAP_USD is only a runaway backstop (~$200); MONTHLY_TARGET_USD (~$100) is the planning target: past the projected
+//     pace the response says budget.warn=true (the Freedom Air server logs it and pings the phone) but nothing stops
 // Secrets: AEROAPI_KEY (wrangler secret). Storage: STATE (KV).
 
 const AERO = "https://aeroapi.flightaware.com/aeroapi";
 const PRICE = { status: 0.005, position: 0.01, airport: 0.015, track: 0.01 };   // USD per call, rounded up from FlightAware's list
 const STATUS_FRESH_TTL = 120;   // someone just looked: never show them anything older than this
-const STATUS_AIR_TTL = 840;     // in the air or departing within the hour: every 15 min (14 so a 15-min poller never reads a stale answer)
-const STATUS_IDLE_TTL = 3500;   // parked: checked about once an hour
-const STATUS_IDLE_MAX = 3600;   // ...stretched up to this when spending runs ahead of the monthly pace
-const POSITION_TTL = 840;       // positions only ever fetched for planes in the air, every 15 min
+const STATUS_AIR_TTL = 270;     // in the air: every 5 min (4.5 so a 5-min poller never reads a stale answer); env AIR_TTL_SEC overrides
+const STATUS_IDLE_TTL = 840;    // on the ground (even if due out soon): every 15 min so takeoffs are caught; env IDLE_TTL_SEC overrides
+const POSITION_TTL = 270;       // positions only ever fetched for planes in the air, every 5 min
 const FOREVER = 365 * 86400;   // a finished flight's last spot and an airport's location never change
 
 const ALLOWED_ORIGINS = [
@@ -49,8 +50,8 @@ function json(body, status, extra) {
   });
 }
 
-// Overnight quiet window (Pacific, from QUIET_START / QUIET_END in wrangler.toml, "HH:MM"): no FlightAware calls at all,
-// only what is already stored is served. Set QUIET_START = QUIET_END (or empty) to turn it off.
+// Overnight quiet window (Pacific, from QUIET_START / QUIET_END in wrangler.toml, "HH:MM"): planes on the ground are not
+// checked (their stored answer is served); planes in the air keep being tracked. Set QUIET_START = QUIET_END (or empty) to turn it off.
 function inQuiet(env, at) {
   const a = String(env.QUIET_START || ""), b = String(env.QUIET_END || "");
   if (!a || !b || a === b) return false;
@@ -136,28 +137,27 @@ export default {
     if (!tails.length) return json({ ok: false, error: "no_tails" }, 400, cors);
     if (!env.AEROAPI_KEY) return json({ ok: false, error: "no_key" }, 503, cors);
 
-    const cap = Number(env.MONTHLY_CAP_USD) || 5;
+    const cap = Number(env.MONTHLY_CAP_USD) || 200;
     const monthKey = "spend:" + new Date().toISOString().slice(0, 7);
     const spentBefore = Number(await env.STATE.get(monthKey)) || 0;
     const fresh = url.searchParams.get("fresh") === "1";
 
-    // Ahead of an even spend across the month (plus 50¢ of slack)? Stretch idle lookups for parked planes.
     const d0 = new Date(), m0 = Date.UTC(d0.getUTCFullYear(), d0.getUTCMonth(), 1), m1 = Date.UTC(d0.getUTCFullYear(), d0.getUTCMonth() + 1, 1);
-    const pace = spentBefore / (cap * (Date.now() - m0) / (m1 - m0) + 0.5);
-    const idleTtl = Math.round(Math.min(STATUS_IDLE_MAX, STATUS_IDLE_TTL * Math.max(1, pace)));
+    const airTtl = Number(env.AIR_TTL_SEC) || STATUS_AIR_TTL, idleTtl = Number(env.IDLE_TTL_SEC) || STATUS_IDLE_TTL;
+    const posTtl = Number(env.AIR_TTL_SEC) || POSITION_TTL;
+    const sleeping = inQuiet(env, env.QUIET_NOW ? new Date(env.QUIET_NOW) : undefined);
     function statusTtl(hit) {
-      if (fresh) return STATUS_FRESH_TTL;
       const f = hit && hit.v;
-      const soon = f && !f.departed && f.etd && f.etd - Date.now() / 1000 < 3600 && f.etd - Date.now() / 1000 > -3600;
-      return f && (f.enroute || soon) ? STATUS_AIR_TTL : idleTtl;
+      if (f && f.enroute) return airTtl;                       // flying: always tracked, day or night
+      if (sleeping && hit) return Infinity;                    // overnight: grounded planes are not checked
+      return fresh ? Math.min(STATUS_FRESH_TTL, idleTtl) : idleTtl;
     }
     let spentNow = 0;
     let capped = false;
-    const sleeping = inQuiet(env, env.QUIET_NOW ? new Date(env.QUIET_NOW) : undefined);
     const errors = [];
 
     async function aero(path, kind) {
-      if (sleeping) return undefined;   // overnight: zero upstream calls
+      if (sleeping && isHist) return undefined;   // overnight: no history lookups
       if (spentBefore + spentNow + PRICE[kind] > cap) { capped = true; return undefined; }
       spentNow += PRICE[kind];   // counted before the await so parallel lookups respect the cap
       const r = await fetch(AERO + path, { headers: { "x-apikey": env.AEROAPI_KEY, Accept: "application/json" } });
@@ -220,7 +220,7 @@ export default {
       let pos = null;
       let last = null;
       if (flight && flight.enroute && flight.id) {
-        pos = await cached("pos:" + flight.id, POSITION_TTL, "/flights/" + encodeURIComponent(flight.id) + "/position", "position",
+        pos = await cached("pos:" + flight.id, posTtl, "/flights/" + encodeURIComponent(flight.id) + "/position", "position",
           trimPosition);
       } else if (flight && flight.id && flight.departed) {
         // Parked: where the last flight ended. One lookup per finished flight, kept for good.
@@ -237,13 +237,20 @@ export default {
 
     if (spentNow > 0) ctx.waitUntil(env.STATE.put(monthKey, String(Math.round((spentBefore + spentNow) * 1000) / 1000)));
 
+    // Soft budget: project the month from the pace so far (needs a day of data); warn, never stop.
+    const target = Number(env.MONTHLY_TARGET_USD) || 100;
+    const spentTotal = spentBefore + spentNow;
+    const frac = Math.max((Date.now() - m0) / (m1 - m0), 1e-6);
+    const projected = frac >= 1 / 30 ? spentTotal / frac : spentTotal;
+    const warn = projected > target;
+
     return json({
       ok: true,
       source: "FlightAware",
       now: Date.now() / 1000,
       capped,
       sleeping,
-      budget: { spent: Math.round((spentBefore + spentNow) * 100) / 100, cap, idleMin: Math.round(idleTtl / 60) },
+      budget: { spent: Math.round(spentTotal * 100) / 100, cap, target, projected: Math.round(projected), warn, idleMin: Math.round(idleTtl / 60) },
       errors: errors.slice(0, 3),
       planes,
     }, 200, cors);
