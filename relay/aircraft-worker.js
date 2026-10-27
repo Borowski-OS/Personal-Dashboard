@@ -13,12 +13,12 @@
 //   - position for planes in the air at most every 60 s
 //   - a parked plane's last reported spot is looked up once per finished flight (airport location as fallback)
 //   - answers are shared through KV, so several open screens cost the same as one
-//   - a monthly hard cap (MONTHLY_CAP_USD); past it the Worker only serves what it already has
 //   - nothing runs unless the Flying tab is open somewhere
 //   - planes in the air: status + position every 5 min; planes on the ground: status every 15 min
-//   - overnight quiet window (QUIET_START..QUIET_END Pacific): planes on the ground are not checked; planes in the air still are
-//   - MONTHLY_CAP_USD is only a runaway backstop (~$200); MONTHLY_TARGET_USD (~$100) is the planning target: past the projected
-//     pace the response says budget.warn=true (the Freedom Air server logs it and pings the phone) but nothing stops
+//   - runs 24/7: there is no overnight pause
+//   - MONTHLY_TARGET_USD (~$100) is a soft target: once month-to-date spend passes it the response says budget.warn=true
+//     (the Freedom Air server logs it and pings the phone once a day) but nothing stops
+//   - MONTHLY_CAP_USD (~$400) is only a runaway backstop; past it the Worker serves what it already has
 // Secrets: AEROAPI_KEY (wrangler secret). Storage: STATE (KV).
 
 const AERO = "https://aeroapi.flightaware.com/aeroapi";
@@ -48,17 +48,6 @@ function json(body, status, extra) {
     status,
     headers: { "Content-Type": "application/json", "Cache-Control": "no-store", ...extra },
   });
-}
-
-// Overnight quiet window (Pacific, from QUIET_START / QUIET_END in wrangler.toml, "HH:MM"): planes on the ground are not
-// checked (their stored answer is served); planes in the air keep being tracked. Set QUIET_START = QUIET_END (or empty) to turn it off.
-function inQuiet(env, at) {
-  const a = String(env.QUIET_START || ""), b = String(env.QUIET_END || "");
-  if (!a || !b || a === b) return false;
-  const p = new Intl.DateTimeFormat("en-GB", { timeZone: env.QUIET_TZ || "America/Los_Angeles", hour: "2-digit", minute: "2-digit", hourCycle: "h23" })
-    .formatToParts(at || new Date());
-  const now = p.find((x) => x.type === "hour").value + ":" + p.find((x) => x.type === "minute").value;
-  return a < b ? now >= a && now < b : now >= a || now < b;
 }
 
 const code = (ap) => (ap && (ap.code_icao || ap.code || ap.code_lid)) || null;
@@ -137,7 +126,7 @@ export default {
     if (!tails.length) return json({ ok: false, error: "no_tails" }, 400, cors);
     if (!env.AEROAPI_KEY) return json({ ok: false, error: "no_key" }, 503, cors);
 
-    const cap = Number(env.MONTHLY_CAP_USD) || 200;
+    const cap = Number(env.MONTHLY_CAP_USD) || 400;
     const monthKey = "spend:" + new Date().toISOString().slice(0, 7);
     const spentBefore = Number(await env.STATE.get(monthKey)) || 0;
     const fresh = url.searchParams.get("fresh") === "1";
@@ -145,11 +134,9 @@ export default {
     const d0 = new Date(), m0 = Date.UTC(d0.getUTCFullYear(), d0.getUTCMonth(), 1), m1 = Date.UTC(d0.getUTCFullYear(), d0.getUTCMonth() + 1, 1);
     const airTtl = Number(env.AIR_TTL_SEC) || STATUS_AIR_TTL, idleTtl = Number(env.IDLE_TTL_SEC) || STATUS_IDLE_TTL;
     const posTtl = Number(env.AIR_TTL_SEC) || POSITION_TTL;
-    const sleeping = inQuiet(env, env.QUIET_NOW ? new Date(env.QUIET_NOW) : undefined);
     function statusTtl(hit) {
       const f = hit && hit.v;
       if (f && f.enroute) return airTtl;                       // flying: always tracked, day or night
-      if (sleeping && hit) return Infinity;                    // overnight: grounded planes are not checked
       return fresh ? Math.min(STATUS_FRESH_TTL, idleTtl) : idleTtl;
     }
     let spentNow = 0;
@@ -157,7 +144,6 @@ export default {
     const errors = [];
 
     async function aero(path, kind) {
-      if (sleeping && isHist) return undefined;   // overnight: no history lookups
       if (spentBefore + spentNow + PRICE[kind] > cap) { capped = true; return undefined; }
       spentNow += PRICE[kind];   // counted before the await so parallel lookups respect the cap
       const r = await fetch(AERO + path, { headers: { "x-apikey": env.AEROAPI_KEY, Accept: "application/json" } });
@@ -211,7 +197,7 @@ export default {
         return { tail, flights };
       }));
       if (spentNow > 0) ctx.waitUntil(env.STATE.put(monthKey, String(Math.round((spentBefore + spentNow) * 1000) / 1000)));
-      return json({ ok: true, source: "FlightAware", now: nowS, capped, sleeping, errors, start, end, planes: out }, 200, cors);
+      return json({ ok: true, source: "FlightAware", now: nowS, capped, errors, start, end, planes: out }, 200, cors);
     }
 
     const planes = await Promise.all(tails.map(async (tail) => {
@@ -237,20 +223,20 @@ export default {
 
     if (spentNow > 0) ctx.waitUntil(env.STATE.put(monthKey, String(Math.round((spentBefore + spentNow) * 1000) / 1000)));
 
-    // Soft budget: project the month from the pace so far (needs a day of data); warn, never stop.
+    // Soft budget: warn once month-to-date spend passes the target; never stop.
     const target = Number(env.MONTHLY_TARGET_USD) || 100;
     const spentTotal = spentBefore + spentNow;
     const frac = Math.max((Date.now() - m0) / (m1 - m0), 1e-6);
     const projected = frac >= 1 / 30 ? spentTotal / frac : spentTotal;
-    const warn = projected > target;
+    const warn = spentTotal > target;   // month-to-date over the soft target: warn only
 
     return json({
       ok: true,
       source: "FlightAware",
       now: Date.now() / 1000,
       capped,
-      sleeping,
       budget: { spent: Math.round(spentTotal * 100) / 100, cap, target, projected: Math.round(projected), warn, idleMin: Math.round(idleTtl / 60) },
+      settings: { airPollSec: airTtl, groundPollSec: idleTtl, quietWindow: null, softTargetUsd: target, hardBackstopUsd: cap },
       errors: errors.slice(0, 3),
       planes,
     }, 200, cors);

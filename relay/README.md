@@ -12,10 +12,10 @@ from Cloudflare's servers, which is why this uses FlightAware.)
 
 - Planes in the air: status + position at most every 5 min (`AIR_TTL_SEC` = 270). Planes on the ground: status at most
   every 15 min (`IDLE_TTL_SEC` = 840). Positions are only ever fetched for planes in the air.
-- Overnight quiet window (`QUIET_START`/`QUIET_END`, 11 PM–5 AM Pacific): grounded planes are not checked; planes in the air still are.
-- Planning target `MONTHLY_TARGET_USD` = $100: when the projected month passes it, the answer carries `budget.warn=true`
+- Runs 24/7: no overnight pause.
+- Soft target `MONTHLY_TARGET_USD` = $100: once month-to-date spend passes it, the answer carries `budget.warn=true`
   (Freedom Air's server logs it and pings the phone once a day). Nothing stops.
-- `MONTHLY_CAP_USD` = $200 is only a runaway backstop; past it the Worker serves what it already has.
+- `MONTHLY_CAP_USD` = $400 is only a runaway backstop; past it the Worker serves what it already has.
 - Answers are shared through Workers KV (`STATE`). Freedom Air's page only reads a published data.json, so open tabs cost nothing.
   (The Life OS Flying tab sends `fresh=1` when opened, which forces a 2-min-old answer.)
 
