@@ -4352,6 +4352,7 @@ function renderFlying(){
   // the next step. Everything else (trip planner, airports, outlook, pilots, milestones, requirements, aircraft, logbook,
   // oral prep) sits in the "More on Flying" drawer.
   var front=(EDIT?'<div class="editbar">'+kvEditBtn('Flying')+'</div>':'')
+    + '<a class="awos-call" href="tel:+17757826264" style="display:flex;align-items:center;justify-content:center;gap:12px;min-height:64px;margin:0 0 14px;padding:14px 18px;border-radius:14px;background:var(--sky);color:#fff;text-decoration:none;font-weight:700;font-size:20px;-webkit-tap-highlight-color:transparent"><span style="font-size:26px">📞</span><span style="display:flex;flex-direction:column;line-height:1.2"><span>Call Minden AWOS</span><span style="font-size:13px;font-weight:500;opacity:.9">KMEV · (775) 782-6264</span></span></a>'
     + planesDownBanner()
     + (writtenInfo()?writtenCard()+gap:'')
     + '<div class="grid cols-2">' + goNoGoCard() + vfrWindowCard() + '</div>'
