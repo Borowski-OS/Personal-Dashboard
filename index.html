@@ -1530,8 +1530,9 @@
   }
   /* Round 17: phones — small uppercase chips/tags (tab chips, due tags, plane pills) were 10–10.5px, under the ~11px reading floor.
      Checked at 375px on every tab: nothing wraps, no sideways scroll (Today +11px tall) */
+  .chip.dchip { font-size:10px; }
   @media (max-width:640px){
-    .chip, .tag, .bchip-l, .at-pill { font-size:11px; }
+    .chip, .chip.dchip, .tag, .bchip-l, .at-pill { font-size:11px; }
   }
 </style>
 </head>
@@ -2418,7 +2419,7 @@ var DOMAIN={overview:['Life','--gold','🧭'],bills:['Home','--teal','🏠'],fam
   flying:['Flying','--sky','✈️'],money:['Money','--emerald','💵'],ventures:['Ventures','--indigo','📈'],hobbies:['Hobbies','--violet','🎯'],vehicles:['Vehicles','--rose','🚗'],
   health:['Health','--pink','💪'],travel:['Travel','--cyan','✈️'],home:['Money','--emerald','💵'],life:['Home & Life','--orange','🏡'],faith:['Faith','--gold','✝️'],mail:['Mail','--sky','📬']};
 function domIcon(tab){ var d=DOMAIN[tab]; return d&&d[2]?d[2]+' ':''; }
-function domChip(tab){ var d=DOMAIN[tab]||DOMAIN.overview; return '<span class="chip" style="background:transparent;border:1px solid var('+d[1]+');color:var('+d[1]+');font-size:10px;padding:1px 7px;margin:0">'+d[0]+'</span>'; }
+function domChip(tab){ var d=DOMAIN[tab]||DOMAIN.overview; return '<span class="chip dchip" style="background:transparent;border:1px solid var('+d[1]+');color:var('+d[1]+');padding:1px 7px;margin:0">'+d[0]+'</span>'; }
 function weekWorkouts(){ var now=Date.now(); return arr('Workouts').filter(function(w){var m=String(w.Date||'').match(/(\d{4})-(\d{2})-(\d{2})/); if(!m) return false; var d=new Date(+m[1],+m[2]-1,+m[3]).getTime(); return (now-d)<=7.5*864e5 && d<=now+864e5;}).length; }
 function lastWorkout(){ var ws=arr('Workouts').slice().filter(function(w){return has(w.Date);}); if(!ws.length) return null;
   ws.sort(function(a,b){return String(b.Date).localeCompare(String(a.Date));}); return ws[0]; }
