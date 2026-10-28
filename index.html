@@ -2080,7 +2080,11 @@ function render(tab){
 }
 /* Keyboard reach for clickable <div>s (Today gauges, scorecard rows, pick cards…): give them button semantics + a tab stop;
    Enter/Space on the element itself clicks it. Rows that already carry a role (aircraft list) are left alone. */
-function kbdTargets(root){ if(!root) return; [].slice.call(root.querySelectorAll('div[onclick]:not([role])')).forEach(function(d){ d.setAttribute('role','button'); d.tabIndex=0; }); }
+function kbdTargets(root){ if(!root) return; [].slice.call(root.querySelectorAll('div[onclick]:not([role])')).forEach(function(d){ d.setAttribute('role','button'); d.tabIndex=0; });
+  /* Tick buttons (Top 3, Daily rhythm, task lists) are empty boxes — name each after its row so a screen reader says "Mark done: …". Oct 28 2026. */
+  [].slice.call(root.querySelectorAll('button.chk:not([aria-label])')).forEach(function(b){ var t=b.parentElement&&b.parentElement.querySelector('.rh-t,.mit-tx'); if(!t) return;
+    var nm=String(t.firstChild&&t.firstChild.nodeType===3?t.firstChild.nodeValue:t.textContent).replace(/\s+/g,' ').trim().slice(0,80);
+    b.setAttribute('aria-label',(b.classList.contains('on')||/✓/.test(b.textContent)?'Done: ':'Mark done: ')+nm); }); }
 document.addEventListener('keydown', function(e){ var t=e.target; if((e.key==='Enter'||e.key===' ') && t && t.matches && t.matches('div[role="button"][onclick]')){ e.preventDefault(); t.click(); } });
 /* Collapsible cards: tap a card title to fold it to a one-line header. Remembered per device and tab
    (localStorage lifeos_folds, keyed by tab + title). Cards with interactive tools (Find care, test prep) stay open. */
@@ -3623,8 +3627,8 @@ function xcMount(){ var host=document.getElementById('xcHost'); if(!host) return
   if(XC.map) setTimeout(function(){ try{ XC.map.invalidateSize(); }catch(e){} }, 30); }
 function xcBuild(){
   var i=xcInputs(), el=document.createElement('div'); el.className='xc';
-  var f=function(k,label,type,attrs,cls){ return '<div class="xc-f'+(cls?' '+cls:'')+'"><label>'+label+'</label><input data-k="'+k+'" type="'+(type||'text')+'" value="'+esc(i[k])+'" '+(attrs||'')+'></div>'; };
-  var sel=function(k,label,opts){ return '<div class="xc-f"><label>'+label+'</label><select data-k="'+k+'">'+opts.map(function(o){ return '<option value="'+o[0]+'"'+(String(i[k])===String(o[0])?' selected':'')+'>'+o[1]+'</option>'; }).join('')+'</select></div>'; };
+  var f=function(k,label,type,attrs,cls){ return '<div class="xc-f'+(cls?' '+cls:'')+'"><label for="xc-'+k+'">'+label+'</label><input id="xc-'+k+'" data-k="'+k+'" type="'+(type||'text')+'" value="'+esc(i[k])+'" '+(attrs||'')+'></div>'; };
+  var sel=function(k,label,opts){ return '<div class="xc-f"><label for="xc-'+k+'">'+label+'</label><select id="xc-'+k+'" data-k="'+k+'">'+opts.map(function(o){ return '<option value="'+o[0]+'"'+(String(i[k])===String(o[0])?' selected':'')+'>'+o[1]+'</option>'; }).join('')+'</select></div>'; };
   var ap='maxlength="5" autocapitalize="characters" autocomplete="off" spellcheck="false"';
   el.innerHTML='<div class="xc-card"><div class="xc-glow"></div>'
     +'<div class="xc-head"><div><div class="xc-kicker">Cross-country planner</div>'
@@ -4596,8 +4600,8 @@ function rothEligibilityCard(){ var I=taxInputs(), t=I.t, n=I.n; if(!(n('chelsea
     +'<div class="stat"><div class="label">Household income 2026</div><div class="value mono">'+money(Math.round(c.income26/1000)*1000)+'</div><div class="foot">Chelsea’s raise covers '+c.moNew+' month'+(c.moNew===1?'':'s')+' of this year</div></div>'
     +'<div class="stat"><div class="label">2027 projected</div><div class="value mono">'+money(Math.round(c.income27/1000)*1000)+'</div><div class="foot">+'+money(Math.round((c.income27-c.income26)/1000)*1000)+' vs 2026 — mostly Chelsea’s full-year raise</div></div></div>';
   var sliders='<div class="rs-sim"><div class="section-title" style="margin:10px 0 4px">What if…</div>'
-    +'<div class="rs-sl"><label>Chelsea’s bonus <span class="mono" id="rs-bonus-v">'+money(c.bonusMo)+'/mo</span></label><input type="range" id="rs-bonus" min="0" max="5000" step="100" value="'+Math.round(c.bonusMo)+'" oninput="rothSim()"></div>'
-    +'<div class="rs-sl"><label>Usable housing allowance <span class="mono" id="rs-housing-v">'+money(c.housing)+'/yr</span></label><input type="range" id="rs-housing" min="0" max="'+Math.max(80000,Math.round(n('brad_housing_designated')||78000))+'" step="1000" value="'+Math.round(c.housing)+'" oninput="rothSim()"></div>'
+    +'<div class="rs-sl"><label for="rs-bonus">Chelsea’s bonus <span class="mono" id="rs-bonus-v">'+money(c.bonusMo)+'/mo</span></label><input type="range" id="rs-bonus" min="0" max="5000" step="100" value="'+Math.round(c.bonusMo)+'" oninput="rothSim()"></div>'
+    +'<div class="rs-sl"><label for="rs-housing">Usable housing allowance <span class="mono" id="rs-housing-v">'+money(c.housing)+'/yr</span></label><input type="range" id="rs-housing" min="0" max="'+Math.max(80000,Math.round(n('brad_housing_designated')||78000))+'" step="1000" value="'+Math.round(c.housing)+'" oninput="rothSim()"></div>'
     +'<div class="foot foot-dim">Sliders only preview; they don’t save. Edit the real inputs on the Taxes tab.</div></div>';
   function chk(id,title,sub){ var done=truthy(t[id]); return '<div class="tax-move'+(done?' done':'')+'"><label class="tm-chk"><input type="checkbox"'+(done?' checked':'')+' onchange="taxSaveKv(\''+id+'\',this.checked?\'yes\':\'\')"></label><div class="tm-body"><div class="tm-t">'+title+'</div>'+(sub?'<div class="tm-s">'+sub+'</div>':'')+'</div></div>'; }
   var list=rothMoves().map(function(m){ return chk(m[0],m[1],m[2]); }).join('')
@@ -5756,7 +5760,7 @@ function taxAlerts(){ try{ if(ROLE==='chelsea'||!Object.keys(kv('Tax')).length) 
   var dd=Math.round((new Date('2026-12-31')-laNow())/864e5); if(dd>=0&&dd<=90&&!truthy(kv('Tax').move_housing)) out.push({d:dd, label:'Church designates 2027 housing allowance', sub:'before Dec 31', tab:'taxes'});
   return out; }catch(e){ return []; } }
 function analyzerBody(){
-  var r=ANALYZE.res, h='<div class="an-row"><input id="anUrl" type="url" inputmode="url" placeholder="Paste a Zillow, Redfin, LoopNet, Crexi or BizBuySell link" value="'+esc(ANALYZE.url)+'" onkeydown="if(event.key===\'Enter\')runAnalyze()">'
+  var r=ANALYZE.res, h='<div class="an-row"><input id="anUrl" type="url" inputmode="url" aria-label="Listing link to analyze" placeholder="Paste a Zillow, Redfin, LoopNet, Crexi or BizBuySell link" value="'+esc(ANALYZE.url)+'" onkeydown="if(event.key===\'Enter\')runAnalyze()">'
     +'<button class="ebtn pri" onclick="runAnalyze()"'+(ANALYZE.busy?' disabled':'')+'>'+(ANALYZE.busy?'Analyzing…':'Analyze')+'</button></div>';
   if(ANALYZE.busy) h+='<div class="foot" style="margin-top:10px;color:var(--text-dim)"><span class="spinner" style="width:12px;height:12px;display:inline-block;vertical-align:-2px;margin-right:6px"></span>Reading the listing and running the numbers. Takes about 30–60 seconds.</div>';
   else if(r&&!r.ok) h+='<div class="foot" style="margin-top:10px;color:var(--red)">'+esc(r.error||'Something went wrong.')+'</div>';
