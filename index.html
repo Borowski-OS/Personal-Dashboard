@@ -1528,6 +1528,11 @@
     #modal .mhead { flex-direction:column; gap:6px; }
     #modal .mval { text-align:left; white-space:normal; }
   }
+  /* Round 17: phones — small uppercase chips/tags (tab chips, due tags, plane pills) were 10–10.5px, under the ~11px reading floor.
+     Checked at 375px on every tab: nothing wraps, no sideways scroll (Today +11px tall) */
+  @media (max-width:640px){
+    .chip, .tag, .bchip-l, .at-pill { font-size:11px; }
+  }
 </style>
 </head>
 <body>
