@@ -1329,7 +1329,7 @@
   .page-acts { display:flex; gap:8px; align-items:center; margin-left:auto; align-self:center; }
   .page-acts:empty { display:none; }
   .page-acts .ebtn { text-decoration:none; white-space:nowrap; }
-  @media (max-width:640px){ .dashboard .header { flex-wrap:wrap; } .page-acts { order:3; margin-left:0; flex-basis:100%; } .page-acts .ebtn { min-height:40px; display:inline-flex; align-items:center; } }
+  @media (max-width:640px){ .dashboard .header { flex-wrap:wrap; } .page-acts { margin-left:auto; } .page-acts:not(:empty) + .updated { margin-left:0; } .page-acts .ebtn { min-height:40px; display:inline-flex; align-items:center; } }   /* Oct 29 2026: header button shares the title row on phones (was its own ~50px row) */
   /* one empty-state component (Round 2): quiet inset panel with a leading marker, no italics */
   .empty { font-style:normal; color:var(--text-muted); font-size:13px; line-height:1.5; padding:12px 14px 12px 34px !important; position:relative;
     background:var(--card-2); border:1px dashed var(--card-border-2); border-radius:10px; margin:4px 0; }
@@ -1599,9 +1599,9 @@
     <div class="logo" id="gateLogo"><img src="icon-192.png?v=3" alt=""></div>
     <h2>Life OS</h2>
     <p>Enter your password to load your dashboard. Your data is cached on this device for speed and refreshes each time you open it.</p>
-    <div id="apiWrap"><label>Dashboard data URL (one-time)</label>
+    <div id="apiWrap"><label for="apiInput">Dashboard data URL (one-time)</label>
       <input id="apiInput" type="text" placeholder="Paste your Apps Script /exec URL" autocomplete="off" /></div>
-    <label>Password</label>
+    <label for="pwInput">Password</label>
     <input id="pwInput" type="password" placeholder="••••••••" autocomplete="current-password" />
     <button id="unlockBtn" onclick="submitGate()">Unlock</button>
     <div class="err" id="gateErr"></div>
@@ -2090,7 +2090,17 @@ function kbdTargets(root){ if(!root) return; [].slice.call(root.querySelectorAll
   /* Tick buttons (Top 3, Daily rhythm, task lists) are empty boxes — name each after its row so a screen reader says "Mark done: …". Oct 28 2026. */
   [].slice.call(root.querySelectorAll('button.chk:not([aria-label])')).forEach(function(b){ var t=b.parentElement&&b.parentElement.querySelector('.rh-t,.mit-tx'); if(!t) return;
     var nm=String(t.firstChild&&t.firstChild.nodeType===3?t.firstChild.nodeValue:t.textContent).replace(/\s+/g,' ').trim().slice(0,80);
-    b.setAttribute('aria-label',(b.classList.contains('on')||/✓/.test(b.textContent)?'Done: ':'Mark done: ')+nm); }); }
+    b.setAttribute('aria-label',(b.classList.contains('on')||/✓/.test(b.textContent)?'Done: ':'Mark done: ')+nm); }); nameFields(root); }
+/* Form fields (add/edit sheets, settings editor, Tax checklists): tie each .efield caption to its box, name unlabelled boxes after their
+   placeholder, and name the bare tick boxes after their row, so a screen reader reads more than "edit text" / "checkbox". Oct 29 2026. */
+var NF_N=0;
+function nameFields(root){ if(!root||!root.querySelectorAll) return;
+  [].slice.call(root.querySelectorAll('.efield > label:not([for])')).forEach(function(l){ var c=l.nextElementSibling; if(!c||!/^(INPUT|TEXTAREA|SELECT)$/.test(c.tagName)) return; if(!c.id) c.id='nf_'+(++NF_N); l.htmlFor=c.id; });
+  [].slice.call(root.querySelectorAll('label.tm-chk > input[type=checkbox]:not([aria-label])')).forEach(function(c){ var row=c.closest('.tax-move,.pb-item'), t=row&&row.querySelector('.tm-t,.pb-t'); if(!t) return;
+    var n=t.querySelector('.pb-n'), nm=String(t.textContent).slice(n?n.textContent.length:0).replace(/\s+/g,' ').trim().slice(0,80); if(nm) c.setAttribute('aria-label','Done: '+nm); });
+  [].slice.call(root.querySelectorAll('select.pipe-sel:not([aria-label])')).forEach(function(c){ c.setAttribute('aria-label','Pipeline stage'); });
+  [].slice.call(root.querySelectorAll('input[placeholder]:not([aria-label]):not([type=hidden]),textarea[placeholder]:not([aria-label])')).forEach(function(c){
+    if(c.closest('label')||c.getAttribute('aria-labelledby')||(c.id&&document.querySelector('label[for="'+c.id+'"]'))) return; c.setAttribute('aria-label',c.placeholder); }); }
 document.addEventListener('keydown', function(e){ var t=e.target; if((e.key==='Enter'||e.key===' ') && t && t.matches && t.matches('div[role="button"][onclick]')){ e.preventDefault(); t.click(); } });
 /* Collapsible cards: tap a card title to fold it to a one-line header. Remembered per device and tab
    (localStorage lifeos_folds, keyed by tab + title). Cards with interactive tools (Find care, test prep) stay open. */
@@ -2286,7 +2296,7 @@ async function deleteRecord(tab,rownum){
 function openKvEditor(tab){
   var obj=kv(tab), keys=Object.keys(obj);
   var rows=keys.map(function(k,i){return '<div class="efield"><label>'+esc(k)+'</label><input id="kv_'+i+'" data-k="'+esc(k)+'" type="text" value="'+esc(String(obj[k]))+'"></div>';}).join('');
-  var blanks=''; for(var j=0;j<3;j++){ blanks+='<div style="display:flex;gap:8px;margin-bottom:10px"><input id="nk_'+j+'" type="text" placeholder="New field name" style="flex:1;padding:9px 11px;border-radius:8px;border:1px solid var(--card-border-2);background:#111419;color:var(--text);font-family:inherit"><input id="nv_'+j+'" type="text" placeholder="Value" style="flex:1;padding:9px 11px;border-radius:8px;border:1px solid var(--card-border-2);background:#111419;color:var(--text);font-family:inherit"></div>'; }
+  var blanks=''; for(var j=0;j<3;j++){ blanks+='<div style="display:flex;gap:8px;margin-bottom:10px"><input id="nk_'+j+'" type="text" aria-label="New field '+(j+1)+' name" placeholder="New field name" style="flex:1;padding:9px 11px;border-radius:8px;border:1px solid var(--card-border-2);background:#111419;color:var(--text);font-family:inherit"><input id="nv_'+j+'" type="text" aria-label="New field '+(j+1)+' value" placeholder="Value" style="flex:1;padding:9px 11px;border-radius:8px;border:1px solid var(--card-border-2);background:#111419;color:var(--text);font-family:inherit"></div>'; }
   $('modalSheet').innerHTML='<button class="mclose" onclick="closeModal()" aria-label="Close">×</button><div class="mhead"><h2>Edit '+esc(tab)+'</h2></div>'
     +'<div id="eform">'+rows+'<div class="section-title" style="margin-top:14px">Add new fields</div>'+blanks+'</div>'
     +'<div class="eactions"><span class="spacer"></span><span class="esaved" id="esaved"></span>'
@@ -6291,6 +6301,7 @@ window.addEventListener('keydown', function(e){ if(e.key==='Escape') closeModal(
         var f=items().filter(function(el){ return !el.classList.contains('mclose'); })[0]; (f&&!/^(INPUT|TEXTAREA|SELECT)$/.test(f.tagName)&&matchMedia('(pointer:coarse)').matches?sh:(f||sh)).focus({preventScroll:true}); },30); }
     else if(!open && m._on){ m._on=0; if(back&&back.isConnected&&back.focus) back.focus({preventScroll:true}); back=null; }
   }).observe(m,{attributes:true,attributeFilter:['class']});
+  new MutationObserver(function(){ nameFields(sh); }).observe(sh,{childList:true,subtree:true});
   m.addEventListener('keydown',function(e){ if(e.key!=='Tab'||m.classList.contains('hidden')) return; var f=items(); if(!f.length){ e.preventDefault(); sh.focus(); return; }
     var a=f[0], z=f[f.length-1]; if(e.shiftKey&&(document.activeElement===a||document.activeElement===sh)){ e.preventDefault(); z.focus(); } else if(!e.shiftKey&&document.activeElement===z){ e.preventDefault(); a.focus(); } });
 })();
