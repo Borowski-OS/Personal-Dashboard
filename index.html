@@ -2265,13 +2265,19 @@ function apiWrite(params){
   var qs=Object.keys(params).map(function(k){return encodeURIComponent(k)+'='+encodeURIComponent(params[k]);}).join('&');
   return jsonp(API_URL+'?pw='+pw+'&'+qs);
 }
+// sheet column → plain caption for forms: "RegRenewal" → "Reg renewal", "AvgHR" → "Avg HR" (all-caps words kept)
+function colLabel(c){ return String(c).replace(/_/g,' ').replace(/([a-z])([A-Z0-9])/g,'$1 $2').replace(/([A-Z]+)([A-Z][a-z])/g,'$1 $2').split(' ').map(function(w,i){ return i&&/^[A-Z][a-z]/.test(w)?w.toLowerCase():w; }).join(' '); }
 function fieldInput(col,val){ val=val==null?'':String(val);
   if(TEXTAREA_FIELDS[col]) return '<textarea id="ef_'+col+'">'+esc(val)+'</textarea>';
-  return '<input id="ef_'+col+'" type="text" value="'+esc(val)+'">'; }
+  return '<input id="ef_'+col+'" type="text" value="'+esc(val)+'"'+fieldKeys(col)+'>'; }
+// phone keyboards for the add/edit sheet (inputs stay type=text so sheet values are untouched): number pad for amounts, phone pad, caps for codes
+var NUM_FIELDS={Mileage:1,Cost:1,Amount:1,Price:1,Hours:1,Balance:1,Points:1,Units:1,Rent:1,Mortgage:1,Taxes:1,Insurance:1,Other:1,LoanBalance:1,PurchasePrice:1,Value:1,Distance:1,AvgHR:1,Elevation:1,Calories:1,Year:1,Order:1,Priority:1,SDE:1,CashNeeded:1,MonthlyNet:1,GrossRentMo:1,NOI:1,CashFlowMo:1,Budget:1};
+var CAPS_FIELDS={VIN:1,Plate:1,Tail:1,Icao:1,Aircraft:1};
+function fieldKeys(col){ if(NUM_FIELDS[col]) return ' inputmode="decimal"'; if(col==='Phone') return ' inputmode="tel" autocomplete="off"'; if(CAPS_FIELDS[col]) return ' autocapitalize="characters" autocorrect="off" spellcheck="false"'; return ''; }
 function openEditor(tab,rownum){
   var def=ESCHEMA[tab]; if(!def) return; if(def.kv) return openKvEditor(tab);
   var row=rownum?(arr(tab).filter(function(r){return String(r.__row)===String(rownum);})[0]||{}):{};
-  var fields=def.cols.map(function(c){return '<div class="efield"><label>'+esc(c)+'</label>'+fieldInput(c,row[c])+'</div>';}).join('');
+  var fields=def.cols.map(function(c){return '<div class="efield"><label for="ef_'+c+'">'+esc(colLabel(c))+'</label>'+fieldInput(c,row[c])+'</div>';}).join('');
   var title=(rownum?'Edit ':'Add ')+tab.replace(/([a-z])([A-Z])/g,'$1 $2');
   $('modalSheet').innerHTML='<button class="mclose" onclick="closeModal()" aria-label="Close">×</button>'
     +'<div class="mhead"><h2>'+esc(title)+'</h2></div><div id="eform">'+fields+'</div>'
@@ -2295,7 +2301,7 @@ async function deleteRecord(tab,rownum){
 }
 function openKvEditor(tab){
   var obj=kv(tab), keys=Object.keys(obj);
-  var rows=keys.map(function(k,i){return '<div class="efield"><label>'+esc(k)+'</label><input id="kv_'+i+'" data-k="'+esc(k)+'" type="text" value="'+esc(String(obj[k]))+'"></div>';}).join('');
+  var rows=keys.map(function(k,i){return '<div class="efield"><label for="kv_'+i+'">'+esc(k)+'</label><input id="kv_'+i+'" data-k="'+esc(k)+'" type="text" value="'+esc(String(obj[k]))+'"></div>';}).join('');
   var blanks=''; for(var j=0;j<3;j++){ blanks+='<div style="display:flex;gap:8px;margin-bottom:10px"><input id="nk_'+j+'" type="text" aria-label="New field '+(j+1)+' name" placeholder="New field name" style="flex:1;padding:9px 11px;border-radius:8px;border:1px solid var(--card-border-2);background:#111419;color:var(--text);font-family:inherit"><input id="nv_'+j+'" type="text" aria-label="New field '+(j+1)+' value" placeholder="Value" style="flex:1;padding:9px 11px;border-radius:8px;border:1px solid var(--card-border-2);background:#111419;color:var(--text);font-family:inherit"></div>'; }
   $('modalSheet').innerHTML='<button class="mclose" onclick="closeModal()" aria-label="Close">×</button><div class="mhead"><h2>Edit '+esc(tab)+'</h2></div>'
     +'<div id="eform">'+rows+'<div class="section-title" style="margin-top:14px">Add new fields</div>'+blanks+'</div>'
@@ -4126,10 +4132,10 @@ function atCanSave(){ try{ return typeof apiWrite==='function'&&!!sessionStorage
 function atNamesOpen(){
   var planes=atPlanes();
   var rows=planes.map(function(p,i){ var st=AT.state[p.tail]||{}, fl=st.fl, model=p.model||(fl&&(AT_TYPES[fl.type]||fl.type))||'';
-    return '<div class="efield"><label>'+esc(p.tail)+(model?' · '+esc(model):'')+'</label><input id="atn_'+i+'" data-t="'+esc(p.tail)+'" type="text" value="'+esc(p.who)+'" placeholder="Who flies it"></div>'; }).join('');
+    return '<div class="efield"><label for="atn_'+i+'">'+esc(p.tail)+(model?' · '+esc(model):'')+'</label><input id="atn_'+i+'" data-t="'+esc(p.tail)+'" type="text" value="'+esc(p.who)+'" placeholder="Who flies it"></div>'; }).join('');
   $('modalSheet').innerHTML='<button class="mclose" onclick="closeModal()" aria-label="Close">×</button><div class="mhead"><h2>Who flies these</h2></div>'
     +'<div id="eform">'+rows
-    +'<div class="efield"><label>Add a plane (tail number)</label><input id="atn_new" type="text" placeholder="N12345 = Name" autocapitalize="characters"></div></div>'
+    +'<div class="efield"><label for="atn_new">Add a plane (tail number)</label><input id="atn_new" type="text" placeholder="N12345 = Name" autocapitalize="characters"></div></div>'
     +'<div class="eactions"><span class="spacer"></span><span class="esaved" id="esaved"></span>'
     +'<button class="ebtn" onclick="closeModal()">Cancel</button><button class="ebtn pri" onclick="atNamesSave('+planes.length+')">Save</button></div>';
   $('modal').classList.remove('hidden');
@@ -5249,7 +5255,7 @@ function openChelseaSetup(){
     +'<p style="color:var(--text-muted);font-size:14px">Chelsea signs in at the same address with her own password and sees a simple shared view: the calendar, bills coming due, trips, home projects (she can check tasks off), and car maintenance. '
     +'She <b>doesn’t</b> see money balances, investments, ventures, health, flying, faith or the AI assistant. That data never leaves the server on her password.</p>'
     +'<div id="chStatus" class="foot" style="margin:10px 0;color:var(--text-dim)">Checking…</div>'
-    +'<div class="efield"><label>Set or change her password</label><input id="chPw" type="password" autocomplete="new-password" placeholder="At least 6 characters"></div>'
+    +'<div class="efield"><label for="chPw">Set or change her password</label><input id="chPw" type="password" autocomplete="new-password" placeholder="At least 6 characters"></div>'
     +'<div class="eactions"><button class="ebtn" onclick="setChelseaPw(true)">Turn off her access</button><span class="spacer"></span><span class="esaved" id="chMsg"></span><button class="ebtn pri" onclick="setChelseaPw()">Save password</button></div>';
   $('modal').classList.remove('hidden');
   apiWrite({action:'chelseastatus'}).then(function(r){ var s=$('chStatus'); if(s) s.textContent=r&&r.chelsea?'Her access is ON. Share the dashboard link and her password with her.':'Her access is off. Set a password to turn it on.'; }).catch(function(){});
