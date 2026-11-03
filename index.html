@@ -5530,13 +5530,21 @@ function spotText(x){ return [x.Subject,x.Summary,x.Why].map(function(v){ return
 function spotTheme(x){ var t=spotText(x), m=SPOT_THEMES.filter(function(h){ return h[2].test(t); })[0]; return m||null; }
 function spotOnList(x){ var w=String(x.Summary||x.Subject||'').toLowerCase().match(/[a-z]{5,}/g)||[]; if(w.length<2) return false;
   return arr('NextActions').concat(arr('ProjectTasks')).some(function(r){ if(truthy(r.Done)) return false; var t=String(r.Action||r.Task||'').toLowerCase(), hit=0; w.forEach(function(k){ if(t.indexOf(k)>=0) hit++; }); return hit>=2; }); }
+// the moment has passed: every date the email names is behind us, or its "within N hours/days" window has run out
+function spotPast(x){ var t=String(x.Summary||x.Subject||''), now=new Date(), sent=mailT(x.Date), w=t.match(/within (\d+) (hour|day)s?/i);
+  if(/\b(today|tonight)\b/i.test(t) && !mailRecent(x,1)) return true;
+  if(/\btomorrow\b/i.test(t) && !mailRecent(x,2)) return true;
+  if(w && sent+Number(w[1])*(/hour/i.test(w[2])?36e5:864e5)<Date.now()) return true;
+  var ds=t.match(/\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.? \d{1,2}\b/ig); if(!ds) return false;
+  var yr=new Date(sent||Date.now()).getFullYear();
+  return ds.every(function(d){ var v=new Date(d.replace('.','')+', '+yr+' 23:59'); return !isNaN(v) && v<now; }); }
 function spotOneThread(list){ var had={}; return list.filter(function(x){ var k=x.ThreadId||x.Subject||x.Id; if(had[k]) return false; had[k]=1; return true; }); }
 function spotDay(v){ var d=new Date(v); return isNaN(d)?'':d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2); }
 function lifeSignals(){
   var it=(MAIL.data&&MAIL.data.items)||[], seen=spotSeen(), now=new Date(), today=spotDay(now);
   var live=it.filter(function(x){ return !/^(junk|spam|unimportant)$/.test(String(x.Category)) && !mailMachine(x); });
-  var act=spotOneThread(live.filter(function(x){ return /^(important|reply)$/.test(String(x.Category)) && mailOpen(x) && mailRecent(x,14) && SPOT_ACT.test(spotText(x)) && !seen[x.Id] && !spotOnList(x); }).sort(mailSort));
-  var opp=spotOneThread(live.filter(function(x){ return mailRecent(x,14) && SPOT_OPP.test(spotText(x)) && !seen[x.Id] && act.indexOf(x)<0; }).sort(function(a,b){ return mailT(b.Date)-mailT(a.Date); }));
+  var act=spotOneThread(live.filter(function(x){ return /^(important|reply)$/.test(String(x.Category)) && mailOpen(x) && mailRecent(x,14) && SPOT_ACT.test(spotText(x)) && !seen[x.Id] && !spotPast(x) && !spotOnList(x); }).sort(mailSort));
+  var opp=spotOneThread(live.filter(function(x){ return mailRecent(x,14) && SPOT_OPP.test(spotText(x)) && !seen[x.Id] && !spotPast(x) && act.indexOf(x)<0; }).sort(function(a,b){ return mailT(b.Date)-mailT(a.Date); }));
   var open=arr('NextActions').filter(function(r){ return has(r.Action) && !truthy(r.Done); });
   var late=open.filter(function(r){ return has(r.Due) && spotDay(r.Due) && spotDay(r.Due)<today; }).map(function(r){ return {t:String(r.Action), tab:r.Tab||'overview', due:spotDay(r.Due)}; });
   arr('ProjectTasks').forEach(function(r){ if(has(r.Task) && !truthy(r.Done) && has(r.Due) && spotDay(r.Due) && spotDay(r.Due)<today) late.push({t:String(r.Task), tab:'life', due:spotDay(r.Due)}); });
