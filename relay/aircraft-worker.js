@@ -29,6 +29,10 @@ const STATUS_IDLE_TTL = 840;    // on the ground (even if due out soon): every 1
 const POSITION_TTL = 270;       // positions only ever fetched for planes in the air, every 5 min
 const FOREVER = 365 * 86400;   // a finished flight's last spot and an airport's location never change
 
+// Only these planes can be looked up (Life OS defaults + Freedom Air fleet). Anything else is ignored, so a stranger
+// cannot run up the FlightAware bill by asking about random tail numbers. Add more with the EXTRA_TAILS var (comma list).
+const ALLOWED_TAILS = ["N51207", "N6058A", "N3207A", "N6489X", "N272GX", "N13GX", "N999FN", "N71TG", "N413DE", "N435GG", "N591SS", "N995AX"];
+
 const ALLOWED_ORIGINS = [
   /^https:\/\/borowski-os\.github\.io$/i,
   /^https:\/\/([a-z0-9-]+\.)?freedom-air[a-z0-9-]*\.pages\.dev$/i,
@@ -123,6 +127,8 @@ export default {
 
     const tails = [...new Set((url.searchParams.get("tails") || "").toUpperCase().split(",")
       .map((t) => t.trim()).filter((t) => /^N[0-9A-Z]{1,5}$/.test(t)))].slice(0, 10);
+    const allowed = new Set([...ALLOWED_TAILS, ...String(env.EXTRA_TAILS || "").toUpperCase().split(",").map((t) => t.trim()).filter(Boolean)]);
+    tails.splice(0, tails.length, ...tails.filter((t) => allowed.has(t)));
     if (!tails.length) return json({ ok: false, error: "no_tails" }, 400, cors);
     if (!env.AEROAPI_KEY) return json({ ok: false, error: "no_key" }, 503, cors);
 
