@@ -28,9 +28,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/configure-pages@v5
+      # Publish only what the browser needs: no notes (*.md), backend code, mail agent, relay or handoffs.
+      - name: Build public folder
+        run: |
+          mkdir _site
+          rsync -a --exclude '_site' --exclude '.git' --exclude '.github' --exclude '*.md' \
+            --exclude 'apps-script' --exclude 'mac' --exclude 'relay' --exclude 'handoffs' --exclude 'docs' ./ _site/
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: '.'
+          path: '_site'
       - name: Deploy to GitHub Pages (attempt 1)
         id: deploy1
         uses: actions/deploy-pages@v4
