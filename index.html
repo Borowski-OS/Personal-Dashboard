@@ -1413,6 +1413,11 @@
   .ml-orig { max-height:180px; overflow:auto; white-space:pre-wrap; overflow-wrap:anywhere; font-size:13px; line-height:1.5; color:var(--text-muted); background:var(--card-2);
     border:1px solid var(--card-border); border-radius:10px; padding:10px 12px; margin-bottom:14px; }
   .efield textarea.ml-body { min-height:210px; line-height:1.5; } .efield textarea.ml-body.is-busy { opacity:.55; }
+  .efield label .kvkey { text-transform:none; letter-spacing:0; font:500 10.5px ui-monospace,SFMono-Regular,Menlo,monospace; color:var(--text-dim); margin-left:6px; }
+  .efield input[type=date] { color-scheme:dark; min-height:40px; }
+  .kv-new { display:flex; gap:8px; margin-bottom:10px; }
+  .kv-new input { flex:1; min-width:0; padding:9px 11px; border-radius:8px; border:1px solid var(--card-border-2); background:#111419; color:var(--text); font-family:inherit; }
+  .kv-new input:focus { outline:none; border-color:var(--gold); }
   .efield label .opt { text-transform:none; letter-spacing:0; font-weight:500; color:var(--text-dim); }
   .ml-rw { display:flex; gap:8px; margin-bottom:12px; }
   .ml-rw input { flex:1; min-width:0; padding:9px 11px; border-radius:8px; border:1px solid var(--card-border-2); background:#111419; color:var(--text); font-family:inherit; font-size:13.5px; }
@@ -2269,7 +2274,14 @@ function apiWrite(params){
 function colLabel(c){ return String(c).replace(/_/g,' ').replace(/([a-z])([A-Z0-9])/g,'$1 $2').replace(/([A-Z]+)([A-Z][a-z])/g,'$1 $2').split(' ').map(function(w,i){ return i&&/^[A-Z][a-z]/.test(w)?w.toLowerCase():w; }).join(' '); }
 function fieldInput(col,val){ val=val==null?'':String(val);
   if(TEXTAREA_FIELDS[col]) return '<textarea id="ef_'+col+'">'+esc(val)+'</textarea>';
+  var dv=DATE_FIELDS[col]?pickDay(val):null;
+  if(dv!=null) return '<input id="ef_'+col+'" type="date" value="'+dv+'" data-orig="'+esc(val)+'">';
   return '<input id="ef_'+col+'" type="text" value="'+esc(val)+'"'+fieldKeys(col)+'>'; }
+// date picker only when the saved value is blank or an ISO date/timestamp; anything else ("Apr 2027", "weekly") stays free text.
+// An untouched picker saves the original value back unchanged (see collectForm).
+var DATE_FIELDS={Date:1,Due:1,TargetDate:1,AnnualDue:1,RegRenewal:1,InsRenewal:1,PurchaseDate:1,ValueAsOf:1,StartDate:1,EndDate:1,LastCalled:1,LastDone:1,LastContact:1};
+function pickDay(v){ if(v==='') return ''; if(/^\d{4}-\d{2}-\d{2}$/.test(v)) return v;
+  if(/^\d{4}-\d{2}-\d{2}T[\d:.]+Z$/.test(v)){ var d=new Date(v); return isNaN(d)?null:ymd(d); } return null; }
 // phone keyboards for the add/edit sheet (inputs stay type=text so sheet values are untouched): number pad for amounts, phone pad, caps for codes
 var NUM_FIELDS={Mileage:1,Cost:1,Amount:1,Price:1,Hours:1,Balance:1,Points:1,Units:1,Rent:1,Mortgage:1,Taxes:1,Insurance:1,Other:1,LoanBalance:1,PurchasePrice:1,Value:1,Distance:1,AvgHR:1,Elevation:1,Calories:1,Year:1,Order:1,Priority:1,SDE:1,CashNeeded:1,MonthlyNet:1,GrossRentMo:1,NOI:1,CashFlowMo:1,Budget:1};
 var CAPS_FIELDS={VIN:1,Plate:1,Tail:1,Icao:1,Aircraft:1};
@@ -2287,7 +2299,8 @@ function openEditor(tab,rownum){
     +'<button class="ebtn pri" onclick="saveRecord(\''+tab+'\','+(rownum||'null')+')">Save</button></div>';
   $('modal').classList.remove('hidden');
 }
-function collectForm(cols){ var o={}; cols.forEach(function(c){ var el=$('ef_'+c); if(el) o[c]=el.value; }); return o; }
+function collectForm(cols){ var o={}; cols.forEach(function(c){ var el=$('ef_'+c); if(!el) return;
+  var orig=el.getAttribute('data-orig'); o[c]=(orig!=null&&el.value===pickDay(orig))?orig:el.value; }); return o; }
 async function saveRecord(tab,rownum){
   var def=ESCHEMA[tab]; var obj=collectForm(def.cols); $('esaved').textContent='Saving…';
   var p={action:'upsert',tab:tab,row:JSON.stringify(obj)}; if(rownum&&rownum!=='null') p.rownum=rownum;
@@ -2299,10 +2312,14 @@ async function deleteRecord(tab,rownum){
   var res=await apiWrite({action:'delete',tab:tab,rownum:rownum});
   if(res&&res.ok){ await afterWrite(); } else { $('esaved').textContent='Error deleting'; }
 }
+// settings key → plain caption: "cash_buffer_target" → "Cash buffer target" (the exact key still shows beside it)
+function kvLabel(k){ var t=colLabel(k).replace(/\s+/g,' ').trim(); return t.charAt(0).toUpperCase()+t.slice(1); }
 function openKvEditor(tab){
   var obj=kv(tab), keys=Object.keys(obj);
-  var rows=keys.map(function(k,i){return '<div class="efield"><label for="kv_'+i+'">'+esc(k)+'</label><input id="kv_'+i+'" data-k="'+esc(k)+'" type="text" value="'+esc(String(obj[k]))+'"></div>';}).join('');
-  var blanks=''; for(var j=0;j<3;j++){ blanks+='<div style="display:flex;gap:8px;margin-bottom:10px"><input id="nk_'+j+'" type="text" aria-label="New field '+(j+1)+' name" placeholder="New field name" style="flex:1;padding:9px 11px;border-radius:8px;border:1px solid var(--card-border-2);background:#111419;color:var(--text);font-family:inherit"><input id="nv_'+j+'" type="text" aria-label="New field '+(j+1)+' value" placeholder="Value" style="flex:1;padding:9px 11px;border-radius:8px;border:1px solid var(--card-border-2);background:#111419;color:var(--text);font-family:inherit"></div>'; }
+  var rows=keys.map(function(k,i){ var v=String(obj[k]), cap=kvLabel(k);
+    return '<div class="efield"><label for="kv_'+i+'">'+esc(cap)+(cap.toLowerCase()!==k.toLowerCase()?' <code class="kvkey" title="Exact setting name">'+esc(k)+'</code>':'')+'</label>'
+      +'<input id="kv_'+i+'" data-k="'+esc(k)+'" type="text" value="'+esc(v)+'"'+(/^-?[\d,]*\.?\d+$/.test(v.trim())?' inputmode="decimal"':'')+'></div>';}).join('');
+  var blanks=''; for(var j=0;j<3;j++){ blanks+='<div class="kv-new"><input id="nk_'+j+'" type="text" aria-label="New field '+(j+1)+' name" placeholder="New field name" autocapitalize="off" autocorrect="off" spellcheck="false"><input id="nv_'+j+'" type="text" aria-label="New field '+(j+1)+' value" placeholder="Value"></div>'; }
   $('modalSheet').innerHTML='<button class="mclose" onclick="closeModal()" aria-label="Close">×</button><div class="mhead"><h2>Edit '+esc(tab)+'</h2></div>'
     +'<div id="eform">'+rows+'<div class="section-title" style="margin-top:14px">Add new fields</div>'+blanks+'</div>'
     +'<div class="eactions"><span class="spacer"></span><span class="esaved" id="esaved"></span>'
