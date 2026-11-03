@@ -219,3 +219,4 @@
   first one in order that answers; the Mac (PAM_URL) is always last. Subtitle says "in the cloud" / "from your Mac"; when nothing answers the
   card offers Try again / Open Atlas directly / Use the Claude app (claude.ai/code). Set `atlas_url` with setkv — no page change needed.
   The cloud Atlas lives at https://atlas.taila89b12.ts.net (Tailscale; ATLAS_CLOUD_URL in index.html), tried right after any `atlas_url` and before the Mac.
+- Spotted for you (Nov 2026, Today, Brad only, hides when empty): spottedCard() shows emails needing action that aren't on a list (+ To-do writes NextActions), opportunities, deals at a to-do stage, overdue items and stuck patterns. lifeSignals() returns the same data plus 30-day mail themes; the life-os-ux-iteration routine reads it in the signed-in browser pane to pick improvements. Added/dismissed emails live in localStorage `lifeos_spotted`. Keyword lists only here; never commit mail content or what the signals found.

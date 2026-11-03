@@ -1539,6 +1539,12 @@
   @media (max-width:640px){
     .chip, .chip.dchip, .tag, .bchip-l, .at-pill { font-size:11px; }
   }
+  /* Spotted for you (Nov 2026) */
+  .spot-row { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:8px 12px; padding:10px 0; border-bottom:1px solid var(--card-border); }
+  .spot-row:last-child { border-bottom:0; padding-bottom:0; }
+  .spot-main { flex:1 1 320px; min-width:0; font-size:14px; line-height:1.45; }
+  .spot-acts { display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
+  .spot-acts .ebtn { text-decoration:none; white-space:nowrap; }
 </style>
 </head>
 <body>
@@ -2982,6 +2988,7 @@ function renderOverview(){
     + '<div class="grid g-today" style="margin-bottom:22px">' + big3Card() + rhythmCard() + pulse + '</div>'
     + (twHot?tw+'<div style="height:22px"></div>':'')
     + agendaCard()
+    + spottedCard()
     + moreDrawer('overview', more, 'More on Today');
 }
 function printReview(){
@@ -5511,6 +5518,58 @@ function callBar(){
 /* Today: one slim line when someone is waiting on an email reply (hidden when nothing needs Brad). Uses the Mail tab's data,
    which refreshes in the background every 5 minutes (see mailPollOk); the bar repaints in place when it arrives. Ages are always the
    email's received date; an urgent "worth knowing" email shows here only for 3 days after it arrived. */
+/* ---------- Spotted for you (Nov 2026): reads sorted mail + your lists for things that need action, are stuck, or are opportunities.
+   lifeSignals() = the data; the daily improvement routine also reads it in Claude's browser pane to choose what to improve next.
+   spottedCard() = the Today card (Brad only; hides when empty). Added/dismissed emails are remembered per device in localStorage lifeos_spotted. */
+var SPOT_ACT=/\b(renew|expir|deadline|past due|overdue|fee due|license|lease|vacate|check-in|check in|confirm|signature|sign by|registration|permit|invoice|action needed|requires? action)/i;
+var SPOT_OPP=/\b(new listing|for sale|price (cut|drop|reduc)|opportunit|partnership|grant|speaking|referral|acquisition|investor|seller financ|off-market)/i;
+var SPOT_THEMES=[['Church & elders','faith',/\b(elders?|church|ministry|pastor|pastoral|congregation|sermon)\b/i],['Rentals & tenants','ventures',/\b(rental|tenant|lease|landlord|vacate)\b/i],['Flying','flying',/\b(flight school|lesson|aircraft|cfi|faa|checkride|hangar)\b/i],['Money & bills','home',/\b(bill|payment|invoice|statement|bank|payroll|tax|irs|fee)\b/i],['Health','health',/\b(medical|appointment|doctor|clinic|prescription|dental|vision)\b/i],['Deals & ventures','ventures',/\b(listing|broker|business for sale|acquisition|investor)\b/i],['Accounts & security','overview',/\b(sign-in|security|password|verify)\b/i],['Family & travel','life',/\b(trip|itinerary|reservation|hotel|chelsea|family)\b/i]];
+function spotSeen(){ try{ return JSON.parse(localStorage.getItem('lifeos_spotted')||'{}')||{}; }catch(e){ return {}; } }
+function spotMark(id){ var s=spotSeen(); s[id]=Date.now(); try{ var k=Object.keys(s); if(k.length>300) k.sort(function(a,b){ return s[a]-s[b]; }).slice(0,k.length-300).forEach(function(x){ delete s[x]; }); localStorage.setItem('lifeos_spotted', JSON.stringify(s)); }catch(e){} }
+function spotText(x){ return [x.Subject,x.Summary,x.Why].map(function(v){ return String(v||''); }).join(' '); }
+function spotTheme(x){ var t=spotText(x), m=SPOT_THEMES.filter(function(h){ return h[2].test(t); })[0]; return m||null; }
+function spotOnList(x){ var w=String(x.Summary||x.Subject||'').toLowerCase().match(/[a-z]{5,}/g)||[]; if(w.length<2) return false;
+  return arr('NextActions').concat(arr('ProjectTasks')).some(function(r){ if(truthy(r.Done)) return false; var t=String(r.Action||r.Task||'').toLowerCase(), hit=0; w.forEach(function(k){ if(t.indexOf(k)>=0) hit++; }); return hit>=2; }); }
+function spotOneThread(list){ var had={}; return list.filter(function(x){ var k=x.ThreadId||x.Subject||x.Id; if(had[k]) return false; had[k]=1; return true; }); }
+function spotDay(v){ var d=new Date(v); return isNaN(d)?'':d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2); }
+function lifeSignals(){
+  var it=(MAIL.data&&MAIL.data.items)||[], seen=spotSeen(), now=new Date(), today=spotDay(now);
+  var live=it.filter(function(x){ return !/^(junk|spam|unimportant)$/.test(String(x.Category)) && !mailMachine(x); });
+  var act=spotOneThread(live.filter(function(x){ return /^(important|reply)$/.test(String(x.Category)) && mailOpen(x) && mailRecent(x,14) && SPOT_ACT.test(spotText(x)) && !seen[x.Id] && !spotOnList(x); }).sort(mailSort));
+  var opp=spotOneThread(live.filter(function(x){ return mailRecent(x,14) && SPOT_OPP.test(spotText(x)) && !seen[x.Id] && act.indexOf(x)<0; }).sort(function(a,b){ return mailT(b.Date)-mailT(a.Date); }));
+  var open=arr('NextActions').filter(function(r){ return has(r.Action) && !truthy(r.Done); });
+  var late=open.filter(function(r){ return has(r.Due) && spotDay(r.Due) && spotDay(r.Due)<today; }).map(function(r){ return {t:String(r.Action), tab:r.Tab||'overview', due:spotDay(r.Due)}; });
+  arr('ProjectTasks').forEach(function(r){ if(has(r.Task) && !truthy(r.Done) && has(r.Due) && spotDay(r.Due) && spotDay(r.Due)<today) late.push({t:String(r.Task), tab:'life', due:spotDay(r.Due)}); });
+  var undated=open.filter(function(r){ return !has(r.Due); }).length;
+  var ideas=arr('Projects').filter(function(p){ return /^(idea|planning)$/i.test(String(p.Status||'')); }).map(function(p){ return String(p.Name||''); });
+  var deals=arr('Deals').concat(arr('Properties')).filter(function(d){ return /^#\d|call|offer|analy/i.test(String(d.Stage||'')) && !/pass|dead/i.test(String(d.Stage||'')); }).map(function(d){ return {t:String(d.Name||d.Address||''), stage:String(d.Stage||'').replace(/^#\d+\s*/,'')}; });
+  var waits=it.filter(function(x){ return x.Category==='reply' && mailWaiting(x); }).map(function(x){ return Math.floor((Date.now()-mailT(x.Date))/864e5); });
+  var themes={}; live.filter(function(x){ return /^(important|reply)$/.test(String(x.Category)) && mailRecent(x,30); }).forEach(function(x){ var h=spotTheme(x); if(h) themes[h[0]]=(themes[h[0]]||0)+1; });
+  return {act:act, opp:opp, late:late, undated:undated, ideas:ideas, deals:deals,
+    replies:{n:waits.length, over3:waits.filter(function(d){ return d>=3; }).length, oldest:waits.length?Math.max.apply(null,waits):0},
+    themes:Object.keys(themes).map(function(k){ return [k,themes[k]]; }).sort(function(a,b){ return b[1]-a[1]; }), mailLoaded:!!MAIL.data}; }
+function spotRow(tag, cls, text, btns){ return '<div class="spot-row"><div class="spot-main"><span class="tag '+cls+'">'+tag+'</span> <span class="spot-t">'+esc(text)+'</span></div><div class="spot-acts">'+btns+'</div></div>'; }
+function spotMailBtns(x, todo){ var l=mailLink(x);
+  return (todo?'<button class="ebtn pri" onclick="spotTodo(this.closest(\'.spot-row\').dataset.id)">＋ To-do</button>':'')
+    +(l?'<a class="ebtn" href="'+esc(l)+'"'+(/^message:/.test(l)?'':' target="_blank" rel="noopener"')+'>Open ↗</a>':'<button class="ebtn" onclick="navGo(\'mail\')">Open Mail</button>')
+    +'<button class="ebtn" aria-label="Dismiss" onclick="spotDismiss(this.closest(\'.spot-row\').dataset.id)">×</button>'; }
+function spotMailRow(x, tag, cls, todo){ return spotRow(tag, cls, mailClip(x.Summary||x.Subject||'', 110), spotMailBtns(x, todo)).replace('<div class="spot-row">','<div class="spot-row" data-id="'+esc(x.Id)+'">'); }
+function spottedCard(){
+  if(ROLE==='chelsea' || !MAIL.data) return '';
+  var g=lifeSignals(), rows=[];
+  g.act.slice(0,3).forEach(function(x){ rows.push(spotMailRow(x,'Needs action','planning',true)); });
+  g.opp.slice(0,2).forEach(function(x){ rows.push(spotMailRow(x,'Opportunity','active',false)); });
+  g.deals.slice(0,1).forEach(function(d){ rows.push(spotRow('Deal','active',d.t+(d.stage?' — next: '+d.stage:''),'<button class="ebtn" onclick="navGo(\'ventures\')">Open →</button>')); });
+  g.late.slice(0,2).forEach(function(r){ rows.push(spotRow('Overdue','blocked',r.t,'<button class="ebtn" onclick="navGo(\''+esc(r.tab)+'\')">Open →</button>')); });
+  if(g.undated>=8) rows.push(spotRow('Stuck','blocked',g.undated+' to-dos have no date, so nothing pulls them forward. Date your top three.','<button class="ebtn" onclick="navGo(\'life\')">Open →</button>'));
+  if(g.ideas.length>=4) rows.push(spotRow('Stuck','blocked',g.ideas.length+' projects are still at idea or planning. Pick one to start and park the rest.','<button class="ebtn" onclick="navGo(\'life\')">Open →</button>'));
+  if(!rows.length) return '';
+  return card('Spotted for you','From your email and your lists: what needs action, what’s stuck, what’s worth a look.', rows.slice(0,6).join(''), '--gold')+'<div style="height:22px"></div>'; }
+async function spotTodo(id){ var x=mailById(id); if(!x) return; var t=mailClip(x.Summary||x.Subject||'', 90), h=spotTheme(x), sp=spotText(x), due='';
+  if(/\btoday\b/i.test(sp)) due=spotDay(new Date()); else if(/\btomorrow\b/i.test(sp)) due=spotDay(new Date(Date.now()+864e5));
+  var res=await apiWrite({action:'upsert',tab:'NextActions',row:JSON.stringify({Action:t,Tab:h?h[1]:'overview',Due:due,Done:''})});
+  if(res&&res.ok){ spotMark(id); toast('Added to your list'); await afterWrite(); } else toast('Couldn’t add that. Try again.'); }
+function spotDismiss(id){ spotMark(id); render(CURRENT); }
 function mailBar(){
   if(ROLE==='chelsea') return '';
   if(!MAIL.data && !MAIL.loading && Date.now()-MAIL.tried>6e5) setTimeout(function(){ if(!MAIL.data && !MAIL.loading && Date.now()-MAIL.tried>6e5) mailLoad(); }, 1200);   // re-checked: several renders in a row ask only once
