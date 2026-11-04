@@ -5324,13 +5324,13 @@ function renderChelseaHome(){
   var cars=wkCars(), c0=cars[0], carsKnown=maintVehicles().some(function(o){ return o.items.some(function(i){return i.status!=='unknown';}); });
   var carHtml=cars.length?cars.slice(0,4).map(function(c){ return '<div class="kv-row"><span class="k">'+esc(c.car)+' — '+esc(c.what.toLowerCase())+'</span><span class="v"><span class="wk-due '+(c.over?'late':'hot')+'">'+esc(c.when)+'</span></span></div>'; }).join('')
       +'<button class="ebtn wk-more" onclick="navGo(\'vehicles\')">Car details</button>'
-    :'<div class="empty">'+(carsKnown?'Nothing due on the cars.':'No service history logged yet, so nothing can be tracked.')+'</div>';
+    :'<div class="empty">'+(carsKnown?'Nothing due, based on what’s been logged.':'No service history logged yet, so nothing can be tracked.')+'</div>';
   var gauges=[
     wkGauge('cal','This week', ev.length?ev.length+' event'+(ev.length===1?'':'s')+(together?' · '+together+' together':''):'Nothing yet', '', "wkJump('wkWeek')"),
     wkGauge('card','Bills due', nb?esc(nb.b.Vendor)+' · '+wkLeft(nb.d):(undated?'No due dates yet':'None soon'), nb&&!nb.auto&&nb.d<=7?'warn':'', "wkJump('wkBills')"),
     wkGauge('plane','Next trip', trips.length?esc(trips[0].t.Trip||trips[0].t.Destination)+' · '+wkLeft(trips[0].d):'None planned', '', "navGo('travel')"),
     wkGauge('check','Home tasks', tasks.length?tasks.length+' open':'All done', '', "wkJump('wkTodos')"),
-    wkGauge('car','Cars', c0?esc(c0.what):(carsKnown?'All good':'No records yet'), c0?'warn':'', "wkJump('wkCars')")
+    wkGauge('car','Cars', c0?esc(c0.what):(carsKnown?'Nothing due':'No records yet'), c0?'warn':'', "wkJump('wkCars')")
   ].join('');
   return '<div class="deck-strip"><div><div class="hero-date">'+esc(dateTxt)+'</div><h1 class="hero-h">'+greet+', Chelsea.</h1></div>'
     +'<div class="wk-jumps"><button class="ebtn pri" onclick="wkJump(\'wkTodos\')">✓ Tasks</button><button class="ebtn" onclick="wkJump(\'wkBills\')">Bills</button><button class="ebtn" onclick="navGo(\'travel\')">Trips</button></div></div>'
