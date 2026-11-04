@@ -1415,6 +1415,7 @@
   .efield textarea.ml-body { min-height:210px; line-height:1.5; } .efield textarea.ml-body.is-busy { opacity:.55; }
   .deck-gauges .bchip.warn { border-color:rgba(220,179,94,.45); } .deck-gauges .bchip.warn .bchip-i { background:rgba(220,179,94,.14); color:var(--amber); }
   .wk-jumps { display:flex; gap:8px; }
+  @media (min-width:641px){ .deck-gauges.wk-g { display:flex; flex-wrap:wrap; } .deck-gauges.wk-g .bchip { flex:1 1 170px; } }
   .wk-grid { display:grid; grid-template-columns:1.25fr 1fr; gap:14px; align-items:start; margin-top:12px; }
   .wk-side { display:flex; flex-direction:column; gap:14px; min-width:0; } .wk-a { min-width:0; scroll-margin-top:72px; }
   .wk-day { display:flex; gap:14px; padding:11px 0; border-top:1px solid var(--card-border); } .wk-day:first-child { border-top:none; padding-top:2px; }
@@ -5310,31 +5311,31 @@ function renderChelseaHome(){
   var dateTxt=n.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'})+' · '+n.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
   var ev=wkEvents(), together=ev.filter(function(e){return whoTag(e)==='both';}).length;
   var bills=arr('Bills').filter(function(b){return has(b.DueDay);}).map(function(b){return {b:b, d:daysUntilDueDay(b.DueDay), auto:truthy(b.Autopay)};}).filter(function(x){return x.d!=null&&x.d<=14;}).sort(function(a,b){return a.d-b.d;});
-  var needPay=bills.filter(function(x){return !x.auto;}), nb=needPay[0]||bills[0];
+  var needPay=bills.filter(function(x){return !x.auto;}), nb=needPay[0]||bills[0], undated=arr('Bills').filter(function(b){return !has(b.DueDay);}).length;
   var billHtml=bills.length?bills.map(function(x){ var hot=!x.auto&&x.d<=7;
       return '<div class="kv-row"><span class="k">'+esc(x.b.Vendor)+'</span><span class="v"><span class="wk-due'+(x.auto?' auto':(hot?' hot':''))+'">'+(x.auto?'autopay · ':'')+esc(wkLeftLong(x.d))+'</span></span></div>'; }).join('')
-    :'<div class="empty">No bills due in the next two weeks.</div>';
+    :'<div class="empty">'+(undated?'None with a due date in the next two weeks. '+undated+' bill'+(undated===1?' has':'s have')+' no due date yet.':'No bills due in the next two weeks.')+'</div>';
   var trips=arr('Travel').filter(function(t){ return String(t.Status||'').toLowerCase()!=='past' && has(t.StartDate); }).map(function(t){return {t:t,d:daysUntilDate(t.StartDate)};}).filter(function(x){return x.d!=null&&x.d>=-1;}).sort(function(a,b){return a.d-b.d;});
   var tasks=arr('ProjectTasks').filter(function(t){return !truthy(t.Done);}).map(function(t){return {t:t,d:has(t.Due)?daysUntilDate(t.Due):null};}).sort(function(a,b){ return (a.d==null?1e6:a.d)-(b.d==null?1e6:b.d); });
   var taskHtml=tasks.length?tasks.slice(0,6).map(function(x){ var t=x.t, due=x.d==null?(t.Project||''):(x.d<0?'overdue':shortDay(ymd(new Date(laNow().getTime()+x.d*864e5))));
       return '<div class="wk-todo"><button class="chk" aria-label="Mark done: '+esc(t.Task)+'" onclick="wkDone('+t.__row+')"></button><span class="wk-n">'+esc(t.Task)+'</span><span class="wk-tm'+(x.d!=null&&x.d<0?' late':'')+'">'+esc(due)+'</span></div>'; }).join('')
       +(tasks.length>6?'<button class="ebtn wk-more" onclick="navGo(\'projects\')">See all '+tasks.length+'</button>':'')
     :'<div class="empty">No open home to-dos.</div>';
-  var cars=wkCars(), c0=cars[0];
+  var cars=wkCars(), c0=cars[0], carsKnown=maintVehicles().some(function(o){ return o.items.some(function(i){return i.status!=='unknown';}); });
   var carHtml=cars.length?cars.slice(0,4).map(function(c){ return '<div class="kv-row"><span class="k">'+esc(c.car)+' — '+esc(c.what.toLowerCase())+'</span><span class="v"><span class="wk-due '+(c.over?'late':'hot')+'">'+esc(c.when)+'</span></span></div>'; }).join('')
       +'<button class="ebtn wk-more" onclick="navGo(\'vehicles\')">Car details</button>'
-    :'<div class="empty">Nothing due on the cars.</div>';
+    :'<div class="empty">'+(carsKnown?'Nothing due on the cars.':'No service history logged yet, so nothing can be tracked.')+'</div>';
   var gauges=[
     wkGauge('cal','This week', ev.length?ev.length+' event'+(ev.length===1?'':'s')+(together?' · '+together+' together':''):'Nothing yet', '', "wkJump('wkWeek')"),
-    wkGauge('card','Bills due', nb?esc(nb.b.Vendor)+' · '+wkLeft(nb.d):'None soon', nb&&!nb.auto&&nb.d<=7?'warn':'', "wkJump('wkBills')"),
+    wkGauge('card','Bills due', nb?esc(nb.b.Vendor)+' · '+wkLeft(nb.d):(undated?'No due dates yet':'None soon'), nb&&!nb.auto&&nb.d<=7?'warn':'', "wkJump('wkBills')"),
     wkGauge('plane','Next trip', trips.length?esc(trips[0].t.Trip||trips[0].t.Destination)+' · '+wkLeft(trips[0].d):'None planned', '', "navGo('travel')"),
     wkGauge('check','Home tasks', tasks.length?tasks.length+' open':'All done', '', "wkJump('wkTodos')"),
-    wkGauge('car','Cars', c0?esc(c0.what):'All good', c0?'warn':'', "wkJump('wkCars')")
+    wkGauge('car','Cars', c0?esc(c0.what):(carsKnown?'All good':'No records yet'), c0?'warn':'', "wkJump('wkCars')")
   ].join('');
   return '<div class="deck-strip"><div><div class="hero-date">'+esc(dateTxt)+'</div><h1 class="hero-h">'+greet+', Chelsea.</h1></div>'
     +'<div class="wk-jumps"><button class="ebtn pri" onclick="wkJump(\'wkTodos\')">✓ Tasks</button><button class="ebtn" onclick="wkJump(\'wkBills\')">Bills</button><button class="ebtn" onclick="navGo(\'travel\')">Trips</button></div></div>'
-    +'<div class="bchips deck-gauges">'+gauges+'</div>'
-    +'<div class="wk-grid"><div id="wkWeek" class="wk-a">'+card('Our week','Both calendars, one list. Tags show who’s on it.', wkDays(ev))+'</div>'
+    +'<div class="bchips deck-gauges wk-g">'+gauges+'</div>'
+    +'<div class="wk-grid"><div id="wkWeek" class="wk-a">'+card('Our week','What’s on the calendar. Tags show who’s on it.', wkDays(ev))+'</div>'
     +'<div class="wk-side"><div id="wkBills" class="wk-a wk-bills">'+card('Bills due soon','Next two weeks.', billHtml)+'</div>'
     +'<div id="wkTodos" class="wk-a wk-todos">'+card('Home to-dos','Tap the box when it’s done.', taskHtml)+'</div>'
     +'<div id="wkCars" class="wk-a wk-cars">'+card('Cars','From the maintenance autopilot.', carHtml)+'</div></div></div>';

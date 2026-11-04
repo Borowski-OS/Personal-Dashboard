@@ -50,6 +50,8 @@
 - Chelsea's view: second password (Script Property CHELSEA_PW_HASH, set by Brad in the "Chelsea's view" modal → action setchelseapw). roleOf_ in Code.js;
   chelseaRequest_ serves ONLY CHELSEA_READ_ tabs (drops bill account #s, vehicle VIN/policy/loan/value, and Brad's flying/business projects) and allows writes
   only to CHELSEA_WRITE_ tabs. Page: ROLE='chelsea' shows Home (renderChelseaHome) + Home & Life; hides AI, edit, alerts, snap. Keep filtering server-side.
+  Her Home is "Our week" (approved Nov 4 2026; `wk*` helpers, `.wk-*` CSS): greeting, five gauges, week by day, bills (no amounts), home to-dos, cars.
+  whoTag(e) uses Events.Calendar first, then title words; no tag when unknown, never a guess at "both". A new calendar in Config `ical_urls` tags itself if its name contains chelsea / home / family / shared.
 - What-if planner (Ventures): wiCard/wiRun — sell X BTC (15% LTCG on gain over cost basis), your share vs partners, equity + cash flow over 5 yrs vs holding the BTC. Inputs remembered in localStorage `lifeos_whatif`.
 - Drive-in call rotation: Calls tab (Name, Relation, Phone, Order, Active, LastCalled, Notes). One person per Mon–Thu from Config `call_rotation_start`
   (2026-09-30), cycling by Order (Active=no pauses). Today shows callBar (📞 Call / ✓ Called); Home & Life shows this week's calls (lifeCallLine) up front and callRotationCard (next 3 weeks) in its More drawer, folded by default.
