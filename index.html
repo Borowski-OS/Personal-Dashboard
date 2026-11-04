@@ -1543,6 +1543,7 @@
   .spot-row { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:8px 12px; padding:10px 0; border-bottom:1px solid var(--card-border); }
   .spot-row:last-child { border-bottom:0; padding-bottom:0; }
   .spot-main { flex:1 1 320px; min-width:0; font-size:14px; line-height:1.45; }
+  .spot-due { margin-left:6px; font-size:12px; font-weight:600; color:var(--amber); white-space:nowrap; }
   .spot-acts { display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
   .spot-acts .ebtn { text-decoration:none; white-space:nowrap; }
 </style>
@@ -5521,7 +5522,7 @@ function callBar(){
 /* ---------- Spotted for you (Nov 2026): reads sorted mail + your lists for things that need action, are stuck, or are opportunities.
    lifeSignals() = the data; the daily improvement routine also reads it in Claude's browser pane to choose what to improve next.
    spottedCard() = the Today card (Brad only; hides when empty). Added/dismissed emails are remembered per device in localStorage lifeos_spotted. */
-var SPOT_ACT=/\b(renew|expir|deadline|past due|overdue|fee due|license|lease|vacate|check-in|check in|confirm|signature|sign by|registration|permit|invoice|action needed|requires? action)/i;
+var SPOT_ACT=/\b(renew|expir|deadline|past due|overdue|fee due|license|lease|vacate|check-in|check in|confirm by|confirm your|please confirm|to confirm|confirmation link|signature|sign by|registration|permit|invoice|action needed|requires? action)/i;
 var SPOT_OPP=/\b(new listing|for sale|price (cut|drop|reduc)|opportunit|partnership|grant|speaking|referral|acquisition|investor|seller financ|off-market)/i;
 var SPOT_THEMES=[['Church & elders','faith',/\b(elders?|church|ministry|pastor|pastoral|congregation|sermon)\b/i],['Rentals & tenants','ventures',/\b(rental|tenant|lease|landlord|vacate)\b/i],['Flying','flying',/\b(flight school|lesson|aircraft|cfi|faa|checkride|hangar)\b/i],['Money & bills','home',/\b(bill|payment|invoice|statement|bank|payroll|tax|irs|fee)\b/i],['Health','health',/\b(medical|appointment|doctor|clinic|prescription|dental|vision)\b/i],['Deals & ventures','ventures',/\b(listing|broker|business for sale|acquisition|investor)\b/i],['Accounts & security','overview',/\b(sign-in|security|password|verify)\b/i],['Family & travel','life',/\b(trip|itinerary|reservation|hotel|chelsea|family)\b/i]];
 function spotSeen(){ try{ return JSON.parse(localStorage.getItem('lifeos_spotted')||'{}')||{}; }catch(e){ return {}; } }
@@ -5530,20 +5531,28 @@ function spotText(x){ return [x.Subject,x.Summary,x.Why].map(function(v){ return
 function spotTheme(x){ var t=spotText(x), m=SPOT_THEMES.filter(function(h){ return h[2].test(t); })[0]; return m||null; }
 function spotOnList(x){ var w=String(x.Summary||x.Subject||'').toLowerCase().match(/[a-z]{5,}/g)||[]; if(w.length<2) return false;
   return arr('NextActions').concat(arr('ProjectTasks')).some(function(r){ if(truthy(r.Done)) return false; var t=String(r.Action||r.Task||'').toLowerCase(), hit=0; w.forEach(function(k){ if(t.indexOf(k)>=0) hit++; }); return hit>=2; }); }
-// the moment has passed: every date the email names is behind us, or its "within N hours/days" window has run out
-function spotPast(x){ var t=String(x.Summary||x.Subject||''), now=new Date(), sent=mailT(x.Date), w=t.match(/within (\d+) (hour|day)s?/i);
-  if(/\b(today|tonight)\b/i.test(t) && !mailRecent(x,1)) return true;
-  if(/\btomorrow\b/i.test(t) && !mailRecent(x,2)) return true;
-  if(w && sent+Number(w[1])*(/hour/i.test(w[2])?36e5:864e5)<Date.now()) return true;
-  var ds=t.match(/\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.? \d{1,2}\b/ig); if(!ds) return false;
-  var yr=new Date(sent||Date.now()).getFullYear();
-  return ds.every(function(d){ var v=new Date(d.replace('.','')+', '+yr+' 23:59'); return !isNaN(v) && v<now; }); }
+// every date an email names, as end-of-day times: "within 72 hours", today/tomorrow, Dec 31, 12/31/2026, 12-30-2026, 2026-12-31. A month-day with no year takes the year it was sent, or the next one if that lands well before it was sent.
+function spotDates(x){ var t=String(x.Summary||x.Subject||''), sent=mailT(x.Date)||Date.now(), out=[], yr=new Date(sent).getFullYear(), w=t.match(/within (\d+) (hour|day)s?/i);
+  function eod(y,m,d){ var v=new Date(y,m,d,23,59); if(!isNaN(v)&&v.getMonth()===m) out.push(v); }
+  if(w) out.push(new Date(sent+Number(w[1])*(/hour/i.test(w[2])?36e5:864e5)));
+  if(/\b(today|tonight)\b/i.test(t)){ var a=new Date(sent); eod(a.getFullYear(),a.getMonth(),a.getDate()); }
+  if(/\btomorrow\b/i.test(t)){ var b=new Date(sent+864e5); eod(b.getFullYear(),b.getMonth(),b.getDate()); }
+  (t.match(/\b(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|june?|july?|aug(?:ust)?|sept?(?:ember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\.? \d{1,2}\b(?:, ?20\d\d\b)?/ig)||[]).forEach(function(d){ var m='janfebmaraprmayjunjulaugsepoctnovdec'.indexOf(d.slice(0,3).toLowerCase())/3, n=d.match(/\d+/g), y=n[1]?Number(n[1]):yr;
+    if(!n[1] && new Date(y,m,Number(n[0]),23,59).getTime()<sent-90*864e5) y++; eod(y,m,Number(n[0])); });
+  t.replace(/\b(\d{1,2})[\/-](\d{1,2})[\/-](20\d\d)\b/g,function(_,m,d,y){ eod(Number(y),Number(m)-1,Number(d)); return _; });
+  t.replace(/\b(20\d\d)-(\d{2})-(\d{2})\b/g,function(_,y,m,d){ eod(Number(y),Number(m)-1,Number(d)); return _; });
+  return out; }
+// the moment has passed: every date the email names is behind us
+function spotPast(x){ var ds=spotDates(x), now=Date.now(); return ds.length>0 && ds.every(function(v){ return v.getTime()<now; }); }
+// the next date still ahead, or null
+function spotDue(x){ var now=Date.now(), up=spotDates(x).filter(function(v){ return v.getTime()>=now; }).sort(function(a,b){ return a-b; }); return up[0]||null; }
+function spotDueSort(a,b){ var x=spotDue(a), y=spotDue(b); return x&&y?x-y:x?-1:y?1:0; }
 function spotOneThread(list){ var had={}; return list.filter(function(x){ var k=x.ThreadId||x.Subject||x.Id; if(had[k]) return false; had[k]=1; return true; }); }
 function spotDay(v){ var d=new Date(v); return isNaN(d)?'':d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2); }
 function lifeSignals(){
   var it=(MAIL.data&&MAIL.data.items)||[], seen=spotSeen(), now=new Date(), today=spotDay(now);
   var live=it.filter(function(x){ return !/^(junk|spam|unimportant)$/.test(String(x.Category)) && !mailMachine(x); });
-  var act=spotOneThread(live.filter(function(x){ return /^(important|reply)$/.test(String(x.Category)) && mailOpen(x) && mailRecent(x,14) && SPOT_ACT.test(spotText(x)) && !seen[x.Id] && !spotPast(x) && !spotOnList(x); }).sort(mailSort));
+  var act=spotOneThread(live.filter(function(x){ return /^(important|reply)$/.test(String(x.Category)) && mailOpen(x) && mailRecent(x,14) && SPOT_ACT.test(spotText(x)) && !seen[x.Id] && !spotPast(x) && !spotOnList(x); }).sort(mailSort)).sort(spotDueSort);
   var opp=spotOneThread(live.filter(function(x){ return mailRecent(x,14) && SPOT_OPP.test(spotText(x)) && !seen[x.Id] && !spotPast(x) && act.indexOf(x)<0; }).sort(function(a,b){ return mailT(b.Date)-mailT(a.Date); }));
   var open=arr('NextActions').filter(function(r){ return has(r.Action) && !truthy(r.Done); });
   var late=open.filter(function(r){ return has(r.Due) && spotDay(r.Due) && spotDay(r.Due)<today; }).map(function(r){ return {t:String(r.Action), tab:r.Tab||'overview', due:spotDay(r.Due)}; });
@@ -5561,7 +5570,8 @@ function spotMailBtns(x, todo){ var l=mailLink(x);
   return (todo?'<button class="ebtn pri" onclick="spotTodo(this.closest(\'.spot-row\').dataset.id)">＋ To-do</button>':'')
     +(l?'<a class="ebtn" href="'+esc(l)+'"'+(/^message:/.test(l)?'':' target="_blank" rel="noopener"')+'>Open ↗</a>':'<button class="ebtn" onclick="navGo(\'mail\')">Open Mail</button>')
     +'<button class="ebtn" aria-label="Dismiss" onclick="spotDismiss(this.closest(\'.spot-row\').dataset.id)">×</button>'; }
-function spotMailRow(x, tag, cls, todo){ return spotRow(tag, cls, mailClip(x.Summary||x.Subject||'', 110), spotMailBtns(x, todo)).replace('<div class="spot-row">','<div class="spot-row" data-id="'+esc(x.Id)+'">'); }
+function spotMailRow(x, tag, cls, todo){ var due=spotDue(x), when=due?'<span class="spot-due">by '+esc(due.toLocaleDateString('en-US',{month:'short',day:'numeric'}))+'</span>':'';
+  return spotRow(tag, cls, mailClip(x.Summary||x.Subject||'', 110), spotMailBtns(x, todo)).replace('</span></div><div class="spot-acts">', '</span>'+when+'</div><div class="spot-acts">').replace('<div class="spot-row">','<div class="spot-row" data-id="'+esc(x.Id)+'">'); }
 function spottedCard(){
   if(ROLE==='chelsea' || !MAIL.data) return '';
   var g=lifeSignals(), rows=[];
@@ -5569,15 +5579,27 @@ function spottedCard(){
   g.opp.slice(0,2).forEach(function(x){ rows.push(spotMailRow(x,'Opportunity','active',false)); });
   g.deals.slice(0,1).forEach(function(d){ rows.push(spotRow('Deal','active',d.t+(d.stage?' — next: '+d.stage:''),'<button class="ebtn" onclick="navGo(\'ventures\')">Open →</button>')); });
   g.late.slice(0,2).forEach(function(r){ rows.push(spotRow('Overdue','blocked',r.t,'<button class="ebtn" onclick="navGo(\''+esc(r.tab)+'\')">Open →</button>')); });
-  if(g.undated>=8) rows.push(spotRow('Stuck','blocked',g.undated+' to-dos have no date, so nothing pulls them forward. Date your top three.','<button class="ebtn" onclick="navGo(\'life\')">Open →</button>'));
+  if(g.undated>=8) rows.push(spotRow('Stuck','blocked',g.undated+' to-dos have no date, so nothing pulls them forward. Date your top three.','<button class="ebtn pri" onclick="spotDateSheet()">Date three →</button>'));
   if(g.ideas.length>=4) rows.push(spotRow('Stuck','blocked',g.ideas.length+' projects are still at idea or planning. Pick one to start and park the rest.','<button class="ebtn" onclick="navGo(\'life\')">Open →</button>'));
   if(!rows.length) return '';
   return card('Spotted for you','From your email and your lists: what needs action, what’s stuck, what’s worth a look.', rows.slice(0,6).join(''), '--gold')+'<div style="height:22px"></div>'; }
-async function spotTodo(id){ var x=mailById(id); if(!x) return; var t=mailClip(x.Summary||x.Subject||'', 90), h=spotTheme(x), sp=spotText(x), due='';
-  if(/\btoday\b/i.test(sp)) due=spotDay(new Date()); else if(/\btomorrow\b/i.test(sp)) due=spotDay(new Date(Date.now()+864e5));
+async function spotTodo(id){ var x=mailById(id); if(!x) return; var t=mailClip(x.Summary||x.Subject||'', 90), h=spotTheme(x), d=spotDue(x), due=d?spotDay(d):'';
   var res=await apiWrite({action:'upsert',tab:'NextActions',row:JSON.stringify({Action:t,Tab:h?h[1]:'overview',Due:due,Done:''})});
-  if(res&&res.ok){ spotMark(id); toast('Added to your list'); await afterWrite(); } else toast('Couldn’t add that. Try again.'); }
+  if(res&&res.ok){ spotMark(id); toast(due?'Added to your list, due '+shortDay(due):'Added to your list'); await afterWrite(); } else toast('Couldn’t add that. Try again.'); }
 function spotDismiss(id){ spotMark(id); render(CURRENT); }
+// "Date three": the three oldest to-dos with no date, each with a date box. Only boxes that were filled are saved.
+function spotUndated(){ return arr('NextActions').filter(function(r){ return has(r.Action) && !truthy(r.Done) && !has(r.Due); }).sort(function(a,b){ return a.__row-b.__row; }).slice(0,3); }
+function spotDateSheet(){ var list=spotUndated(); if(!list.length) return;
+  $('modalSheet').innerHTML='<button class="mclose" onclick="closeModal()" aria-label="Close">×</button><div class="mhead"><h2>Date three to-dos</h2></div>'
+    +'<p class="foot foot-dim">A date is what pulls a to-do onto Today. Leave any box empty to skip it.</p><div id="eform">'
+    +list.map(function(r){ return '<div class="efield"><label for="sd_'+r.__row+'">'+esc(r.Action)+'</label><input id="sd_'+r.__row+'" type="date"></div>'; }).join('')+'</div>'
+    +'<div class="eactions"><span class="spacer"></span><span class="esaved" id="esaved"></span><button class="ebtn" onclick="closeModal()">Cancel</button><button class="ebtn pri" onclick="spotDateSave()">Save</button></div>';
+  $('modal').classList.remove('hidden'); }
+async function spotDateSave(){ var ok=true, n=0;
+  for(var i=0,list=spotUndated();i<list.length;i++){ var r=list[i], el=$('sd_'+r.__row); if(!el||!el.value) continue; n++;
+    var res=await apiWrite({action:'upsert',tab:'NextActions',rownum:r.__row,row:JSON.stringify({Action:r.Action,Tab:r.Tab||'',Due:el.value,Done:r.Done||''})}); if(!res||!res.ok) ok=false; }
+  if(!n){ closeModal(); return; }
+  if(ok) await afterWrite(); else $('esaved').textContent='Error — try again'; }
 function mailBar(){
   if(ROLE==='chelsea') return '';
   if(!MAIL.data && !MAIL.loading && Date.now()-MAIL.tried>6e5) setTimeout(function(){ if(!MAIL.data && !MAIL.loading && Date.now()-MAIL.tried>6e5) mailLoad(); }, 1200);   // re-checked: several renders in a row ask only once
