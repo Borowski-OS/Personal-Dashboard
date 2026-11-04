@@ -2989,7 +2989,7 @@ function renderOverview(){
     + '<div class="grid g-today" style="margin-bottom:22px">' + big3Card() + rhythmCard() + pulse + '</div>'
     + (twHot?tw+'<div style="height:22px"></div>':'')
     + agendaCard()
-    + spottedCard()
+    + spotBox()
     + moreDrawer('overview', more, 'More on Today');
 }
 function printReview(){
@@ -5572,6 +5572,10 @@ function spotMailBtns(x, todo){ var l=mailLink(x);
     +'<button class="ebtn" aria-label="Dismiss" onclick="spotDismiss(this.closest(\'.spot-row\').dataset.id)">×</button>'; }
 function spotMailRow(x, tag, cls, todo){ var due=spotDue(x), when=due?'<span class="spot-due">by '+esc(due.toLocaleDateString('en-US',{month:'short',day:'numeric'}))+'</span>':'';
   return spotRow(tag, cls, mailClip(x.Summary||x.Subject||'', 110), spotMailBtns(x, todo)).replace('</span></div><div class="spot-acts">', '</span>'+when+'</div><div class="spot-acts">').replace('<div class="spot-row">','<div class="spot-row" data-id="'+esc(x.Id)+'">'); }
+// mail arrives after Today is drawn, so the card sits in its own box and repaints in place when mail lands (see mailRepaint)
+var SPOT_HTML='';
+function spotBox(){ SPOT_HTML=spottedCard(); return '<div id="spotBox">'+SPOT_HTML+'</div>'; }
+function spotRepaint(){ var b=$('spotBox'); if(!b || b.contains(document.activeElement)) return; var h=spottedCard(); if(h===SPOT_HTML) return; SPOT_HTML=h; b.innerHTML=h; cardFolds('overview'); kbdTargets(b); }
 function spottedCard(){
   if(ROLE==='chelsea' || !MAIL.data) return '';
   var g=lifeSignals(), rows=[];
@@ -6955,7 +6959,7 @@ function mailKeepView(fn){   // the j/k row and a focused button (Done, Teach…
 }
 function mailHold(P){ if(MAIL.hold) return; MAIL.hold=1; P.addEventListener('focusout', function(){ MAIL.hold=0; setTimeout(mailRepaint, 0); }, {once:true}); }   // one wait per box, however many refreshes land meanwhile
 function mailRepaint(){
-  if(CURRENT==='overview'){ var b=$('mailBar'); if(b){ var w0=document.createElement('div'); w0.innerHTML=mailBar(); var n0=w0.firstElementChild; if(n0 && n0.outerHTML!==b.outerHTML) b.replaceWith(n0); } return; }
+  if(CURRENT==='overview'){ var b=$('mailBar'); if(b){ var w0=document.createElement('div'); w0.innerHTML=mailBar(); var n0=w0.firstElementChild; if(n0 && n0.outerHTML!==b.outerHTML) b.replaceWith(n0); } try{ spotRepaint(); }catch(e){} return; }
   if(CURRENT!=='mail') return;
   if($('mlPop')){ MAIL.repaint=true; return; }   // Teach menu open (renderMail would close it): repaint once it closes
   MAIL.repaint=false;
