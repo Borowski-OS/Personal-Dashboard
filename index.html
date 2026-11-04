@@ -1413,6 +1413,24 @@
   .ml-orig { max-height:180px; overflow:auto; white-space:pre-wrap; overflow-wrap:anywhere; font-size:13px; line-height:1.5; color:var(--text-muted); background:var(--card-2);
     border:1px solid var(--card-border); border-radius:10px; padding:10px 12px; margin-bottom:14px; }
   .efield textarea.ml-body { min-height:210px; line-height:1.5; } .efield textarea.ml-body.is-busy { opacity:.55; }
+  .deck-gauges .bchip.warn { border-color:rgba(220,179,94,.45); } .deck-gauges .bchip.warn .bchip-i { background:rgba(220,179,94,.14); color:var(--amber); }
+  .wk-jumps { display:flex; gap:8px; }
+  .wk-grid { display:grid; grid-template-columns:1.25fr 1fr; gap:14px; align-items:start; margin-top:12px; }
+  .wk-side { display:flex; flex-direction:column; gap:14px; min-width:0; } .wk-a { min-width:0; scroll-margin-top:72px; }
+  .wk-day { display:flex; gap:14px; padding:11px 0; border-top:1px solid var(--card-border); } .wk-day:first-child { border-top:none; padding-top:2px; }
+  .wk-date { flex:0 0 38px; display:flex; flex-direction:column; line-height:1.15; } .wk-date span { font-size:11px; font-weight:700; letter-spacing:.07em; text-transform:uppercase; color:var(--text-dim); } .wk-date b { font-size:20px; font-weight:700; color:#e8ecf2; }
+  .wk-day.now .wk-date span, .wk-day.now .wk-date b { color:var(--accent); }
+  .wk-evs { flex:1; min-width:0; display:flex; flex-direction:column; gap:7px; }
+  .wk-ev { display:flex; align-items:baseline; gap:10px; min-width:0; } .wk-t { flex:0 0 54px; font-size:12.5px; color:var(--text-muted); font-variant-numeric:tabular-nums; }
+  .wk-n { flex:1; min-width:0; font-size:14px; color:var(--text); overflow-wrap:anywhere; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; } .wk-n small { font-size:12px; color:var(--text-dim); }
+  .wk-who, .wk-due { flex:0 0 auto; display:inline-block; font-size:11px; font-weight:600; line-height:1.4; padding:1px 8px; border-radius:20px; white-space:nowrap; background:rgba(255,255,255,.06); color:var(--text-muted); }
+  .wk-who.w-both, .wk-who.w-home, .wk-due.auto { background:rgba(107,196,138,.14); color:#8fd4a7; } .wk-who.w-brad { background:rgba(var(--accent-rgb),.16); color:var(--accent); } .wk-who.w-chelsea { background:rgba(178,150,230,.16); color:#c9b5ee; }
+  .wk-due.hot { background:rgba(220,179,94,.14); color:var(--amber); } .wk-due.late { background:rgba(229,112,122,.15); color:#f0a0a7; }
+  .wk-todo { display:flex; align-items:center; gap:12px; min-height:44px; padding:6px 0; border-top:1px solid var(--card-border); } .wk-todo:first-child { border-top:none; }
+  .wk-tm { flex:0 0 auto; max-width:40%; font-size:12px; color:var(--text-dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; } .wk-tm.late { color:var(--amber); }
+  .wk-more { margin-top:10px; }
+  @media (max-width:900px){ .wk-grid { grid-template-columns:1fr; } .wk-todos { order:-1; } }
+  @media (max-width:640px){ .wk-jumps { display:none; } }
   .efield label .kvkey { text-transform:none; letter-spacing:0; font:500 10.5px ui-monospace,SFMono-Regular,Menlo,monospace; color:var(--text-dim); margin-left:6px; }
   .efield input[type=date] { color-scheme:dark; min-height:40px; }
   .kv-new { display:flex; gap:8px; margin-bottom:10px; }
@@ -2821,7 +2839,7 @@ function daysSinceFlight(){ var ds=arr('FlightLog').map(function(f){return parse
 var GI={ plane:'<path d="M2 16l20-8-6 8 2 5-4-3-6 2 2-5-8 1z"/>', sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
   cloud:'<path d="M7 18a4 4 0 0 1-.5-8A6 6 0 0 1 18 9a4 4 0 0 1-1 9z"/>', rain:'<path d="M7 15a4 4 0 0 1-.5-8A6 6 0 0 1 18 6a4 4 0 0 1-1 9"/><path d="M8 18v3M12 17v3M16 18v3"/>', home:'<path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
   work:'<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 12h18"/>', cal:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',
-  heart:'<path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8z"/>', dumb:'<path d="M6 8v8M18 8v8M3 10v4M21 10v4M6 12h12"/>', sick:'<path d="M12 3v18M3 12h18"/><circle cx="12" cy="12" r="8"/>' };
+  heart:'<path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8z"/>', dumb:'<path d="M6 8v8M18 8v8M3 10v4M21 10v4M6 12h12"/>', card:'<rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M7 15h4"/>', car:'<path d="M5 11l2-5h10l2 5M4 11h16a1 1 0 0 1 1 1v5H3v-5a1 1 0 0 1 1-1zM6 17v2M18 17v2"/><circle cx="7.5" cy="14" r=".6"/><circle cx="16.5" cy="14" r=".6"/>', check:'<rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 12l3 3 5-6"/>', sick:'<path d="M12 3v18M3 12h18"/><circle cx="12" cy="12" r="8"/>' };
 function gIcon(k){ return '<svg viewBox="0 0 24 24" aria-hidden="true">'+(GI[k]||GI.sun)+'</svg>'; }
 function skyIcon(sky){ return /rain|drizzle|shower|storm|snow/i.test(sky||'')?'rain':(/cloud|overcast|fog/i.test(sky||'')?'cloud':'sun'); }
 function chipHtml(icon, label, val, tone, tab, sub){ var ic=(icon&&icon.length<=12&&GI[icon])?'<span class="bchip-i">'+gIcon(icon)+'</span>':'<span class="bchip-i emo">'+icon+'</span>';
@@ -5257,24 +5275,71 @@ function applyRole(){
   var ov=document.querySelector('#navTabs .nav-tab[data-tab="overview"] .nt'); if(ov) ov.textContent=TABS.overview.title;
   TABS.overview.sub = ROLE==='chelsea' ? 'Our calendar, bills, trips, projects and cars.' : 'What matters today — and the numbers that decide it.';
 }
+/* "Our week" (Brad approved the mockup Nov 4 2026): greeting, five gauges, the shared week by day, then bills / home to-dos / cars.
+   No amounts or balances here. The server filters her data; this page only lays it out. */
+// who an event is for: the calendar's name first, then words in the title. No tag when it can't tell (never a guess at "both").
+function whoTag(e){ var c=String(e.Calendar||'').toLowerCase(), t=String(e.Title||'').toLowerCase();
+  var hasC=/\bchelsea\b/.test(t), hasB=/\bbrad\b/.test(t), calC=/chelsea/.test(c), calB=/brad|work/.test(c), calH=/home|house|family|shared|joint/.test(c);
+  if((hasC&&(hasB||calB))||(hasB&&calC)||/date night/.test(t)) return 'both';
+  if(calH||/\bcleaners?\b/.test(t)) return 'home';
+  if(hasC||calC) return 'Chelsea';
+  if(hasB||calB) return 'Brad';
+  return ''; }
+function wkTime(t){ return esc(evTime(t)).replace(/ AM$/,'a').replace(/ PM$/,'p'); }
+function wkLeft(d){ return d<=0?'today':(d===1?'tomorrow':d+' d'); }
+function wkGauge(icon,label,val,tone,act){ return '<div class="bchip'+(tone?' '+tone:'')+'" onclick="'+act+'"><span class="bchip-i">'+gIcon(icon)+'</span><span class="bchip-b"><span class="bchip-l">'+label+'</span><span class="bchip-v">'+val+'</span></span></div>'; }
+function wkJump(id){ var el=$(id); if(el) el.scrollIntoView({behavior:'smooth',block:'start'}); }
+function wkDone(rownum){ var t=arr('ProjectTasks').filter(function(x){return String(x.__row)===String(rownum);})[0]; if(!t) return;
+  var full={}; Object.keys(t).forEach(function(k){ if(k!=='__row') full[k]=t[k]; }); full.Done='TRUE'; saveRowNow('ProjectTasks',rownum,full); }
+function wkEvents(){ var n=laNow(), last=ymd(new Date(n.getTime()+6*864e5));
+  return agendaEvents().filter(function(e){ var d=String(e.Date).slice(0,10); return /^\d{4}-\d\d-\d\d$/.test(d)&&d<=last; }); }
+function wkDays(ev){ if(!ev.length) return '<div class="empty">Nothing on the calendar this week.</div>';
+  var today=ymd(laNow()), days={}, order=[]; ev.forEach(function(e){ var d=String(e.Date).slice(0,10); if(!days[d]){ days[d]=[]; order.push(d); } days[d].push(e); });
+  return order.map(function(d){ var x=new Date(d+'T12:00:00');
+    return '<div class="wk-day'+(d===today?' now':'')+'"><div class="wk-date"><span>'+x.toLocaleDateString('en-US',{weekday:'short'})+'</span><b>'+x.getDate()+'</b></div><div class="wk-evs">'
+      +days[d].map(function(e){ var w=whoTag(e), loc=String(e.Location||'').replace(/,?\s*United States$/i,'').replace(/,?\s*[A-Z]{2}\s+\d{5}(-\d{4})?$/,'').trim();
+        return '<div class="wk-ev"><span class="wk-t">'+wkTime(e.Time)+'</span><span class="wk-n" title="'+esc(String(e.Title)+(loc?' · '+loc:''))+'">'+esc(e.Title)+(loc?' <small>· '+esc(loc)+'</small>':'')+'</span>'
+          +(w?'<span class="wk-who w-'+w.toLowerCase()+'">'+w+'</span>':'')+'</div>'; }).join('')
+      +'</div></div>'; }).join(''); }
+function wkCars(){ var out=[]; maintVehicles().forEach(function(o){ o.items.forEach(function(i){ if(i.status!=='over'&&i.status!=='soon') return;
+    var mi=(i.dueAt&&o.est!=null)?i.dueAt-o.est:null;
+    out.push({car:o.v.Model||o.v.Name||vehName(o.v), what:i.name, over:i.status==='over', rank:i.status==='over'?0:1, days:i.days||0, when:i.status==='over'?'due now':(mi!=null&&mi>0?'~'+mi.toLocaleString()+' mi':(i.dLeft!=null?'in '+Math.max(0,Math.round(i.dLeft))+' d':'soon'))}); }); });
+  return out.sort(function(a,b){ return a.rank-b.rank||a.days-b.days; }); }
 function renderChelseaHome(){
-  var today=ymd(laNow()), in7=ymd(new Date(laNow().getTime()+7*864e5));
-  var ev=arr('Events').filter(function(e){ var d=String(e.Date).slice(0,10); return d>=today && d<=in7; });
-  var evHtml=ev.length?ev.map(function(e){ return '<div class="kv-row"><span class="k"><b>'+esc(shortDay(e.Date))+'</b> · '+esc(e.Title||'')+(has(e.Location)?' <span class="foot" style="color:var(--text-dim);display:inline">'+esc(e.Location)+'</span>':'')+'</span><span class="v">'+esc(evTime(e.Time))+'</span></div>'; }).join('')
-    :'<div class="empty">Nothing on the calendar this week.</div>';
-  var bills=arr('Bills').filter(function(b){return has(b.DueDay);}).map(function(b){return {b:b, d:daysUntilDueDay(b.DueDay)};}).filter(function(x){return x.d!=null&&x.d<=14;}).sort(function(a,b){return a.d-b.d;});
-  var billHtml=bills.length?bills.map(function(x){ return '<div class="kv-row"><span class="k">'+esc(x.b.Vendor)+(truthy(x.b.Autopay)?' <span class="tag active">auto</span>':'')+'</span><span class="v '+dueClass(x.d)+'">'+fmtDue(x.d)+'</span></div>'; }).join('')
+  var n=laNow(), hr=n.getHours(), greet=hr<12?'Good morning':(hr<17?'Good afternoon':'Good evening');
+  var dateTxt=n.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'})+' · '+n.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+  var ev=wkEvents(), together=ev.filter(function(e){return whoTag(e)==='both';}).length;
+  var bills=arr('Bills').filter(function(b){return has(b.DueDay);}).map(function(b){return {b:b, d:daysUntilDueDay(b.DueDay), auto:truthy(b.Autopay)};}).filter(function(x){return x.d!=null&&x.d<=14;}).sort(function(a,b){return a.d-b.d;});
+  var needPay=bills.filter(function(x){return !x.auto;}), nb=needPay[0]||bills[0];
+  var billHtml=bills.length?bills.map(function(x){ var hot=!x.auto&&x.d<=7;
+      return '<div class="kv-row"><span class="k">'+esc(x.b.Vendor)+'</span><span class="v"><span class="wk-due'+(x.auto?' auto':(hot?' hot':''))+'">'+(x.auto?'autopay · ':'')+esc(wkLeftLong(x.d))+'</span></span></div>'; }).join('')
     :'<div class="empty">No bills due in the next two weeks.</div>';
-  var trips=arr('Travel').filter(function(t){ return String(t.Status||'').toLowerCase()!=='past' && has(t.StartDate) && (daysUntilDate(t.StartDate)||0)>=-1; });
-  var tripHtml=trips.length?trips.map(function(t){ return '<div class="kv-row"><span class="k">'+esc(t.Trip||t.Destination)+'</span><span class="v">'+esc(String(t.StartDate).slice(0,10))+'</span></div>'; }).join(''):'<div class="empty">No trips planned.</div>';
-  var tasks=arr('ProjectTasks').filter(function(t){return !truthy(t.Done);});
-  var taskHtml=tasks.length?tasks.slice(0,12).map(function(t){ var full={}; Object.keys(t).forEach(function(k){ if(k!=='__row') full[k]=t[k]; }); full.Done='TRUE';
-      return '<div class="kv-row"><span class="k"><button class="ebtn" style="padding:2px 8px;margin-right:8px" onclick=\'saveRowNow("ProjectTasks",'+t.__row+','+esc(JSON.stringify(full))+')\'>✓</button>'+esc(t.Task)+' <span class="foot foot-dim foot-inline">'+esc(t.Project||'')+'</span></span><span class="v">'+(has(t.Due)?esc(String(t.Due).slice(0,10)):'')+'</span></div>'; }).join('')
-    :'<div class="empty">No open project tasks.</div>';
-  return '<div class="grid cols-2" style="margin-bottom:22px">'+card('This week',"What's on the calendar.", evHtml)+card('Bills due soon','Next two weeks.', billHtml)+'</div>'
-    +'<div class="grid cols-2" style="margin-bottom:22px">'+card('Home projects','Open tasks. Tap ✓ when done.', taskHtml)+card('Trips','Coming up.', tripHtml)+'</div>'
-    +maintenanceCard();
+  var trips=arr('Travel').filter(function(t){ return String(t.Status||'').toLowerCase()!=='past' && has(t.StartDate); }).map(function(t){return {t:t,d:daysUntilDate(t.StartDate)};}).filter(function(x){return x.d!=null&&x.d>=-1;}).sort(function(a,b){return a.d-b.d;});
+  var tasks=arr('ProjectTasks').filter(function(t){return !truthy(t.Done);}).map(function(t){return {t:t,d:has(t.Due)?daysUntilDate(t.Due):null};}).sort(function(a,b){ return (a.d==null?1e6:a.d)-(b.d==null?1e6:b.d); });
+  var taskHtml=tasks.length?tasks.slice(0,6).map(function(x){ var t=x.t, due=x.d==null?(t.Project||''):(x.d<0?'overdue':shortDay(ymd(new Date(laNow().getTime()+x.d*864e5))));
+      return '<div class="wk-todo"><button class="chk" aria-label="Mark done: '+esc(t.Task)+'" onclick="wkDone('+t.__row+')"></button><span class="wk-n">'+esc(t.Task)+'</span><span class="wk-tm'+(x.d!=null&&x.d<0?' late':'')+'">'+esc(due)+'</span></div>'; }).join('')
+      +(tasks.length>6?'<button class="ebtn wk-more" onclick="navGo(\'projects\')">See all '+tasks.length+'</button>':'')
+    :'<div class="empty">No open home to-dos.</div>';
+  var cars=wkCars(), c0=cars[0];
+  var carHtml=cars.length?cars.slice(0,4).map(function(c){ return '<div class="kv-row"><span class="k">'+esc(c.car)+' — '+esc(c.what.toLowerCase())+'</span><span class="v"><span class="wk-due '+(c.over?'late':'hot')+'">'+esc(c.when)+'</span></span></div>'; }).join('')
+      +'<button class="ebtn wk-more" onclick="navGo(\'vehicles\')">Car details</button>'
+    :'<div class="empty">Nothing due on the cars.</div>';
+  var gauges=[
+    wkGauge('cal','This week', ev.length?ev.length+' event'+(ev.length===1?'':'s')+(together?' · '+together+' together':''):'Nothing yet', '', "wkJump('wkWeek')"),
+    wkGauge('card','Bills due', nb?esc(nb.b.Vendor)+' · '+wkLeft(nb.d):'None soon', nb&&!nb.auto&&nb.d<=7?'warn':'', "wkJump('wkBills')"),
+    wkGauge('plane','Next trip', trips.length?esc(trips[0].t.Trip||trips[0].t.Destination)+' · '+wkLeft(trips[0].d):'None planned', '', "navGo('travel')"),
+    wkGauge('check','Home tasks', tasks.length?tasks.length+' open':'All done', '', "wkJump('wkTodos')"),
+    wkGauge('car','Cars', c0?esc(c0.what):'All good', c0?'warn':'', "wkJump('wkCars')")
+  ].join('');
+  return '<div class="deck-strip"><div><div class="hero-date">'+esc(dateTxt)+'</div><h1 class="hero-h">'+greet+', Chelsea.</h1></div>'
+    +'<div class="wk-jumps"><button class="ebtn pri" onclick="wkJump(\'wkTodos\')">✓ Tasks</button><button class="ebtn" onclick="wkJump(\'wkBills\')">Bills</button><button class="ebtn" onclick="navGo(\'travel\')">Trips</button></div></div>'
+    +'<div class="bchips deck-gauges">'+gauges+'</div>'
+    +'<div class="wk-grid"><div id="wkWeek" class="wk-a">'+card('Our week','Both calendars, one list. Tags show who’s on it.', wkDays(ev))+'</div>'
+    +'<div class="wk-side"><div id="wkBills" class="wk-a wk-bills">'+card('Bills due soon','Next two weeks.', billHtml)+'</div>'
+    +'<div id="wkTodos" class="wk-a wk-todos">'+card('Home to-dos','Tap the box when it’s done.', taskHtml)+'</div>'
+    +'<div id="wkCars" class="wk-a wk-cars">'+card('Cars','From the maintenance autopilot.', carHtml)+'</div></div></div>';
 }
+function wkLeftLong(d){ return d<=0?'today':(d===1?'tomorrow':'in '+d+' days'); }
 function openChelseaSetup(){
   $('modalSheet').innerHTML='<button class="mclose" onclick="closeModal()" aria-label="Close">×</button><div class="mhead"><h2>Chelsea’s view</h2></div>'
     +'<p style="color:var(--text-muted);font-size:14px">Chelsea signs in at the same address with her own password and sees a simple shared view: the calendar, bills coming due, trips, home projects (she can check tasks off), and car maintenance. '
