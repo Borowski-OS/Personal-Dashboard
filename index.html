@@ -1415,7 +1415,7 @@
   .efield textarea.ml-body { min-height:210px; line-height:1.5; } .efield textarea.ml-body.is-busy { opacity:.55; }
   .deck-gauges .bchip.warn { border-color:rgba(220,179,94,.45); } .deck-gauges .bchip.warn .bchip-i { background:rgba(220,179,94,.14); color:var(--amber); }
   .wk-jumps { display:flex; gap:8px; }
-  @media (min-width:641px){ .deck-gauges.wk-g { display:flex; flex-wrap:wrap; } .deck-gauges.wk-g .bchip { flex:1 1 170px; } }
+  @media (min-width:641px){ .deck-gauges { display:flex; flex-wrap:wrap; } .deck-gauges .bchip { flex:1 1 170px; } }
   .wk-grid { display:grid; grid-template-columns:1.25fr 1fr; gap:14px; align-items:start; margin-top:12px; }
   .wk-side { display:flex; flex-direction:column; gap:14px; min-width:0; } .wk-a { min-width:0; scroll-margin-top:72px; }
   .wk-day { display:flex; gap:14px; padding:11px 0; border-top:1px solid var(--card-border); } .wk-day:first-child { border-top:none; padding-top:2px; }
@@ -1565,6 +1565,14 @@
   .spot-due { margin-left:6px; font-size:12px; font-weight:600; color:var(--amber); white-space:nowrap; }
   .spot-acts { display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
   .spot-acts .ebtn { text-decoration:none; white-space:nowrap; }
+  .spot-more > summary { list-style:none; cursor:pointer; display:flex; align-items:center; min-height:44px; margin-bottom:-10px; font-size:13px; font-weight:600; color:var(--text-muted); border-radius:8px; }
+  .spot-more > summary::-webkit-details-marker { display:none; }
+  .spot-more > summary:hover { color:var(--text); }
+  .spot-more > summary:focus-visible { outline:2px solid rgba(var(--accent-rgb),.6); outline-offset:2px; }
+  .spot-more > summary::after { content:''; width:7px; height:7px; margin-left:8px; border-right:2px solid currentColor; border-bottom:2px solid currentColor; transform:rotate(45deg) translate(-2px,-2px); }
+  .spot-more[open] > summary { margin-bottom:0; border-bottom:1px solid var(--card-border); border-radius:0; }
+  .spot-more[open] > summary::after { transform:rotate(-135deg) translate(-2px,-2px); }
+  .spot-more .sm-x, .spot-more[open] .sm-o { display:none; } .spot-more[open] .sm-x { display:inline; }
 </style>
 </head>
 <body>
@@ -5612,7 +5620,8 @@ function spotDates(x){ var t=String(x.Summary||x.Subject||''), sent=mailT(x.Date
 function spotPast(x){ var ds=spotDates(x), now=Date.now(); return ds.length>0 && ds.every(function(v){ return v.getTime()<now; }); }
 // the next date still ahead, or null
 function spotDue(x){ var now=Date.now(), up=spotDates(x).filter(function(v){ return v.getTime()>=now; }).sort(function(a,b){ return a-b; }); return up[0]||null; }
-function spotDueSort(a,b){ var x=spotDue(a), y=spotDue(b); return x&&y?x-y:x?-1:y?1:0; }
+// deadlines in the next three weeks lead, soonest first; anything further off keeps its normal mail order, so a Dec 31 renewal doesn't outrank a signature someone is waiting on
+function spotDueSort(a,b){ var soon=Date.now()+21*864e5, x=spotDue(a), y=spotDue(b); x=x&&x<soon?x:null; y=y&&y<soon?y:null; return x&&y?x-y:x?-1:y?1:0; }
 function spotOneThread(list){ var had={}; return list.filter(function(x){ var k=x.ThreadId||x.Subject||x.Id; if(had[k]) return false; had[k]=1; return true; }); }
 function spotDay(v){ var d=new Date(v); return isNaN(d)?'':d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2); }
 function lifeSignals(){
@@ -5639,20 +5648,23 @@ function spotMailBtns(x, todo){ var l=mailLink(x);
 function spotMailRow(x, tag, cls, todo){ var due=spotDue(x), when=due?'<span class="spot-due">by '+esc(due.toLocaleDateString('en-US',{month:'short',day:'numeric'}))+'</span>':'';
   return spotRow(tag, cls, mailClip(x.Summary||x.Subject||'', 110), spotMailBtns(x, todo)).replace('</span></div><div class="spot-acts">', '</span>'+when+'</div><div class="spot-acts">').replace('<div class="spot-row">','<div class="spot-row" data-id="'+esc(x.Id)+'">'); }
 // mail arrives after Today is drawn, so the card sits in its own box and repaints in place when mail lands (see mailRepaint)
-var SPOT_HTML='';
+var SPOT_HTML='', SPOT_OPEN=false;
 function spotBox(){ SPOT_HTML=spottedCard(); return '<div id="spotBox">'+SPOT_HTML+'</div>'; }
 function spotRepaint(){ var b=$('spotBox'); if(!b || b.contains(document.activeElement)) return; var h=spottedCard(); if(h===SPOT_HTML) return; SPOT_HTML=h; b.innerHTML=h; cardFolds('overview'); kbdTargets(b); }
 function spottedCard(){
   if(ROLE==='chelsea' || !MAIL.data) return '';
-  var g=lifeSignals(), rows=[];
-  g.act.slice(0,3).forEach(function(x){ rows.push(spotMailRow(x,'Needs action','planning',true)); });
-  g.opp.slice(0,2).forEach(function(x){ rows.push(spotMailRow(x,'Opportunity','active',false)); });
-  g.deals.slice(0,1).forEach(function(d){ rows.push(spotRow('Deal','active',d.t+(d.stage?' — next: '+d.stage:''),'<button class="ebtn" onclick="navGo(\'ventures\')">Open →</button>')); });
-  g.late.slice(0,2).forEach(function(r){ rows.push(spotRow('Overdue','blocked',r.t,'<button class="ebtn" onclick="navGo(\''+esc(r.tab)+'\')">Open →</button>')); });
+  var g=lifeSignals(), rows=[], extra=[];
+  function put(list, n, fn){ list.forEach(function(x,i){ (i<n?rows:extra).push(fn(x)); }); }
+  put(g.act, 3, function(x){ return spotMailRow(x,'Needs action','planning',true); });
+  put(g.opp, 2, function(x){ return spotMailRow(x,'Opportunity','active',false); });
+  put(g.deals, 1, function(d){ return spotRow('Deal','active',d.t+(d.stage?' — next: '+d.stage:''),'<button class="ebtn" onclick="navGo(\'ventures\')">Open →</button>'); });
+  put(g.late, 2, function(r){ return spotRow('Overdue','blocked',r.t,'<button class="ebtn" onclick="navGo(\''+esc(r.tab)+'\')">Open →</button>'); });
   if(g.undated>=8) rows.push(spotRow('Stuck','blocked',g.undated+' to-dos have no date, so nothing pulls them forward. Date your top three.','<button class="ebtn pri" onclick="spotDateSheet()">Date three →</button>'));
   if(g.ideas.length>=4) rows.push(spotRow('Stuck','blocked',g.ideas.length+' projects are still at idea or planning. Pick one to start and park the rest.','<button class="ebtn" onclick="navGo(\'life\')">Open →</button>'));
   if(!rows.length) return '';
-  return card('Spotted for you','From your email and your lists: what needs action, what’s stuck, what’s worth a look.', rows.slice(0,6).join(''), '--gold')+'<div style="height:22px"></div>'; }
+  var more=extra.concat(rows.slice(6));
+  return card('Spotted for you','From your email and your lists: what needs action, what’s stuck, what’s worth a look.', rows.slice(0,6).join('')
+    +(more.length?'<details class="spot-more"'+(SPOT_OPEN?' open':'')+' ontoggle="SPOT_OPEN=this.open"><summary><span class="sm-o">Show '+more.length+' more</span><span class="sm-x">Show fewer</span></summary>'+more.join('')+'</details>':''), '--gold')+'<div style="height:22px"></div>'; }
 async function spotTodo(id){ var x=mailById(id); if(!x) return; var t=mailClip(x.Summary||x.Subject||'', 90), h=spotTheme(x), d=spotDue(x), due=d?spotDay(d):'';
   var res=await apiWrite({action:'upsert',tab:'NextActions',row:JSON.stringify({Action:t,Tab:h?h[1]:'overview',Due:due,Done:''})});
   if(res&&res.ok){ spotMark(id); toast(due?'Added to your list, due '+shortDay(due):'Added to your list'); await afterWrite(); } else toast('Couldn’t add that. Try again.'); }
