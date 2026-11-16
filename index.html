@@ -193,6 +193,24 @@
   .bchip-v { display:block; font-size:14.5px; font-weight:600; }
   .g-today { grid-template-columns:1.6fr 1fr; }
   @media (max-width:900px){ .g-today { grid-template-columns:1fr; } }
+  /* To-do list (front page) */
+  .td-tabs { display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap; }
+  .td-tab { font:inherit; font-size:16px; padding:8px 16px; border-radius:999px; border:1px solid var(--card-border,#2a2f37); background:transparent; color:var(--text-muted,#9aa3ad); cursor:pointer; }
+  .td-tab.on { background:var(--gold,#d9a441); color:#111; border-color:transparent; font-weight:700; }
+  .td-add { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px; }
+  .td-add input[type=text] { flex:1 1 240px; font-size:18px; padding:12px 14px; }
+  .td-add input[type=date], .td-add select { font-size:16px; padding:10px; }
+  .td-add .ebtn { font-size:16px; padding:10px 18px; }
+  .td-row { display:flex; align-items:center; gap:14px; padding:14px 2px; border-bottom:1px solid #2a2f37; }
+  .td-chk { flex:none; width:34px; height:34px; border-radius:50%; border:2px solid var(--gold,#d9a441); background:transparent; color:var(--gold,#d9a441); font-size:20px; cursor:pointer; padding:0; }
+  .td-main { flex:1; min-width:0; }
+  .td-t { font-size:20px; font-weight:600; line-height:1.3; }
+  .td-meta { margin-top:5px; display:flex; gap:8px; align-items:center; font-size:14px; }
+  .td-area { padding:2px 10px; border-radius:999px; font-weight:700; font-size:13px; border:1px solid currentColor; }
+  .td-church { color:#7cb7ff; } .td-life { color:#6fd39a; }
+  .td-due { color:var(--text-muted,#9aa3ad); } .td-due.soon { color:var(--amber,#e0a030); font-weight:700; } .td-due.od { color:#ff6b6b; font-weight:700; }
+  .td-act { flex:none; font-size:15px; padding:10px 14px; }
+  @media (max-width:640px){ .td-t { font-size:18px; } .td-row { flex-wrap:wrap; } .td-act { margin-left:48px; } }
   .mit { display:flex; align-items:center; gap:12px; padding:14px 12px; margin:0 -12px; border-radius:10px; cursor:pointer; border-bottom:1px solid #2a2f37; }
   .mit:hover, .mit-sm:hover { background:rgba(255,255,255,.035); }
   .mit-n { font-size:22px; font-weight:800; color:var(--gold); width:20px; text-align:center; }
@@ -2910,6 +2928,70 @@ function openStep(i){
     +'<div class="editbar" style="justify-content:flex-start;gap:8px;flex-wrap:wrap;margin-top:14px">'+acts+'</div>';
   $('modal').classList.remove('hidden');
 }
+/* ============================================================
+   TO-DO LIST (front page, Nov 2026): ONE list — NextActions (what Brad / Atlas add) + open ProjectTasks.
+   Area = Church or Life (NextActions.Tab 'church' | 'life'; older rows guess from the words). Hidden markers at the end of the
+   Action text: ⟦m:ID⟧ = a Life OS mail item (button opens the ready-made reply draft), ⟦c:KEY⟧ = calendar-made (dedupe key).
+   Atlas reads and writes the same rows (lifeos_add_step / todo_list), so "what's next" matches this screen.
+   ============================================================ */
+var TODO_CHURCH=/church|lssr|living stones|staff|elder|sermon|sunday|ministry|praxis|volunteer|pastor|care team|christmas fest|budget meeting|board|shepherd/i;
+function todoParse(txt){ var s=String(txt||''), m=s.match(/\s*⟦([mc]):([^⟧]*)⟧/g)||[], out={text:s.replace(/\s*⟦[mc]:[^⟧]*⟧/g,'').trim(), mail:'', key:''};
+  m.forEach(function(x){ var k=/⟦([mc]):([^⟧]*)⟧/.exec(x); if(k[1]==='m') out.mail=k[2]; else out.key=k[2]; }); return out; }
+function todoArea(tab,text){ var t=String(tab||'').toLowerCase(); if(t==='church'||t==='faith') return 'Church'; if(t==='life') return 'Life'; return TODO_CHURCH.test(text)?'Church':'Life'; }
+function todoItems(){
+  var out=[], vnames={}; arr('Vehicles').forEach(function(v){ vnames[String(v.Name||'').trim().toLowerCase()]=1; });
+  var flyN={}; arr('Projects').forEach(function(p){ if(isFlyingProject(p)) flyN[p.Name]=1; });
+  arr('NextActions').filter(function(a){return !truthy(a.Done)&&has(a.Action);}).forEach(function(a){
+    var p=todoParse(a.Action), d=has(a.Due)?daysUntilDate(a.Due):null;
+    out.push({src:'NextActions', row:a.__row, text:p.text, mail:p.mail, d:d, area:todoArea(a.Tab,p.text)}); });
+  arr('ProjectTasks').filter(function(t){return !truthy(t.Done)&&has(t.Task)&&!flyN[t.Project]&&!vnames[String(t.Project||'').trim().toLowerCase()];}).forEach(function(t){
+    var d=has(t.Due)?daysUntilDate(t.Due):null, txt=t.Task+(has(t.Project)?' ('+t.Project+')':'');
+    out.push({src:'ProjectTasks', row:t.__row, text:txt, mail:'', d:d, area:todoArea('',t.Project+' '+t.Task)}); });
+  out.sort(function(a,b){ var A=a.d==null?9999:a.d, B=b.d==null?9999:b.d; return A-B || a.row-b.row; });
+  return out;
+}
+function todoCheck(src,row){
+  var t=arr(src).filter(function(r){return String(r.__row)===String(row);})[0]; if(!t) return;
+  if(src==='NextActions') saveRowNow('NextActions', row, {Action:t.Action,Tab:t.Tab||'',Due:t.Due||'',Done:'TRUE'});
+  else saveRowNow('ProjectTasks', row, {Project:t.Project,Task:t.Task,Done:'TRUE',Due:t.Due||'',Notes:t.Notes||''});
+}
+var TODO_FILTER='All';
+function todoFilter(f){ TODO_FILTER=f; render(CURRENT); }
+async function todoAdd(){
+  var t=($('tdText').value||'').trim(); if(!t){ $('tdText').focus(); return; }
+  var due=($('tdDue').value||'').trim(), area=$('tdArea').value;
+  $('tdBtn').disabled=true;
+  var res=await apiWrite({action:'upsert',tab:'NextActions',row:JSON.stringify({Action:t,Tab:area.toLowerCase(),Due:due,Done:''})});
+  if(res&&res.ok){ await afterWrite(); } else { $('tdBtn').disabled=false; toast('Could not save — try again.'); }
+}
+async function todoReply(id){
+  toast('Opening the reply…',1500);
+  if(!MAIL.data){ mailLoad(); for(var i=0;i<40&&!MAIL.data;i++){ await new Promise(function(r){setTimeout(r,500);}); } }
+  if(MAIL.data&&mailById(id)) mailDraftOpen(id); else toast('That email isn’t in Mail any more (already handled?). Tick the to-do if it’s done.');
+}
+function todoCard(){
+  if(ROLE==='chelsea') return '';
+  var all=todoItems(), church=all.filter(function(x){return x.area==='Church';}).length, life=all.length-church;
+  var list=TODO_FILTER==='All'?all:all.filter(function(x){return x.area===TODO_FILTER;});
+  var over=all.filter(function(x){return x.d!=null&&x.d<0;}).length;
+  var tabs=['All','Church','Life'].map(function(f){ var n=f==='All'?all.length:(f==='Church'?church:life);
+    return '<button class="td-tab'+(TODO_FILTER===f?' on':'')+'" onclick="todoFilter(\''+f+'\')">'+f+' <b>'+n+'</b></button>'; }).join('');
+  var rows=list.map(function(x){
+    var chip='<span class="td-area td-'+x.area.toLowerCase()+'">'+x.area+'</span>';
+    var due=x.d!=null?'<span class="td-due '+(x.d<0?'od':(x.d<=2?'soon':''))+'">'+esc(fmtDue(x.d))+'</span>':'';
+    var btn=x.mail?'<button class="ebtn pri td-act" onclick="event.stopPropagation();todoReply(\''+esc(x.mail)+'\')">✉ Review reply</button>':'';
+    return '<div class="td-row"><button class="td-chk" aria-label="Mark done" onclick="this.disabled=true;this.textContent=\'✓\';todoCheck(\''+x.src+'\','+x.row+')"></button>'
+      +'<div class="td-main"><div class="td-t">'+esc(x.text)+'</div><div class="td-meta">'+chip+due+'</div></div>'+btn+'</div>'; }).join('');
+  var add='<div class="td-add"><input id="tdText" type="text" placeholder="Add a to-do…" aria-label="New to-do" onkeydown="if(event.key===\'Enter\')todoAdd()">'
+    +'<input id="tdDue" type="date" aria-label="Due date"><select id="tdArea" aria-label="Area"><option>Church</option><option>Life</option></select>'
+    +'<button class="ebtn pri" id="tdBtn" onclick="todoAdd()">＋ Add</button></div>';
+  var auto=smartSteps().filter(function(s){ return !s.row && !/^Keep your /.test(s.t); }).slice(0,8);
+  BIG3=auto;
+  var autoHtml=auto.length?'<details class="mit-more"><summary>'+auto.length+' suggested from your data (health, flying, money…)</summary>'+auto.map(function(s,i){
+    return '<div class="mit-sm"><span class="chk chk-auto">•</span><button type="button" class="mit-t mit-go" onclick="openStep('+i+')"><span class="mit-tx">'+esc(s.t)+'</span></button><span class="mit-r">'+domChip(s.tab)+(s.d!=null?' <span class="'+dueClass(s.d)+'">'+fmtDue(s.d)+'</span>':'')+'</span></div>'; }).join('')+'</details>':'';
+  var sub=all.length?(all.length+' open'+(over?' · '+over+' overdue':'')+' — soonest first.'):'';
+  return card('✅ To-do', sub, '<div class="td-tabs">'+tabs+'</div>'+add+(rows||'<div class="empty" style="font-size:17px;padding:18px 0">Nothing here. Enjoy it — or add something above.</div>')+autoHtml, '--gold')+'<div style="height:22px"></div>';
+}
 function big3Card(){
   var steps=smartSteps().filter(function(s){ return !/^Keep your /.test(s.t); });   // habits live in Daily rhythm
   if(!steps.length) return card('Today’s top 3','','<div class="empty">All clear. Add a to-do with ＋ Quick add.</div>','--gold');
@@ -3013,8 +3095,8 @@ function renderOverview(){
     + '</div>'
     + scorecardCard() + '<div style="height:22px"></div>'
     + (tw&&!twHot?tw:'');
-  return todayHero() + testDayBar() + callBar() + mailBar()
-    + '<div class="grid g-today" style="margin-bottom:22px">' + big3Card() + rhythmCard() + pulse + '</div>'
+  return todayHero() + todoCard() + testDayBar() + callBar() + mailBar()
+    + '<div class="grid g-today" style="margin-bottom:22px">' + rhythmCard() + pulse + '</div>'
     + (twHot?tw+'<div style="height:22px"></div>':'')
     + agendaCard()
     + spotBox()
