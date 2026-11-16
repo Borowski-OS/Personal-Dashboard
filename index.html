@@ -2981,7 +2981,8 @@ function todoCard(){
     var due=x.d!=null?'<span class="td-due '+(x.d<0?'od':(x.d<=2?'soon':''))+'">'+esc(fmtDue(x.d))+'</span>':'';
     var btn=x.mail?'<button class="ebtn pri td-act" onclick="event.stopPropagation();todoReply(\''+esc(x.mail)+'\')">✉ Review reply</button>':'';
     return '<div class="td-row"><button class="td-chk" aria-label="Mark done" onclick="this.disabled=true;this.textContent=\'✓\';todoCheck(\''+x.src+'\','+x.row+')"></button>'
-      +'<div class="td-main"><div class="td-t">'+esc(x.text)+'</div><div class="td-meta">'+chip+due+'</div></div>'+btn+'</div>'; }).join('');
+      +'<div class="td-main"><div class="td-t">'+esc(x.text)+'</div><div class="td-meta">'+chip+due+'</div></div>'+btn+'</div>'; });
+  rows=rows.slice(0,12).join('')+(rows.length>12?'<details class="mit-more"><summary style="font-size:16px">'+(rows.length-12)+' more on your list</summary>'+rows.slice(12).join('')+'</details>':'');
   var add='<div class="td-add"><input id="tdText" type="text" placeholder="Add a to-do…" aria-label="New to-do" onkeydown="if(event.key===\'Enter\')todoAdd()">'
     +'<input id="tdDue" type="date" aria-label="Due date"><select id="tdArea" aria-label="Area"><option>Church</option><option>Life</option></select>'
     +'<button class="ebtn pri" id="tdBtn" onclick="todoAdd()">＋ Add</button></div>';
