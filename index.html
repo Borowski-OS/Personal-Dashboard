@@ -211,6 +211,22 @@
   .td-due { color:var(--text-muted,#9aa3ad); } .td-due.soon { color:var(--amber,#e0a030); font-weight:700; } .td-due.od { color:#ff6b6b; font-weight:700; }
   .td-act { flex:none; font-size:15px; padding:10px 14px; }
   @media (max-width:640px){ .td-t { font-size:18px; } .td-row { flex-wrap:wrap; } .td-act { margin-left:48px; } }
+  .td-more { flex:none; font:inherit; font-size:20px; line-height:1; padding:6px 10px; border-radius:10px; border:1px solid var(--card-border,#2a2f37); background:transparent; color:var(--text-muted,#9aa3ad); cursor:pointer; }
+  .td-tools { display:none; flex-basis:100%; margin:2px 0 0 48px; padding:10px 12px; border-radius:12px; background:rgba(255,255,255,.04); gap:8px; flex-wrap:wrap; align-items:center; font-size:14px; }
+  .td-row.tools-open .td-tools { display:flex; }
+  .td-tools .lbl { color:var(--text-muted,#9aa3ad); font-weight:700; }
+  .td-tools .ebtn, .td-tools select, .td-tools input { font-size:14px; padding:6px 12px; }
+  .td-grp { margin-top:14px; border:1px solid var(--card-border,#2a2f37); border-radius:14px; padding:2px 14px; }
+  .td-grp > summary, .td-snz > summary { cursor:pointer; padding:12px 0; font-size:18px; font-weight:700; list-style:none; display:flex; align-items:center; gap:10px; }
+  .td-grp > summary::-webkit-details-marker, .td-snz > summary::-webkit-details-marker { display:none; }
+  .td-grp > summary:before, .td-snz > summary:before { content:'▸'; color:var(--gold,#d9a441); transition:transform .15s; }
+  .td-grp[open] > summary:before, .td-snz[open] > summary:before { transform:rotate(90deg); }
+  .td-grp .gn { color:var(--text-muted,#9aa3ad); font-weight:600; font-size:15px; }
+  .td-grp .gs { margin-left:auto; }
+  .td-snz { margin-top:16px; opacity:.85; }
+  .td-snz > summary { font-size:16px; color:var(--text-muted,#9aa3ad); }
+  .td-snz .td-grp { opacity:.9; }
+  .td-until { color:var(--text-muted,#9aa3ad); font-size:13px; }
   .mit { display:flex; align-items:center; gap:12px; padding:14px 12px; margin:0 -12px; border-radius:10px; cursor:pointer; border-bottom:1px solid #2a2f37; }
   .mit:hover, .mit-sm:hover { background:rgba(255,255,255,.035); }
   .mit-n { font-size:22px; font-weight:800; color:var(--gold); width:20px; text-align:center; }
@@ -2518,8 +2534,8 @@ function flyingNextStep(){ var f=kv('Flying');
 /* auto-generated, prioritized next steps across every domain */
 function smartSteps(){
   var out=[];
-  arr('NextActions').filter(function(a){return !truthy(a.Done)&&has(a.Action);}).forEach(function(a){
-    var d=has(a.Due)?daysUntilDate(a.Due):null; out.push({t:a.Action, tab:a.Tab||'overview', d:d, sort:(d==null?300:d), row:a.__row}); });
+  arr('NextActions').filter(function(a){return !truthy(a.Done)&&has(a.Action)&&!naSnoozed(a);}).forEach(function(a){
+    var d=has(a.Due)?daysUntilDate(a.Due):null; out.push({t:todoParse(a.Action).text, tab:a.Tab||'overview', d:d, sort:(d==null?300:d), row:a.__row}); });
   // health-driven
   var h=kv('Health'), cur=num(h.weight), goal=num(h.weight_goal);
   var wk=trainingWeek().sessions;
@@ -2935,18 +2951,33 @@ function openStep(i){
    Atlas reads and writes the same rows (lifeos_add_step / todo_list), so "what's next" matches this screen.
    ============================================================ */
 var TODO_CHURCH=/church|lssr|living stones|staff|elder|sermon|sunday|ministry|praxis|volunteer|pastor|care team|christmas fest|budget meeting|board|shepherd/i;
-function todoParse(txt){ var s=String(txt||''), m=s.match(/\s*⟦([mc]):([^⟧]*)⟧/g)||[], out={text:s.replace(/\s*⟦[mc]:[^⟧]*⟧/g,'').trim(), mail:'', key:''};
-  m.forEach(function(x){ var k=/⟦([mc]):([^⟧]*)⟧/.exec(x); if(k[1]==='m') out.mail=k[2]; else out.key=k[2]; }); return out; }
+function todoParse(txt){ var s=String(txt||''), m=s.match(/\s*⟦([mcsg]):([^⟧]*)⟧/g)||[], out={text:s.replace(/\s*⟦[mcsg]:[^⟧]*⟧/g,'').trim(), mail:'', key:'', snooze:'', group:''};
+  m.forEach(function(x){ var k=/⟦([mcsg]):([^⟧]*)⟧/.exec(x); if(k[1]==='m') out.mail=k[2]; else if(k[1]==='c') out.key=k[2]; else if(k[1]==='s') out.snooze=k[2]; else out.group=k[2]; }); return out; }
+/* SNOOZE + GROUPS (Nov 2026). Stored with no new sheet columns: markers at the end of the Action text, ⟦s:YYYY-MM-DD⟧ (hidden until that
+   day) or ⟦s:someday⟧ (hidden until un-snoozed), ⟦g:Group name⟧. ProjectTasks rows (no free text) keep theirs in Config todo_pt = {row:{s,g}}.
+   Config todo_groups = {"list":["Yard","Home Improvement",…],"snooze":{"Yard":"someday"|"YYYY-MM-DD"}} (Yard + Home Improvement always exist).
+   Snoozed items (own or their group's) drop out of the list, the overdue count, top-3 and Spotted until the date arrives. Atlas's todos.ts reads the same markers. */
+var TODO_DEFAULT_GROUPS=['Yard','Home Improvement'];
+function cfgJson(k,d){ try{ var v=kv('Config')[k]; return v?JSON.parse(v):d; }catch(e){ return d; } }
+function todoGroupsCfg(){ var g=cfgJson('todo_groups',{}); g.list=(g.list||[]).slice(); g.snooze=g.snooze||{};
+  TODO_DEFAULT_GROUPS.forEach(function(n){ if(g.list.indexOf(n)<0) g.list.push(n); }); return g; }
+function todoPtMeta(row){ var m=cfgJson('todo_pt',{})[String(row)]; return m||{}; }
+function todoToday(){ return ymd(laNow()); }
+/* snoozed = a snooze date still ahead (or someday) on the item or on its group */
+function todoSnoozeOf(sn){ sn=String(sn||'').trim(); if(!sn) return ''; if(sn==='someday') return 'someday'; return sn>todoToday()?sn:''; }
+function todoHidden(group,own){ var g=todoGroupsCfg(), a=todoSnoozeOf(own), b=group?todoSnoozeOf(g.snooze[group]):''; return a||b; }
+function naSnoozed(a){ var p=todoParse(a.Action); return !!todoHidden(p.group,p.snooze); }
 function todoArea(tab,text){ var t=String(tab||'').toLowerCase(); if(t==='church'||t==='faith') return 'Church'; if(t==='life') return 'Life'; return TODO_CHURCH.test(text)?'Church':'Life'; }
 function todoItems(){
   var out=[], vnames={}; arr('Vehicles').forEach(function(v){ vnames[String(v.Name||'').trim().toLowerCase()]=1; });
   var flyN={}; arr('Projects').forEach(function(p){ if(isFlyingProject(p)) flyN[p.Name]=1; });
   arr('NextActions').filter(function(a){return !truthy(a.Done)&&has(a.Action);}).forEach(function(a){
     var p=todoParse(a.Action), d=has(a.Due)?daysUntilDate(a.Due):null;
-    out.push({src:'NextActions', row:a.__row, text:p.text, mail:p.mail, d:d, area:todoArea(a.Tab,p.text)}); });
+    out.push({src:'NextActions', row:a.__row, text:p.text, mail:p.mail, d:d, area:todoArea(a.Tab,p.text), group:p.group, own:p.snooze, snz:todoHidden(p.group,p.snooze)}); });
   arr('ProjectTasks').filter(function(t){return !truthy(t.Done)&&has(t.Task)&&!flyN[t.Project]&&!vnames[String(t.Project||'').trim().toLowerCase()];}).forEach(function(t){
     var d=has(t.Due)?daysUntilDate(t.Due):null, txt=t.Task+(has(t.Project)?' ('+t.Project+')':'');
-    out.push({src:'ProjectTasks', row:t.__row, text:txt, mail:'', d:d, area:todoArea('',t.Project+' '+t.Task)}); });
+    var pm=todoPtMeta(t.__row);
+    out.push({src:'ProjectTasks', row:t.__row, text:txt, mail:'', d:d, area:todoArea('',t.Project+' '+t.Task), group:pm.g||'', own:pm.s||'', snz:todoHidden(pm.g||'',pm.s||'')}); });
   out.sort(function(a,b){ var A=a.d==null?9999:a.d, B=b.d==null?9999:b.d; return A-B || a.row-b.row; });
   return out;
 }
@@ -2959,7 +2990,8 @@ var TODO_FILTER='All';
 function todoFilter(f){ TODO_FILTER=f; render(CURRENT); }
 async function todoAdd(){
   var t=($('tdText').value||'').trim(); if(!t){ $('tdText').focus(); return; }
-  var due=($('tdDue').value||'').trim(), area=$('tdArea').value;
+  var due=($('tdDue').value||'').trim(), area=$('tdArea').value, grp=$('tdGroup')?$('tdGroup').value:'';
+  if(grp) t+=' ⟦g:'+grp+'⟧';
   $('tdBtn').disabled=true;
   var res=await apiWrite({action:'upsert',tab:'NextActions',row:JSON.stringify({Action:t,Tab:area.toLowerCase(),Due:due,Done:''})});
   if(res&&res.ok){ await afterWrite(); } else { $('tdBtn').disabled=false; toast('Could not save — try again.'); }
@@ -2969,29 +3001,108 @@ async function todoReply(id){
   if(!MAIL.data){ mailLoad(); for(var i=0;i<40&&!MAIL.data;i++){ await new Promise(function(r){setTimeout(r,500);}); } }
   if(MAIL.data&&mailById(id)) mailDraftOpen(id); else toast('That email isn’t in Mail any more (already handled?). Tick the to-do if it’s done.');
 }
+var TODO_OPEN={};   // which group / snoozed sections are open (kept across redraws)
+function todoRedraw(){ var y=window.pageYOffset; render(CURRENT); window.scrollTo(0,y); }
+function todoTog(k,el){ TODO_OPEN[k]=el.open; }
+function todoTools(k){ var r=document.getElementById('tdr_'+k); if(r) r.classList.toggle('tools-open'); }
+function todoItemKey(x){ return x.src+'_'+x.row; }
+function todoSaveCfg(obj){ var o={}; Object.keys(obj).forEach(function(k){ var v=obj[k]; o[k]=(v==null||v==='')?'':JSON.stringify(v); DATA.Config=DATA.Config||{}; DATA.Config[k]=o[k]; });
+  try{ localStorage.setItem(LS_DATA, JSON.stringify({data:DATA, updated:new Date().toISOString()})); }catch(e){}
+  return apiWrite({action:'setkv',tab:'Config',row:JSON.stringify(o)}).then(function(r){ if(!(r&&r.ok)) toast('Couldn’t save that — try again.'); }); }
+/* set an item's snooze ('' = clear) and/or group (undefined = leave) */
+function todoSet(src,row,snooze,group){
+  if(src==='NextActions'){
+    var a=arr('NextActions').filter(function(r){return String(r.__row)===String(row);})[0]; if(!a) return;
+    var p=todoParse(a.Action);
+    var sn=snooze===undefined?p.snooze:snooze, gp=group===undefined?p.group:group;
+    var tail=(String(a.Action).match(/\s*⟦[mc]:[^⟧]*⟧/g)||[]).join('');
+    var txt=p.text+(gp?' ⟦g:'+gp+'⟧':'')+(sn?' ⟦s:'+sn+'⟧':'')+tail;
+    saveRowNow('NextActions', row, {Action:txt,Tab:a.Tab||'',Due:a.Due||'',Done:''});
+  } else {
+    var all=cfgJson('todo_pt',{}), m=all[String(row)]||{};
+    if(snooze!==undefined){ if(snooze) m.s=snooze; else delete m.s; } if(group!==undefined){ if(group) m.g=group; else delete m.g; }
+    if(m.s||m.g) all[String(row)]=m; else delete all[String(row)];
+    todoSaveCfg({todo_pt:Object.keys(all).length?all:''}); todoRedraw();
+  }
+}
+function todoDateOf(kind){ var d=laNow(), n=new Date(d.getFullYear(),d.getMonth(),d.getDate());
+  if(kind==='tomorrow') n.setDate(n.getDate()+1); else if(kind==='week'){ n.setDate(n.getDate()+((8-n.getDay())%7||7)); } else return kind;
+  return ymd(n); }
+function todoSnooze(src,row,kind){ var v=kind==='pick'?(($('tdp_'+src+'_'+row)||{}).value||''):todoDateOf(kind); if(!v) return; todoSet(src,row,v); }
+function todoUnsnooze(src,row){ todoSet(src,row,''); }
+function todoSetGroup(src,row,sel){
+  var g=sel.value;
+  if(g==='__new'){ g=(prompt('Name the new group (e.g. Yard, Garage, Trip prep):')||'').trim(); if(!g){ sel.value=sel.getAttribute('data-cur')||''; return; }
+    var cfg=todoGroupsCfg(); if(cfg.list.indexOf(g)<0){ cfg.list.push(g); todoSaveCfg({todo_groups:cfg}); } }
+  todoSet(src,row,undefined,g);
+}
+function todoGroupSnooze(name,kind){
+  var cfg=todoGroupsCfg(), v=kind==='clear'?'':(kind==='pick'?(prompt('Snooze "'+name+'" until which date? (YYYY-MM-DD)')||'').trim():todoDateOf(kind));
+  if(kind==='pick'&&!/^\d{4}-\d{2}-\d{2}$/.test(v)) return;
+  if(v) cfg.snooze[name]=v; else delete cfg.snooze[name];
+  todoSaveCfg({todo_groups:cfg}); todoRedraw();
+}
+function todoUntil(v){ if(!v) return ''; if(v==='someday') return 'until you un-snooze'; var d=daysUntilDate(v); return 'back '+(d===1?'tomorrow':(d!=null&&d<8?'in '+d+' days':v)); }
+function todoRow(x,snoozed){
+  var k=todoItemKey(x), chip='<span class="td-area td-'+x.area.toLowerCase()+'">'+x.area+'</span>';
+  var due=(x.d!=null&&!snoozed)?'<span class="td-due '+(x.d<0?'od':(x.d<=2?'soon':''))+'">'+esc(fmtDue(x.d))+'</span>':(x.d!=null?'<span class="td-due">'+esc(fmtDue(x.d))+'</span>':'');
+  var until=(snoozed&&x.snz)?'<span class="td-until">💤 '+esc(todoUntil(x.snz))+(x.own?'':' (group)')+'</span>':'';
+  var btn=x.mail&&!snoozed?'<button class="ebtn pri td-act" onclick="event.stopPropagation();todoReply(\''+esc(x.mail)+'\')">✉ Review reply</button>':'';
+  var cfg=todoGroupsCfg(), opts='<option value="">No group</option>'+cfg.list.map(function(n){ return '<option'+(x.group===n?' selected':'')+' value="'+esc(n)+'">'+esc(n)+'</option>'; }).join('')+'<option value="__new">＋ New group…</option>';
+  var tools='<div class="td-tools"><span class="lbl">💤 Snooze</span>'
+    +'<button class="ebtn" onclick="todoSnooze(\''+x.src+'\','+x.row+',\'tomorrow\')">Tomorrow</button>'
+    +'<button class="ebtn" onclick="todoSnooze(\''+x.src+'\','+x.row+',\'week\')">Next week</button>'
+    +'<input type="date" id="tdp_'+k+'" aria-label="Snooze until"><button class="ebtn" onclick="todoSnooze(\''+x.src+'\','+x.row+',\'pick\')">Pick date</button>'
+    +'<button class="ebtn" onclick="todoSnooze(\''+x.src+'\','+x.row+',\'someday\')">Someday</button>'
+    +(x.own?'<button class="ebtn pri" onclick="todoUnsnooze(\''+x.src+'\','+x.row+')">Unsnooze</button>':'')
+    +'<span class="lbl" style="margin-left:10px">Group</span><select data-cur="'+esc(x.group||'')+'" onchange="todoSetGroup(\''+x.src+'\','+x.row+',this)" aria-label="Group">'+opts+'</select></div>';
+  return '<div class="td-row" id="tdr_'+k+'"><button class="td-chk" aria-label="Mark done" onclick="this.disabled=true;this.textContent=\'✓\';todoCheck(\''+x.src+'\','+x.row+')"></button>'
+    +'<div class="td-main"><div class="td-t">'+esc(x.text)+'</div><div class="td-meta">'+chip+due+until+'</div></div>'+btn
+    +'<button class="td-more" title="Snooze or group" aria-label="Snooze or group" onclick="todoTools(\''+k+'\')">⋯</button>'+tools+'</div>';
+}
+function todoGroupHead(name,items,snoozedHead){
+  var cfg=todoGroupsCfg(), sn=todoSnoozeOf(cfg.snooze[name]);
+  var act=sn?'<button class="ebtn gs" onclick="event.preventDefault();todoGroupSnooze(\''+esc(name).replace(/'/g,"\\'")+'\',\'clear\')">Unsnooze group</button>'
+    :'<span class="gs"><button class="ebtn" onclick="event.preventDefault();todoGroupSnooze(\''+esc(name).replace(/'/g,"\\'")+'\',\'tomorrow\')">Tomorrow</button> <button class="ebtn" onclick="event.preventDefault();todoGroupSnooze(\''+esc(name).replace(/'/g,"\\'")+'\',\'week\')">Next week</button> <button class="ebtn" onclick="event.preventDefault();todoGroupSnooze(\''+esc(name).replace(/'/g,"\\'")+'\',\'pick\')">Pick date</button> <button class="ebtn" onclick="event.preventDefault();todoGroupSnooze(\''+esc(name).replace(/'/g,"\\'")+'\',\'someday\')">Someday</button></span>';
+  return '<summary>'+esc(name)+' <span class="gn">'+items.length+(sn?' · 💤 '+esc(todoUntil(sn)):'')+'</span>'+act+'</summary>';
+}
 function todoCard(){
   if(ROLE==='chelsea') return '';
-  var all=todoItems(), church=all.filter(function(x){return x.area==='Church';}).length, life=all.length-church;
+  var every=todoItems(), all=every.filter(function(x){return !x.snz;}), snoozed=every.filter(function(x){return x.snz;}), cfg=todoGroupsCfg();
+  var church=all.filter(function(x){return x.area==='Church';}).length, life=all.length-church;
   var list=TODO_FILTER==='All'?all:all.filter(function(x){return x.area===TODO_FILTER;});
   var over=all.filter(function(x){return x.d!=null&&x.d<0;}).length;
   var tabs=['All','Church','Life'].map(function(f){ var n=f==='All'?all.length:(f==='Church'?church:life);
     return '<button class="td-tab'+(TODO_FILTER===f?' on':'')+'" onclick="todoFilter(\''+f+'\')">'+f+' <b>'+n+'</b></button>'; }).join('');
-  var rows=list.map(function(x){
-    var chip='<span class="td-area td-'+x.area.toLowerCase()+'">'+x.area+'</span>';
-    var due=x.d!=null?'<span class="td-due '+(x.d<0?'od':(x.d<=2?'soon':''))+'">'+esc(fmtDue(x.d))+'</span>':'';
-    var btn=x.mail?'<button class="ebtn pri td-act" onclick="event.stopPropagation();todoReply(\''+esc(x.mail)+'\')">✉ Review reply</button>':'';
-    return '<div class="td-row"><button class="td-chk" aria-label="Mark done" onclick="this.disabled=true;this.textContent=\'✓\';todoCheck(\''+x.src+'\','+x.row+')"></button>'
-      +'<div class="td-main"><div class="td-t">'+esc(x.text)+'</div><div class="td-meta">'+chip+due+'</div></div>'+btn+'</div>'; });
+  var loose=list.filter(function(x){return !x.group;}), rows=loose.map(function(x){ return todoRow(x,false); });
   rows=rows.slice(0,12).join('')+(rows.length>12?'<details class="mit-more"><summary style="font-size:16px">'+(rows.length-12)+' more on your list</summary>'+rows.slice(12).join('')+'</details>':'');
+  /* groups: each its own collapsible heading (closed by default); a snoozed group moves down to Snoozed */
+  var names=cfg.list.slice(); list.forEach(function(x){ if(x.group&&names.indexOf(x.group)<0) names.push(x.group); });
+  var groups=names.filter(function(n){ return !todoSnoozeOf(cfg.snooze[n]); }).map(function(n){
+    var items=list.filter(function(x){return x.group===n;}); if(!items.length) return '';
+    return '<details class="td-grp"'+(TODO_OPEN['g_'+n]?' open':'')+' ontoggle="todoTog(\'g_'+esc(n).replace(/'/g,"\\'")+'\',this)">'+todoGroupHead(n,items)+items.map(function(x){return todoRow(x,false);}).join('')+'</details>'; }).join('');
+  var snz='';
+  if(snoozed.length){
+    var snList=TODO_FILTER==='All'?snoozed:snoozed.filter(function(x){return x.area===TODO_FILTER;});
+    var sg=names.filter(function(n){ return todoSnoozeOf(cfg.snooze[n]); }).map(function(n){ var items=snList.filter(function(x){return x.group===n&&!x.own;}); if(!items.length&&!snList.some(function(x){return x.group===n;})) return '';
+      var all2=snList.filter(function(x){return x.group===n;});
+      return '<details class="td-grp"'+(TODO_OPEN['sg_'+n]?' open':'')+' ontoggle="todoTog(\'sg_'+esc(n).replace(/'/g,"\\'")+'\',this)">'+todoGroupHead(n,all2)+all2.map(function(x){return todoRow(x,true);}).join('')+'</details>'; }).join('');
+    var single=snList.filter(function(x){ return !(x.group&&todoSnoozeOf(cfg.snooze[x.group])); }).map(function(x){return todoRow(x,true);}).join('');
+    snz='<details class="td-snz"'+(TODO_OPEN.snz?' open':'')+' ontoggle="todoTog(\'snz\',this)"><summary>💤 Snoozed ('+snoozed.length+')</summary>'+sg+single+'</details>';
+  } else {
+    var emptyG=names.filter(function(n){ return todoSnoozeOf(cfg.snooze[n]); });
+    if(emptyG.length) snz='<details class="td-snz"><summary>💤 Snoozed groups ('+emptyG.length+')</summary>'+emptyG.map(function(n){ return '<details class="td-grp">'+todoGroupHead(n,[])+'</details>'; }).join('')+'</details>';
+  }
   var add='<div class="td-add"><input id="tdText" type="text" placeholder="Add a to-do…" aria-label="New to-do" onkeydown="if(event.key===\'Enter\')todoAdd()">'
     +'<input id="tdDue" type="date" aria-label="Due date"><select id="tdArea" aria-label="Area"><option>Church</option><option>Life</option></select>'
+    +'<select id="tdGroup" aria-label="Group"><option value="">No group</option>'+cfg.list.map(function(n){ return '<option value="'+esc(n)+'">'+esc(n)+'</option>'; }).join('')+'</select>'
     +'<button class="ebtn pri" id="tdBtn" onclick="todoAdd()">＋ Add</button></div>';
   var auto=smartSteps().filter(function(s){ return !s.row && !/^Keep your /.test(s.t); }).slice(0,8);
   BIG3=auto;
   var autoHtml=auto.length?'<details class="mit-more"><summary>'+auto.length+' suggested from your data (health, flying, money…)</summary>'+auto.map(function(s,i){
     return '<div class="mit-sm"><span class="chk chk-auto">•</span><button type="button" class="mit-t mit-go" onclick="openStep('+i+')"><span class="mit-tx">'+esc(s.t)+'</span></button><span class="mit-r">'+domChip(s.tab)+(s.d!=null?' <span class="'+dueClass(s.d)+'">'+fmtDue(s.d)+'</span>':'')+'</span></div>'; }).join('')+'</details>':'';
-  var sub=all.length?(all.length+' open'+(over?' · '+over+' overdue':'')+' — soonest first.'):'';
-  return card('✅ To-do', sub, '<div class="td-tabs">'+tabs+'</div>'+add+(rows||'<div class="empty" style="font-size:17px;padding:18px 0">Nothing here. Enjoy it — or add something above.</div>')+autoHtml, '--gold')+'<div style="height:22px"></div>';
+  var sub=all.length?(all.length+' open'+(over?' · '+over+' overdue':'')+(snoozed.length?' · '+snoozed.length+' snoozed':'')+' — soonest first.'):(snoozed.length?snoozed.length+' snoozed.':'');
+  return card('✅ To-do', sub, '<div class="td-tabs">'+tabs+'</div>'+add+(rows||(groups?'':'<div class="empty" style="font-size:17px;padding:18px 0">Nothing here. Enjoy it — or add something above.</div>'))+groups+snz+autoHtml, '--gold')+'<div style="height:22px"></div>';
 }
 function big3Card(){
   var steps=smartSteps().filter(function(s){ return !/^Keep your /.test(s.t); });   // habits live in Daily rhythm
@@ -5713,7 +5824,7 @@ function lifeSignals(){
   var live=it.filter(function(x){ return !/^(junk|spam|unimportant)$/.test(String(x.Category)) && !mailMachine(x); });
   var act=spotOneThread(live.filter(function(x){ return /^(important|reply)$/.test(String(x.Category)) && mailOpen(x) && (mailRecent(x,14) || spotDue(x)) && SPOT_ACT.test(spotText(x)) && !seen[x.Id] && !spotPast(x) && !spotOnList(x); }).sort(mailSort)).sort(spotDueSort);
   var opp=spotOneThread(live.filter(function(x){ return mailRecent(x,14) && SPOT_OPP.test(spotText(x)) && !seen[x.Id] && !spotPast(x) && act.indexOf(x)<0; }).sort(function(a,b){ return mailT(b.Date)-mailT(a.Date); }));
-  var open=arr('NextActions').filter(function(r){ return has(r.Action) && !truthy(r.Done); });
+  var open=arr('NextActions').filter(function(r){ return has(r.Action) && !truthy(r.Done) && !naSnoozed(r); });
   var late=open.filter(function(r){ return has(r.Due) && spotDay(r.Due) && spotDay(r.Due)<today; }).map(function(r){ return {t:String(r.Action), tab:r.Tab||'overview', due:spotDay(r.Due)}; });
   arr('ProjectTasks').forEach(function(r){ if(has(r.Task) && !truthy(r.Done) && has(r.Due) && spotDay(r.Due) && spotDay(r.Due)<today) late.push({t:String(r.Task), tab:'life', due:spotDay(r.Due)}); });
   var undated=open.filter(function(r){ return !has(r.Due); }).length;
@@ -5759,7 +5870,7 @@ async function spotTodo(id){ var x=mailById(id); if(!x) return; var t=mailClip(x
   if(res&&res.ok){ spotMark(id); toast(due?'Added to your list, due '+shortDay(due):'Added to your list'); await afterWrite(); } else toast('Couldn’t add that. Try again.'); }
 function spotDismiss(id){ spotMark(id); render(CURRENT); }
 // "Date three": the three oldest to-dos with no date, each with a date box. Only boxes that were filled are saved.
-function spotUndated(){ return arr('NextActions').filter(function(r){ return has(r.Action) && !truthy(r.Done) && !has(r.Due); }).sort(function(a,b){ return a.__row-b.__row; }).slice(0,3); }
+function spotUndated(){ return arr('NextActions').filter(function(r){ return has(r.Action) && !truthy(r.Done) && !has(r.Due) && !naSnoozed(r); }).sort(function(a,b){ return a.__row-b.__row; }).slice(0,3); }
 function spotDateSheet(){ var list=spotUndated(); if(!list.length) return;
   $('modalSheet').innerHTML='<button class="mclose" onclick="closeModal()" aria-label="Close">×</button><div class="mhead"><h2>Date three to-dos</h2></div>'
     +'<p class="foot foot-dim">A date is what pulls a to-do onto Today. Leave any box empty to skip it.</p><div id="eform">'
