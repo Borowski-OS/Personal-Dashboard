@@ -2998,9 +2998,7 @@ async function todoAdd(){
   $('tdBtn').disabled=true;
   var res=await apiWrite({action:'upsert',tab:'NextActions',row:JSON.stringify({Action:t,Tab:area.toLowerCase(),Due:due,Done:''})});
   if(res&&res.ok){
-    var before={}; arr('NextActions').forEach(function(a){ before[a.__row]=1; });
-    TODO_FILTER='All'; await afterWrite();
-    arr('NextActions').forEach(function(a){ if(!before[a.__row]&&a.Action===t) TODO_NEW=a.__row; });
+    TODO_NEW=res.rownum; TODO_FILTER='All'; await afterWrite();
     render(CURRENT); toast('Added to your to-do list ✓',2500);
   } else { $('tdBtn').disabled=false; toast('Could not save — try again.'); }
 }
