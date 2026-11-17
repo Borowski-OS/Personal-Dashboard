@@ -2978,9 +2978,12 @@ function todoItems(){
     var d=has(t.Due)?daysUntilDate(t.Due):null, txt=t.Task+(has(t.Project)?' ('+t.Project+')':'');
     var pm=todoPtMeta(t.__row);
     out.push({src:'ProjectTasks', row:t.__row, text:txt, mail:'', d:d, area:todoArea('',t.Project+' '+t.Task), group:pm.g||'', own:pm.s||'', snz:todoHidden(pm.g||'',pm.s||'')}); });
-  out.sort(function(a,b){ var A=a.d==null?9999:a.d, B=b.d==null?9999:b.d; return A-B || a.row-b.row; });
+  /* the item just added always shows first (it used to land at the bottom, folded under "N more", so Add looked like it did nothing) */
+  out.sort(function(a,b){ var an=(a.src==='NextActions'&&a.row===TODO_NEW)?0:1, bn=(b.src==='NextActions'&&b.row===TODO_NEW)?0:1; if(an!==bn) return an-bn;
+    var A=a.d==null?9999:a.d, B=b.d==null?9999:b.d; return A-B || a.row-b.row; });
   return out;
 }
+var TODO_NEW=null;
 function todoCheck(src,row){
   var t=arr(src).filter(function(r){return String(r.__row)===String(row);})[0]; if(!t) return;
   if(src==='NextActions') saveRowNow('NextActions', row, {Action:t.Action,Tab:t.Tab||'',Due:t.Due||'',Done:'TRUE'});
@@ -2994,7 +2997,12 @@ async function todoAdd(){
   if(grp) t+=' ⟦g:'+grp+'⟧';
   $('tdBtn').disabled=true;
   var res=await apiWrite({action:'upsert',tab:'NextActions',row:JSON.stringify({Action:t,Tab:area.toLowerCase(),Due:due,Done:''})});
-  if(res&&res.ok){ await afterWrite(); } else { $('tdBtn').disabled=false; toast('Could not save — try again.'); }
+  if(res&&res.ok){
+    var before={}; arr('NextActions').forEach(function(a){ before[a.__row]=1; });
+    TODO_FILTER='All'; await afterWrite();
+    arr('NextActions').forEach(function(a){ if(!before[a.__row]&&a.Action===t) TODO_NEW=a.__row; });
+    render(CURRENT); toast('Added to your to-do list ✓',2500);
+  } else { $('tdBtn').disabled=false; toast('Could not save — try again.'); }
 }
 async function todoReply(id){
   toast('Opening the reply…',1500);
